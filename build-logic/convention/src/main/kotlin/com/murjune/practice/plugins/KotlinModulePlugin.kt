@@ -11,7 +11,7 @@ class KotlinModulePlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             apply<JvmLibraryPlugin>()
-            apply<JUnit5Plugin>()
+            apply<UnitTestPlugin>()
         }
 
     }

@@ -8,7 +8,7 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.kotlin
 import org.gradle.kotlin.dsl.withType
 
-class JUnit5Plugin : Plugin<Project> {
+class UnitTestPlugin : Plugin<Project> {
     override fun apply(target: Project): Unit =
         with(target) {
 
@@ -18,10 +18,7 @@ class JUnit5Plugin : Plugin<Project> {
 
             dependencies {
                 add("testImplementation", kotlin("test"))
-                add("testImplementation", libs.findBundle("junit5").get())
-                add("testImplementation", libs.findLibrary("assertj").get())
-                add("testImplementation", libs.findLibrary("kotlin-coroutines-test").get())
-                add("testImplementation", libs.findLibrary("kotest").get())
+                add("testImplementation", libs.findBundle("unit-test").get())
             }
         }
 }

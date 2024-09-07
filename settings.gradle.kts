@@ -22,3 +22,4 @@ rootProject.name = "kotlin-study-murjune"
 include("kotlin-practice")
 include("design-pattern")
 include("coroutine")
+include(":robolectric")
