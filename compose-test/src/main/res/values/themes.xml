@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.Robolectric" parent="Theme.AppCompat.Light" />
+</resources>
