@@ -5,13 +5,23 @@
 코루틴 예외에 대한 보충 설명 및 상세한 설명을 포스팅하려 합니다.
 
 이번 포스팅에서는 `SupervisorJob 을 활용해서 예외 전파 제한하는 방법`에 대해서 알아볼 것입니다.  
-테코톡에서는 [3:48 ~ 8:12] 에 해당하는 내용입니다.  
-만약, 코루틴이 예외를 어떻게 전파되는지 궁금하신 분은 이전에 포스팅한 [코루틴 예외가 전파되는 방식](https://velog.io/@murjune/kotlin-Coroutine-%EC%BD%94%EB%A3%A8%ED%8B%B4-%EC%98%88%EC%99%B8%EA%B0%80-%EC%A0%84%ED%8C%8C%EB%90%98%EB%8A%94-%EB%B0%A9%EC%8B%9D%EC%9D%84-%EC%95%8C%EC%95%84%EB%B3%B4%EC%9E%90-0lac2p97) 을 참고해주세요!
+테코톡에서는 [3:48 ~ 8:12] 에 해당하는 내용입니다.
+
+지난 시간에 배운 내용 리마인드~
+> - 코루틴 예외 전파 메커니즘
+> 1) 예외가 발생할 시, `자기 자신`을 취소시킨다. (자식 코루틴들 모두 취소)
+> 2) 예외 발생 시, `부모로 예외를  전파`시킨다. (부모, 형제 코루틴들 모두 취소)
+>
+> 좀 더 궁금하신 분은 이전에 포스팅한 [코루틴 예외가 전파되는 방식](https://velog.io/@murjune/kotlin-Coroutine-%EC%BD%94%EB%A3%A8%ED%8B%B4-%EC%98%88%EC%99%B8%EA%B0%80-%EC%A0%84%ED%8C%8C%EB%90%98%EB%8A%94-%EB%B0%A9%EC%8B%9D%EC%9D%84-%EC%95%8C%EC%95%84%EB%B3%B4%EC%9E%90-0lac2p97)을 참고해주세요
+
+
 
 ---
 
 # 예외 전파 제한이 필요한 경우
 코루틴을 활용하여 비동기 작업을 하다 보면 하나의 작업을 여러 작업으로 쪼개 병렬처리하는 경우가 종종 있습니다. 보통 suspend 함수에서 코루틴 빌더함수 [async](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/async.html) 와 코루틴 스코프 함수[coroutineScope](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/coroutine-scope.html)를 활용하여 처리합니다.
+
+> async 와 coroutineScope 를 사용하여 병렬 처리하는 이유를 자세히 알고 싶으신 분은 [Kotlin Coroutine: suspend 함수를 Effective 하게 설계하자!](https://velog.io/@murjune/Kotlin-Coroutine-suspend-%ED%95%A8%EC%88%98%EB%A5%BC-Effective-%ED%95%98%EA%B2%8C-%EC%82%AC%EC%9A%A9%ED%95%98%EC%9E%90-fsaiexxw#3-coroutinescope-or-withcontext-%ED%95%A8%EC%88%98%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%98%EC%9E%90) 에서 `2) suspend function 에서 병렬 처리할 때, CoroutineScope를 사용하지 말자` 와 `3) coroutineScope or withContext 함수를 활용하자!⭐️` 부분을 참고해주세요 😉
 
 로컬 저장소의 이미지 경로를 통해 서버에 이미지들을 업로드한 후, 이미지 url을 받아오는 예제를 통해  `예외 전파 제한이 필요성`에 대해 알아볼 것이에요!😎
 
