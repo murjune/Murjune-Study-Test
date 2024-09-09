@@ -6,13 +6,25 @@ import kotlin.test.Test
 
 class DijkstraTest {
     @Test
-    fun `startNode 와 간선 정보들을 지정하면 각 노드들의 최단 경로를 알려준다`() {
+    fun `oneToAll - 시작 노드에서 모든 노드들의 최단 경로를 알려준다`() {
         // given
-        val dijkstra = dijstra(testCase1)
+        val dijkstra = Dijkstra(testCase1.n, testCase1.edges)
+        val startNode = 1
         // when
-        val result = dijkstra.shortDistances()
+        val result = dijkstra.oneToAll(startNode)
         // then
         result shouldBe listOf(0, 2, 3, 1, 2, 4)
+    }
+
+    @Test
+    fun `AllToOne - 모든 노드에서 시작 노드까지의 최단 경로를 알려준다`() {
+        // given
+        val dijkstra = Dijkstra(testCase1.n, testCase1.edges)
+        val startNode = 3
+        // when
+        val result = dijkstra.allToOne(startNode)
+        // then
+        result shouldBe listOf(3, 3, 0, 2, 1, INF)
     }
 
     @Test
@@ -20,7 +32,7 @@ class DijkstraTest {
         shouldThrow<IllegalArgumentException> {
 
             Dijkstra(
-                3, 2,
+                3,
                 listOf(
                     Edge(1, 2, 1),
                     Edge(1, 2, 2)
@@ -32,13 +44,12 @@ class DijkstraTest {
     private companion object {
         class TestCase(
             val n: Int,
-            val startNode: Int,
             val edges: List<Edge>
         )
 
+        const val INF = Int.MAX_VALUE
         val testCase1 = TestCase(
             6,
-            1,
             listOf(
                 Edge(1, 2, 2),
                 Edge(1, 3, 5),
@@ -53,7 +64,5 @@ class DijkstraTest {
                 Edge(5, 6, 2)
             )
         )
-
-        fun dijstra(testCase: TestCase) = Dijkstra(testCase.n, testCase.startNode, testCase.edges)
     }
 }

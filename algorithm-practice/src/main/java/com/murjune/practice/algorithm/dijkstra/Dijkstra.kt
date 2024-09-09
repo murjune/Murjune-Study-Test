@@ -4,11 +4,13 @@ import java.util.PriorityQueue
 
 class Dijkstra(
     val n: Int,
-    val startNode: Int,
     val edges: List<Edge>,
 ) {
     private val distance: IntArray = IntArray(n + 1) { Int.MAX_VALUE }
-    private val graph: Array<MutableList<Node>> = Array(n + 1) {
+    private val oneToAllGraph: Array<MutableList<Node>> = Array(n + 1) {
+        mutableListOf()
+    }
+    private val allToOneGraph: Array<MutableList<Node>> = Array(n + 1) {
         mutableListOf()
     }
 
@@ -17,15 +19,11 @@ class Dijkstra(
             "n must be greater than or equal to 1"
         }
 
-        require(startNode in 0..n) {
-            "startNode must be in 0..n"
-        }
-
-        require(edges.all { it.from in 0 .. n }) {
+        require(edges.all { it.from in 0..n }) {
             "edges.from must be in 0 until n"
         }
 
-        require(edges.all { it.to in 0 .. n }) {
+        require(edges.all { it.to in 0..n }) {
             "edges.to must be in 0 until n"
         }
 
@@ -37,11 +35,27 @@ class Dijkstra(
 
     private fun initGraph() {
         edges.forEach { (f, t, cost) ->
-            graph[f].add(Node(t, cost))
+            oneToAllGraph[f].add(Node(t, cost))
+            allToOneGraph[t].add(Node(f, cost))
         }
     }
 
-    fun shortDistances(isNodeStartZero: Boolean = false): List<Int> {
+    fun oneToAll(startNode: Int, isNodeStartZero: Boolean = false): List<Int> {
+        return shortDistances(oneToAllGraph, startNode, isNodeStartZero)
+    }
+
+    fun allToOne(startNode: Int, isNodeStartZero: Boolean = false): List<Int> {
+        return shortDistances(allToOneGraph, startNode, isNodeStartZero)
+    }
+
+    private fun shortDistances(
+        graph: Array<MutableList<Node>>,
+        startNode: Int,
+        isNodeStartZero: Boolean = false
+    ): List<Int> {
+        require(startNode in 0..n) {
+            "startNode must be in 0..n"
+        }
         val start = Node(startNode, 0)
         val pq = PriorityQueue<Node>(compareBy { it.cost }).apply {
             add(start)
