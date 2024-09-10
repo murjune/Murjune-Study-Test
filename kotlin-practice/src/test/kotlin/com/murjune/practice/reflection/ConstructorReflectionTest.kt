@@ -1,6 +1,9 @@
 package com.murjune.practice.reflection
 
+import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -38,6 +41,22 @@ class ConstructorReflectionTest {
     }
 
     class Flyables(val airplane: Airplane, val duck: Duck)
+
+
+    @Test
+    fun `Duck 의 KClass 정보`() {
+        val clazz = Duck::class
+        assertSoftly {
+            clazz.isAbstract.shouldBeFalse()
+            clazz.java.isInterface.shouldBeFalse()
+            clazz.isCompanion.shouldBeFalse()
+            clazz.isData.shouldBeFalse()
+            clazz.isFinal.shouldBeTrue()
+            clazz.isInner.shouldBeFalse()
+            clazz.isInstance(Duck()).shouldBeTrue()
+            clazz.isSealed.shouldBeFalse()
+        }
+    }
 
     @Test
     fun `kotlin - 주 생성자로 Airplane 객체 생성`() {
