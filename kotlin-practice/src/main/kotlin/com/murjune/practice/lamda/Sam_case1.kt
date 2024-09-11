@@ -66,7 +66,7 @@ fun main() {
 
 val x = 1
 
-fun foo() {
+private fun foo() {
     val x = 10
     bar()
 }
