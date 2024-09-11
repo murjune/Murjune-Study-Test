@@ -45,12 +45,19 @@ class ChannelTrySendTest {
     fun `trySend() 는 Buffer 크기가 0이면 항상 실패한다`() = runTest {
         // given
         val channel = Channel<Int>()
+        val result = mutableListOf<Int>()
         launch {
-            repeat(10) { channel.trySend(1).isFailure.shouldBeTrue() }
+            repeat(10) {
+                channel.trySend(1).isFailure.shouldBeTrue()
+            }
             channel.close()
         }
         launch {
-            channel.consumeEach { println(it) }
+            channel.consumeEach {
+                result.add(it)
+            }
         }
+        advanceUntilIdle()
+        result shouldHaveSize 0
     }
 }

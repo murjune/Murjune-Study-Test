@@ -2,7 +2,9 @@ package com.murjune.practice.suspense
 
 import com.murjune.practice.utils.shouldBeCompleted
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -83,9 +85,7 @@ class BasicSuspendFunctionTest {
 
     @Test
     fun `다른 코루틴 디스패처를 사용하면 구조화된 동시성이 깨져, 독립된 코루틴이 된다`() = runTest {
-        launch {
-            suspendFuncWithAnotherCoroutineScope()
-        }
+        suspendFuncWithAnotherCoroutineScope()
         advanceUntilIdle()
         currentTime shouldBe 0
         // output: x
@@ -96,7 +96,9 @@ class BasicSuspendFunctionTest {
     fun `우테코 선릉 캠퍼스 크루들 불러오기 -  동시성`() = runTest {
         val crews = fetchWootecoCrews()
         currentTime shouldBe 300
-        crews shouldContainExactlyInAnyOrder listOf("오둥이", "꼬상", "하디", "팡태", "악어", "케이엠", "토다리", "제이드")
+        println(crews)
+        crews.shouldHaveSize(24)
+        crews shouldContainAll listOf("오둥이", "차람", "제이드", "파란")
     }
 
     @Test
@@ -152,31 +154,6 @@ class BasicSuspendFunctionTest {
             delay(200)
             println("Hellow Odooong")
         }
-    }
-
-    private suspend fun fetchWootecoAndroidCrews(): List<String> {
-        delay(300)
-        return listOf("오둥이", "꼬상", "하디", "팡태", "악어", "케이엠")
-    }
-
-    private suspend fun fetchWootecoFrontendCrews(): List<String> {
-        delay(200)
-        return listOf("토다리", "제이드")
-    }
-
-    private suspend fun fetchAndroidCoaches(): List<String> {
-        delay(50)
-        return listOf("제이슨", "레아", "제임스")
-    }
-
-    private suspend fun fetchFrontCoaches(): List<String> {
-        delay(150)
-        return listOf("준", "크론")
-    }
-
-    private suspend fun fetchBackCoaches(): List<String> {
-        delay(70)
-        throw NoSuchElementException("제가 백엔드 코치님들은 모릅니다..")
     }
 
     private suspend fun fetchWootecoCrews() = coroutineScope {

@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import kotlin.system.measureTimeMillis
 import kotlin.test.Test
 import kotlin.time.Duration.Companion.milliseconds
@@ -36,7 +37,7 @@ class CoroutineBasicOfBasicTest {
     }
 
     @Test
-    fun `테스트 가상 환경에서 시간 경과 테스트`() = runTest {
+    fun `테스트 가상 환경에서 시간 경과 테스트2`() = runTest {
         var count = 0
         val job = launch {
             delay(3_000)
@@ -51,6 +52,25 @@ class CoroutineBasicOfBasicTest {
         runCurrent()
         count shouldBe 1
         job.isCompleted.shouldBeTrue()
+    }
+
+    @Test
+    fun `테스트 가상 환경에서 시간 경과 테스트`() = runTest {
+        launch(CoroutineName("작업 A")) {
+            println("작업 A start -- currentTime:${currentTime}ms")
+            delay(2_999)
+            println("작업 A Done -- currentTime:${currentTime}ms")
+        }
+        launch(CoroutineName("작업 B")) {
+            println("작업 B start -- currentTime:${currentTime}ms")
+            delay(3000)
+            println("작업 B Done -- currentTime:${currentTime}ms")
+        }
+        yield()
+        println("advanceTimeBy(3000) 호출")
+        advanceTimeBy(3_000)
+        println("runCurrent() 호출 -- currentTime:${currentTime}ms")
+        runCurrent()
     }
 
     @Test

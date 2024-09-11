@@ -11,12 +11,12 @@ import kotlin.coroutines.coroutineContext
 
 private suspend fun suspendFuncA() {
     delay(300)
-    println("Hello")
+    print("Hello ")
 }
 
 private suspend fun suspendFuncB() {
     delay(200)
-    println("Odooong")
+    print("Odooong ")
 }
 
 private suspend fun suspendFunAWithCoroutineScope() {
@@ -57,14 +57,13 @@ fun main() {
         launchWithElapsedTime("suspend") {
             suspendFuncA()
             suspendFuncB()
-            // 동기 실행
         }.join()
-        // output: 1 2
+        // output: Hello Odooong
         launchWithElapsedTime("suspend + coroutineScope") {
             suspendFunAWithCoroutineScope()
             suspendFunBWithCoroutineScope()
         }.join()
-        // output: 2 1
+        // output: Odooong Hello
         launchWithElapsedTime("suspend + launch") {
             launch {
                 suspendFuncA()
@@ -73,7 +72,7 @@ fun main() {
                 suspendFuncB()
             }
         }.join()
-        // output: 2 1
+        // output: Odooong Hello
         launchWithElapsedTime("suspend + coroutineScope") {
             parallelSuspendFunc()
         }.join()

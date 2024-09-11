@@ -1,18 +1,43 @@
 package com.murjune.practice.utils
 
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
-fun CoroutineScope.launchWithName(name: String, job: Job? = null, block: suspend CoroutineScope.() -> Unit): Job {
-    val newJob = if (job == null) {
+//fun CoroutineScope.launchWithName(
+//    name: String,
+//    context: CoroutineContext = EmptyCoroutineContext,
+//    block: suspend CoroutineScope.() -> Unit
+//): Job {
+//    val newJob = if (context[Job] == null) {
+//        CoroutineName(name)
+//    } else {
+//        CoroutineName(name) + coroutineContext.job
+//    }
+//    log("$name 실행 준비")
+//    return launch(newJob) {
+//        log("$name 실행중")
+//        block()
+//    }.apply {
+//        invokeOnCompletion {
+//            log("$name 종료")
+//        }
+//    }
+//}
+
+fun CoroutineScope.launchWithName(
+    name: String,
+    context: CoroutineContext = EmptyCoroutineContext,
+    block: suspend CoroutineScope.() -> Unit
+): Job {
+    val newJob = if (context[Job] == null) {
         CoroutineName(name)
     } else {
-        CoroutineName(name) + job
+        CoroutineName(name) + coroutineContext.job
     }
+    log("$name 실행 준비")
     return launch(newJob) {
-        log("$name 시작")
+        log("$name 실행중")
         block()
     }.apply {
         invokeOnCompletion {
