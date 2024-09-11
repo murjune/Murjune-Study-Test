@@ -1,0 +1,1895 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+                                           xmlns:content="http://purl.org/rss/1.0/modules/content/"
+                                           xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+                                           xmlns:dc="http://purl.org/dc/elements/1.1/"
+                                           xmlns:atom="http://www.w3.org/2005/Atom"
+                                           xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+                                           xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+>
+
+    <channel>
+        <title>우아한형제들 기술블로그</title>
+        <atom:link href="https://techblog.woowahan.com/feed/" rel="self" type="application/rss+xml" />
+        <link>https://techblog.woowahan.com</link>
+        <description></description>
+        <lastBuildDate>Thu, 30 May 2024 06:40:10 +0000</lastBuildDate>
+        <language>ko-KR</language>
+        <sy:updatePeriod>
+            hourly	</sy:updatePeriod>
+        <sy:updateFrequency>
+            1	</sy:updateFrequency>
+
+
+        <image>
+            <url>https://techblog.woowahan.com/wp-content/uploads/2020/08/favicon.ico</url>
+            <title>우아한형제들 기술블로그</title>
+            <link>https://techblog.woowahan.com</link>
+            <width>32</width>
+            <height>32</height>
+        </image>
+        <item>
+            <title>우리팀은 카프카를 어떻게 사용하고 있을까</title>
+            <link>https://techblog.woowahan.com/17386/</link>
+            <comments>https://techblog.woowahan.com/17386/#respond</comments>
+
+            <dc:creator><![CDATA[김나은]]></dc:creator>
+            <pubDate>Thu, 30 May 2024 06:40:10 +0000</pubDate>
+            <category><![CDATA[Backend]]></category>
+            <category><![CDATA[EventBus]]></category>
+            <category><![CDATA[Kafka]]></category>
+            <category><![CDATA[KafkaStreams]]></category>
+            <category><![CDATA[TransactionalOutboxPattern]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=17386</guid>
+
+            <description><![CDATA[<p>누가 읽으면 좋을까? 카프카(Kafka)가 무엇인지 알고 있는 독자를 대상으로 합니다. 기술적 구현방식을 다루기보단 카프카를 기반으로 한 다양한 기술적 개념에 대해서 얇고 넓게 소개하고, 우리팀에서 어떻게 적용하는지 사례를 공유합니다. 기술적 내용에 대해 자세히 알고 싶다면 공식문서나 다른 기술블로그를 참고해 주세요. 글 하단 &#34;참고 자료&#34;에 관련 링크도 첨부하였습니다. 아래와 같은 키워드가 등장합니다. 각 문단에서 개념을 간단하게 설명하며 [&#8230;]</p>
+The post <a href="https://techblog.woowahan.com/17386/">우리팀은 카프카를 어떻게 사용하고 있을까</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<h1>누가 읽으면 좋을까?</h1>
+<p>카프카(Kafka)가 무엇인지 알고 있는 독자를 대상으로 합니다. 기술적 구현방식을 다루기보단 카프카를 기반으로 한 다양한 기술적 개념에 대해서 얇고 넓게 소개하고, 우리팀에서 어떻게 적용하는지 사례를 공유합니다. 기술적 내용에 대해 자세히 알고 싶다면 공식문서나 다른 기술블로그를 참고해 주세요. 글 하단 &quot;참고 자료&quot;에 관련 링크도 첨부하였습니다.</p>
+<p>아래와 같은 키워드가 등장합니다. 각 문단에서 개념을 간단하게 설명하며 진행할 예정이나 관련 배경지식이 있다면 더 쉽게 이해할 수 있을 것으로 예상됩니다.</p>
+<ul>
+<li>Kafka</li>
+<li>Transactional Outbox Pattern</li>
+<li>Event Bus</li>
+<li>Kafka Streams</li>
+</ul>
+<h1>카프카, 한 섹션 요약</h1>
+<p>먼저 카프카를 매우 간단하게 알아보겠습니다. 카프카는 분산 스트리밍 플랫폼으로, 대량의 데이터를 처리하고 실시간으로 전송하는 데 사용됩니다. 모든 데이터는 로그 형식으로 파일 시스템에 기록됩니다. 여기서 말하는 로그는 추가만 가능하며, 시간순으로 완전히 정렬된 데이터의 흐름(레코드 시퀀스)을 의미합니다. 로그를 한곳에 모아 처리할 수 있도록 중앙집중화되어 있으며, 대용량 데이터를 수집하고 실시간 스트리밍으로 소비가 가능합니다.</p>
+<p>메시지(레코드)는 발행처(프로듀서)가 보낸 순서로 기록되어 순서가 보장되며, 메시지의 위치 값(offset)으로 소비자(컨슈머)가 소비한 메시지의 위치를 표시합니다. 각 컨슈머 그룹마다 메시지의 위치 값을 가지고 있기 때문에 같은 소스에서 서로 다른 여러 개의 컨슈머 그룹이 개별적으로 소비가 가능합니다. 한 소스(Single Origin)에서 여러 소비자가 손실이나 변형 없이 메시지를 소비할 수 있으며, 원천 데이터를 기반으로 데이터 분석도 가능합니다.</p>
+<p>아래는 이 글을 이해하는 데 필요한 카프카의 기본적인 용어와 개념입니다.</p>
+<ul>
+<li>토픽(Topic): 데이터의 주제를 나타내며, 이름으로 분리된 로그입니다. 메시지를 보낼 때는 특정 토픽을 지정합니다.</li>
+<li>파티션(Partition): 토픽은 하나 이상의 파티션으로 나누어질 수 있으며, 각 파티션은 순서가 있는 연속된 메시지의 로그입니다. 파티션은 병렬 처리를 지원하고, 데이터의 분산 및 복제를 관리합니다.</li>
+<li>레코드(Record): 레코드는 데이터의 기본 단위로 키와 값(key-value pair) 구성입니다.</li>
+<li>오프셋(Offset): 특정 파티션 내의 레코드 위치를 식별하는 값입니다.</li>
+<li>프로듀서(Producer): 데이터를 토픽에 보내는 역할을 하며, 메시지를 생성하고 특정 토픽으로 보냅니다.</li>
+<li>컨슈머(Consumer):토픽에서 데이터를 읽는 역할을 하며, 특정 토픽의 메시지를 가져와서(poll)  처리합니다. 컨슈머 그룹은 여러 개의 컨슈머 인스턴스를 그룹화하여 특정 토픽의 파티션을 공유하도록 구성합니다. 이를 통해 데이터를 병렬로 처리하고 처리량을 증가시킬 수 있습니다.</li>
+<li>카프카 커넥터(Connector): 카프카와 외부 시스템을 연동 시 쉽게 연동 가능하도록 하는 프레임워크로 MySQL, S3 등 다양한 프로토콜과 연동을 지원합니다.
+<ul>
+<li>소스커넥터(source connector): 메시지 발행과 관련 있는 커넥터</li>
+<li>싱크커넥터(sink connector): 메시지 소비와 관련 있는 커넥터</li>
+</ul>
+</li>
+</ul>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/최종1-kafka개념-750x333.jpg" alt="concept of kafka" /></p>
+<h1>우리팀에서 활용하는 방식</h1>
+<p>딜리버리서비스팀은 하루 100만 건 이상 생성되는 배민배달(배달의 민족에서 관리하는 자체 배달)을 중계하는 역할을 합니다. 배달의 민족에서 제공하는 여러 주문서비스(배민배달, B마트, 배민스토어)의 배민배달을 받아 여러 배달서비스 중 하나로 분배하고, 배달과정을 중계하고 관리하는 역할을 합니다. 주문과 배달을 처리하는 방식으로 분산시스템 이벤트 기반 아키텍처를 사용하고 있으며, 카프카를 팀에서 주요 기술 중 하나로 사용하고 있습니다. 팀의 분산시스템이 어떻게 나뉘어 있는지 간략하게 설명하고, 카프카를 팀에서 활용하는 방식을 소개하겠습니다.</p>
+<p>딜리버리서비스팀의 분산서버 구조에 대해 간략하게 설명하면 아래 그림과 같습니다.</p>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/최종2.-딜서팀서버구조-750x420.jpg" alt="delivery service team system" /></p>
+<p>주문이벤트를 받아 배달 프로세스를 관리하는 주문/배달서버, 발행한 이벤트를 기반으로 분석하는 분석서버로 구성되어 있습니다. 처리량을 높이고 성능을 향상시키기 위해 많은 서비스에서 그러하듯 각 서버그룹은 N개의 여러 서버로 구성됩니다.</p>
+<h2>[1] 주문-배달을 안전하게 처리하자</h2>
+<div style="background-color: #f8f8f8;padding: 20px;border-radius: 8px;margin: 2em 0">
+<h4>미리보기</h4>
+<p>&#8211; 도메인 이벤트에 대해 카프카를 이벤트 브로커로 사용하여 이벤트 순서를 보장한다.<br />
+&#8211; MySQL source connector를 이용한 Transactional Outbox Pattern을 사용하여 분산시스템에서 데이터와 메시지 전송을 하나의 트랜잭션으로 관리하여 데이터 정합성을 확보한다.
+</p></div>
+<p>주문이 발생하면 고객에게 배달이 완료될 때까지 안전하게 처리하는 것이 가장 큰 목표입니다. 그 과정을 혼란스럽지 않게 처리하기 위해서는 주문과 배달의 이벤트 순서가 중요하며, 이벤트가 누락되지 않도록 관리해야 합니다. 카프카를 이벤트 브로커로 사용하고, 이벤트 발생 순서를 보장하고 있습니다. 배달을 놓치지 않고 처리하기 위해서 Transactional Outbox Pattern을 사용하여 순서를 보장한 재시도를 통해 이벤트 누락이 없도록 처리하고 있습니다.</p>
+<h3>순서보장</h3>
+<p>배달프로세스를 간략하게 나타내면 아래 그림과 같습니다. 배달이 진행되면서 여러 이벤트가 발행되고, 몇 가지 이벤트는 배달상태를 변경시킵니다. 배달상태는 순서가 있기 때문에 순서대로 진행되며, 특정 이벤트들은 거의 동시에 발생하기도 하고, 배달상태를 변경시기키도 합니다. 혼란스럽지 않은 배달프로세스를 관리하기 위해서는 이벤트 발행과 관련하여 순서를 보장하는 것이 중요합니다.</p>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/최종3-배달프로세스-750x482.jpg" alt="delivery process" /></p>
+<p>예를 들어, 배차완료와 거의 동시에 픽업준비요청이 발생할 수 있습니다. 프로듀서는 배차완료 이후 픽업준비요청을 발행하였으나 네트워크 등의 이슈로 컨슈머는 픽업준비요청 이후, 배차완료를 수신할 수도 있습니다. 이런 경우, 순서가 보장되지 않는다면 컨슈머 측에서는 거의 동시에 발생한 이벤트에 대해서 어떤 이벤트가 먼저 발생한 것인지 혼란스러워 비즈니스 로직 처리에 문제가 발생할 수 있습니다.</p>
+<p>카프카는 메시지 발행 순서에 따라 소비할 수 있도록 순서를 보장합니다. 같은 카프카 클러스터에서 주문, 배달, 분석 토픽 등 목적에 따라 토픽을 구성할 수 있으며, 하나의 토픽은 병렬처리로 처리량을 높이기 위해 여러 개의 파티션으로 구성됩니다. 카프카에서는 같은 파티션에 대해서 프로듀서가 보낸 데이터의 순서를 보장합니다. 같은 키를 가진다면 같은 파티션으로 할당되고, 하나의 파티션에 하나의 컨슈머가 할당됩니다. 따라서 같은 키에 대해서는 분산시스템에서도 같은 서버가 소비하게 되어 이벤트 순서가 보장될 수 있습니다. 주문식별자, 배달식별자 등과 같이 순서관리가 필요한 식별자를 키로 관리하여 순서를 보장합니다. 메시지 공급자가 발행 순서를 보장하기에 거의 비슷한 시점에 발행되는 메시지 동시성 이슈 발생 상황을 줄일 수 있습니다.</p>
+<h3>데이터 정합성</h3>
+<p>비즈니스 로직을 처리하기 위한 데이터를 MySQL 데이터베이스에 저장하고, 카프카로 이벤트를 발행하는 방식으로 데이터와 이벤트를 관리하고 있습니다. 카프카에 문제가 발생할 경우, 데이터베이스에는 변경된 배달상태가 저장되었으나 이벤트는 발행되지 않을 수도 있습니다. 예를 들어 주문취소가 발생한 경우를 생각해 봅시다. 주문취소로 배달취소가 발생하게 되면 데이터베이스에는 해당 배달은 취소된 상태로 저장될 것입니다. 하지만 이벤트 발행에 실패하게 된다면 컨슈머는 메시지를 수신하지 못해 여전히 배달을 진행할 수 있습니다. 취소된 배달이 진행되는 문제가 발생할 수 있습니다. 데이터와 메시지 발행의 트랜잭션을 하나로 관리하여 데이터 정합성을 확보할 필요가 있었습니다.</p>
+<p>인프라와 커넥션 이슈, 타임아웃 등의 문제로 토픽에 메시지를 넣는 과정에서 실패할 수도 있습니다. 메시지 발행에 실패하는 경우, 메시지가 누락되어 정합성이 보장되지 않기에 누락 방지를 위해서 재시도가 필요했습니다. 재시도 과정에서도 메시지의 순서는 보장되기를 바랐습니다. 하지만, 다른 비즈니스 이벤트 처리에 미치는 영향은 최소화하며 재시도를 하고 싶었습니다. 이벤트 발행에 실패하는 경우, 순서와 영향도를 고려하여 재시도를 시도하는 방법으로 <a href="https://microservices.io/patterns/data/transactional-outbox.html">Transactional Outbox Pattern</a>을 이용하였습니다.</p>
+<p>Transactional Outbox Pattern은 분산 시스템에서 데이터베이스 트랜잭션과 메시지 큐를 조합하여 데이터 일관성과 메시지 전송의 원자성을 보장하는 패턴입니다. 분산시스템에서 트랜잭션 완료 후, 이벤트를 보내야 하는 경우에 트랜잭션에 실패할 경우 데이터는 롤백되지만, 이벤트는 발송될 수 있고, 메시지 전송 중 문제가 발생하는 경우 메시지 전송 원자성이 보장되지 않을 수 있습니다. 문제를 해결하기 위한 이 패턴의 핵심 아이디어는 다음과 같은 흐름으로 진행됩니다.</p>
+<ol>
+<li>트랜잭션 데이터베이스에 Outbox 테이블을 도입하여, 트랜잭션 완료 시 변경 사항을 기록합니다.</li>
+<li>Outbox 테이블에 새로운 레코드가 추가될 때마다 변경 사항을 메시지로 전송합니다.</li>
+</ol>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/4.logtailing.png" alt="log-tailing" /></p>
+<ul>
+<li>출처: <a href="https://microservices.io/patterns/data/transaction-log-tailing.html">Pattern: Transaction log tailing</a></li>
+</ul>
+<p>설명한 패턴을 구현하기 위해 <a href="https://debezium.io/">Debezium</a>이라는 라이브러리에서 지원하는 MySQL 카프카 커넥터를 이용하고 있습니다. Debezium은 데이터베이스의 변경 사항을 감지하고 이벤트 스트림으로 변환하는 오픈 소스 라이브러리입니다. 데이터베이스의 기록인 binlog의 변경 사항을 감지(Change Data Capture)하여 읽는 로그 테일링 기법을 사용되어 있습니다. 변경사항을 읽어 설정한 토픽으로 보내주는 방식으로 동작합니다. 트랜잭션의 성공 내역을 binlog 기록하고, 기록을 순서대로 읽어가도록 동작합니다. 메시지 발행에 실패하면 아웃박스테이블의 데이터도 롤백되기 때문에 하나의 트랜잭션으로 데이터 정합성을 관리하고 있습니다. Debezium에서 메시지 발행에 사용되는 MySQL source connector는 태스크를 하나만 사용하도록 강제하기 때문에, 단일 커넥터에서 메시지 전송 순서를 보장할 수 있습니다.</p>
+<p>하나의 태스크로 동작하면 테이블에 데이터가 쌓이는 속도보다 커넥터가 처리하는 속도가 느릴 경우 메시지 지연이 발생할 수 있습니다. 처리량을 높이기 위해 토픽별로 outbox 테이블을 분리하여 만들고, 각 outbox 테이블은 식별자 기반으로 N개의 테이블로 구성하였습니다. delivery-outbox1, delivery-outbox2, delivery-outbox3과 같이 여러 개의 outbox 테이블을 구성하고, 각 테이블에 커넥터를 연결하여 한 커넥터가 처리하는 양을 분산하여 처리량을 확보하였습니다. outbox 테이블은 쓰기(insert)만 동작하는 테이블로 저장된 순서대로 이벤트 메시지 발행을 보장하도록 설정되어 있습니다. 같은 키는 같은 테이블에 저장되며, 한 테이블에서는 하나의 커넥터를 사용하기 때문에 같은 키에 대해서는 순서를 보장됩니다.</p>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/최종4-TransactionalOutboxPattern-750x315.jpg" alt="transactional outbox pattern" /></p>
+<h2>[2] 카프카를 이벤트 버스로도 활용해보자</h2>
+<div style="background-color: #f8f8f8;padding: 20px;border-radius: 8px;margin: 2em 0">
+<h4>미리보기</h4>
+<p>&#8211; 카프카를 이벤트 버스로 활용하여 분산시스템에 알린다.
+</p></div>
+<p>분산 시스템에서는 서버 여러 대로 서버군을 이룹니다. 한 서버에서 값을 변경하면 서버군에 속한 모든 서버의 변경된 값을 관리해야 할 때가 있습니다. 배달서버에서 어떤 배달서비스로 분배할지 결정하며, 분배 규칙은 인메모리로 관리합니다. 이 경우, 분배 규칙 이벤트를 소비한 배달서버만 분배규칙이 변경되고 다른 배달서버들은 기존 분배 규칙을 유지할 수 있습니다. 운영자가 필요에 의해 분배 규칙을 변경하면, 모든 배달서버는 해당 변경 값을 알아야 합니다. 카프카를 이벤트버스로 활용하여 값 관리가 필요한 서버군에 변경된 값을 알리고, 변경된 내용을 반영하도록 관리하고 있습니다.</p>
+<p>스프링 클라우드에서 제공하는 RemoteApplicationEvent를 사용하여 <a href="https://cloud.spring.io/spring-cloud-bus/reference/html/index.html">이벤트 버스</a>로 카프카를 사용하고 있습니다. 이벤트 버스 토픽(예: event-bus)을 설정하고, id는 고유해야 하기에 <code>${서버명}:${식별자}</code> 형식으로 설정합니다. RemoteApplicationEvent를 상속한 이벤트를 정의하고, 원하는 목적지(서버군)를 명시하여 발행하면 이벤트 버스는 목적 서버군에 이벤트를 전달합니다. 스프링 클라우드에서 id 서버명의 인스턴스에 애플리케이션 이벤트를 발행하기 때문에, 목적 서버에서 발행한 팀에서 정의한 이벤트를 구독하여 처리한다면, 정의한 이벤트를 수신하여 변경된 값을 반영할 수 있게 됩니다. 이렇게 되면 분산시스템에서 인메모리로 관리되는 값도 변경되어 같은 기준으로 비즈니스 로직을 처리할 수 있습니다.</p>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/최종5-kafkaEventBus-750x263.jpg" alt="kafka event bus" /></p>
+<p>RemoteApplicationEvent를 상속한 DeliveryServiceRemoteApplicationEvent를 추상클래스로 설정하고, 각 특성에 맞게 구현체를 구성하여 이벤트를 발행하여 필요한 곳에서 활용하고 있습니다. 서버군에 속한 서버들이 각자 인메모리로 저장하고 있는 값을 모두 초기화나 변경이 필요한 경우에 사용됩니다. 아래는 분배규칙 변경에 대해 RemoteApplicationEvent를 정의한 예시 코드입니다.</p>
+<pre><code class="language-java">public abstract class DeliveryServiceRemoteApplicationEvent extends RemoteApplicationEvent {
+    protected DeliveryServiceRemoteApplicationEvent(String destination) {
+        super(SOURCE, ORIGIN, DESTINATION_FACTORY.getDestination(destination));
+    }
+}
+// 분배규칙 CustomRemoteEvent
+public class RouteRuleRemoteEvent extends DeliveryServiceRemoteApplicationEvent {
+    public RouteRuleRemoteEvent() {
+        super(&quot;delivery&quot;); // destination: 배달서버
+    }
+}</code></pre>
+<p>아래는 분배규칙이 변경되어 새롭게 내려받아야 하는 경우, 서버에서 메서드를 수행하고 배달서버군 전체에도 변경된 규칙이 반영될 수 있도록 RemoteApplicationEvent를 발행하고, 소비하는 예시 코드입니다.</p>
+<pre><code class="language-java">public void load() {
+    routeRuleSetStore.load();
+    remoteApplicationEventPublisher.publishEvent(new RouteRuleRemoteEvent());
+}
+
+@EventListener
+public void handle(RouteRuleRemoteEvent event) {
+    routeRuleSetStore.load();
+}</code></pre>
+<p>딜리버리서비스팀에서 이벤트 버스 토픽은 하나의 파티션으로 관리하고 있습니다. 설정값을 변경하는 데 높은 처리량이 필요하지 않고, 같은 서버군은 같은 변경사항을 수신해야 하기 때문입니다. 파티션에서 같은 컨슈머 그룹은 오프셋을 공유하므로 모든 서버는 다른 컨슈머 그룹 아이디(consumer group id)를 가져야 합니다. 여러 컨슈머에게 개별적으로 소비될 수 있기 때문에 각 서버가 다른 컨슈머 그룹 아이디를 사용한다면 한 번의 이벤트 발행으로도 여러 서버군의 설정을 바꾸는 것이 가능합니다. 특수하게 컨슈머의 이름을 정하지 않으면, 스프링 클라우드에서는 anomymous라는 프리픽스를 붙여 랜덤하게 컨슈머 그룹 아이디를 설정합니다. 즉, 연결된 서버만큼 <code>anonymous.{식별자}</code> 형식의 컨슈머 그룹 아이디가 생성되고 있고, 시스템 모니터링 시에는 anomymous 컨슈머는 필터링하고 있습니다.</p>
+<h2>[3] 더 나은 배달을 위해 분석하자</h2>
+<div style="background-color: #f8f8f8;padding: 20px;border-radius: 8px;margin: 2em 0">
+<h4>미리보기</h4>
+<p>&#8211; 분석에 적합하게 가공된 형태로 데이터를 제공한다.<br />
+&#8211; 카프카 스트림즈를 활용하여 실시간 배달 정보를 집계하여 배달 상황을 파악할 수 있도록 한다.
+</p></div>
+<p>배치 등을 사용하여 분석을 위한 데이터를 제공할 수도 있지만, 일정 주기로 배치를 수행하기 때문에 실시간 데이터를 반영하기 어려운 문제가 있습니다. 우리 팀에서는 실시간 혹은 준실시간에 해당하는 데이터를 조회하여 배달현황을 파악하고 서비스에 반영하기를 원했습니다. 요구사항을 만족시킬 기술로 카프카 스트림즈를 활용하고 있습니다.</p>
+<p>카프카 스트림즈는 카프카에서 실행하는 이벤트별 데이터(레코드) 처리를 수행할 수 있게 하는 라이브러리입니다. 간단히 말하자면, 카프카 스트림즈는 메시지를 활용한 실시간 집계, 분석 시스템으로 실시간 데이터 스트리밍 및 분석 시스템에 적합한 플랫폼으로 폭넓게 활용되는 도구입니다. 카프카 스트림즈 애플리케이션이 처리하는 것은 데이터의 흐름입니다. 전처리 단계와 스트림 연결로 데이터 스트림을 입력받아 필요한 처리를 수행 후, 새로운 스트림을 생성하여 데이터를 처리하고 결과를 산출하는 방식으로 동작합니다.</p>
+<h3>분석용으로 가공한 데이터 제공</h3>
+<p>분석 서버에서는 배달 이벤트를 수신한 후 전처리 과정을 거쳐, 조회하기 편한 형태로 가공하여 분석 토픽으로 이벤트를 재발행합니다. 원본 이벤트를 가공하여 분석할 수 있도록 또 다른 토픽과 스트림으로 생성합니다. 목적이 다르기에 원본 토픽과 분석용 토픽을 분리하여 사용합니다. 서비스 토픽과 분석용 토픽은 서로 다른 데이터 처리량과 리소스가 필요하기에 토픽과 서버를 분리하여 특성에 맞는 리소스를 사용하고 조정할 수 있도록 구성하였습니다. 주요한 서비스 로직에 사용되는 토픽과 분석에 사용되는 토픽은 문제가 발행하더라도 영향범위를 분리하여 관리할 수 있습니다.</p>
+<p>배달은 생성, 배차, 픽업, 완료 등 순서를 가지고 진행되며, 특정 행위마다 배달이벤트를 발행합니다. 분석이 필요한 경우, 배달의 이벤트를 하나하나 보는 것이 아닌 배달 건별로 정리된 정보를 확인하고 싶은 경우가 많습니다. 주요 정보는 어떻게 되는지, 언제 생성되어 배차, 완료가 되었는지 등 배달 한 건에 주요 정보를 집계해 확인하고자 하는 수요가 있었습니다. 분석하기 편하도록 전처리 과정을 거쳐 한 배달건에 대해 발생한 여러 이벤트를 하나로 모아 완료된 배달 건의 요약된 종합 정보를 제공하고 있습니다. 이때 Redis를 임시저장소로 활용하여 종합데이터를 관리합니다. 원본 배달 토픽에서 배달생성 이벤트를 수신하면 Redis에 주요한 주문과 배달 정보를 저장합니다. 이후, 배달 진행에 따라 발행된 이벤트를 수신하면 각 배달이벤트 시점 등 주요한 정보를 업데이트합니다. 왼료된 배달은 Redis에서 삭제하고, 의미 있는 정보로 구성한 새로운 배달통합이벤트를 분석 토픽에 발행하여 배달 건별 종합데이터를 제공합니다.</p>
+<p>S3 싱크 커넥터를 사용하여 분석토픽에 들어간 이벤트는 AWS S3 객체저장소에 보내 영구 저장하고 있습니다. 이벤트 영구 저장소와 비즈니스 로직을 처리하기 위한 저장소를 분리하여, 분석용 서비스와 비즈니스 서비스의 상호 영향을 최소화합니다. S3 객체저장소에 저장된 데이터는 <a href="https://aws.amazon.com/ko/athena/">AWS Athena</a>를 사용해 비즈니스 서비스 저장소에 부하를 주지 않고 오래된 기록까지 조회할 수 있습니다. 데이터를 분석할 수 있는 도구를 연동하여 사업이나 운영 부서에서 지난 배달 건을 월단위로 분석하기도 하고, 정산에 활용하기도 합니다.</p>
+<p>아래 그림은 통합배달이벤트 흐름과 이후 실시간 데이터 제공과 관련된 다이어그램입니다.<br />
+<img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/최종6-통합배달이벤트와스트림-750x491.jpg" alt="integrated delivery event and streams" /></p>
+<h3>실시간 데이터 제공</h3>
+<p>배차 대기로 남아있는 배달 건이 얼마나 되는지, 현재 배차에 시간이 얼마나 걸리는지, 주문서비스별 유입량은 어떻게 되는지 등 실시간 배달 데이터를 알고 싶었기에 스트림즈 애플리케이션을 활용하여 실시간 배달데이터를 집계하고 있습니다. 실시간 집계된 내용은 그라파나 대시보드로 시각화하여 운영 상황에 대응할 수 있도록 제공하고 있고, 배달인프라 상황을 파악하여 분석하는 데도 사용됩니다.</p>
+<p>각 배달상태에 따른 배달 건수가 얼마나 되는지 실시간 집계하는 한 가지 예시를 들어보겠습니다. 분석용 배달토픽에 들어온 레코드 흐름(Stream)을 기반으로 최신 배달 상태저장소(latest-delivery)를 구축합니다. 상태저장소(statestore)는 키-값 임시저장소입니다. 최신 배달 상태저장소에는 레코드의 시간을 기준값으로 최신 배달을 판단하며, 키를 배달식별자로 하고 값을 배달데이터로 합니다. 최신 배달을 기준으로 배달 상태별 개수를 집계할 수 있습니다. 키는 배달상태, 값은 집계된 배달 상태별 개수로 배달상태별 상태저장소(count-per-status)를 구성합니다. 그 결과로 배달상태별 상태저장소에서 실시간으로 배달상태별로 집계된 결과를 빠르게 조회할 수 있습니다. 배달 상태별 개수를 조회하는 그라파나 게이지를 등록하여 조회한 결과를 대시보드로 시각화하여 나타내고 있습니다. 대시보드를 통해 하나의 배달 상태에 몰려있진 않은 지, 배달진행에 문제가 있는 건 아닐지 대시보드를 보며 추이를 실시간으로 파악할 수 있습니다. 아래는 베타 환경에서 구성한 대시보드 예시입니다.</p>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/beta-grafana-1-750x144.png" alt="beta grafana dashboard" /></p>
+<p>이외에도 다양하게 집계되는 실시간 현황은 현재 배달상황을 파악하고 대응하는 데 도움이 됩니다. 다양하게 집계되는 데이터를 활용하여 다른 유용한 기능을 제공할 수도 있습니다. 실시간으로 이상 상황으로 감지되는 판단을 자동화하여 알람으로 빠르게 장애인지를 할 수도 있고, 큰 장애로 번지기 전에 주문유입을 최소화하여 장애 범위를 최소화하는 데 활용될 수도 있습니다.</p>
+<h1>끗!</h1>
+<p>지금까지 카프카의 개념과 특성을 간략하게 설명하고, 팀에서 카프카를 어떻게 활용하고 있는지 소개했습니다. 저는 개발자로 일한 지 갓 2년이 넘었고, 팀에서 사용하는 시스템 설계나 구현을 주도해본 경험은 아직 없습니다. 그래서 각 기술의 자세한 설명은 더 전문가들이 작성한 자료나 공식 문서를 참고하실 수 있게 마지막에 정리해 두었습니다.</p>
+<p>이 글에서는 카프카와 관련된 기술을 상세히 다루기보다는 우리팀에서 카프카를 어떻게 사용하는지 전반적으로 소개하는 데 중점을 두었습니다. 스스로도 더 잘 이해하고 기술을 사용하고 싶었고, 사례를 공유하며 함께 더 알아가고 싶은 마음이었습니다. 이 글의 내용과 연관된 분들이 발표한 우아콘 영상이 있어 마지막 참고 자료 부분에 링크를 넣어두었으니 더 자세한 내용이 궁금하신 분들은 영상도 참고해 주시면 좋겠습니다.</p>
+<hr />
+<h3>참고 자료</h3>
+<h4>책</h4>
+<ul>
+<li><a href="https://product.kyobobook.co.kr/detail/S000001842177">아파치 카프카 애플리케이션 프로그래밍 with 자바</a></li>
+<li><a href="https://product.kyobobook.co.kr/detail/S000001804837">Kafka Streams in action</a></li>
+</ul>
+<h4>링크</h4>
+<ul>
+<li><a href="https://learn.microsoft.com/ko-kr/azure/architecture/patterns/event-sourcing">이벤트 소싱 패턴</a></li>
+<li><a href="https://microservices.io/patterns/data/transactional-outbox.html">Pattern: Transactional Outbox</a></li>
+<li><a href="https://microservices.io/patterns/data/transaction-log-tailing.html">Pattern: Transaction log tailing</a></li>
+<li><a href="https://debezium.io/">Debezium</a></li>
+<li><a href="https://cloud.spring.io/spring-cloud-bus/reference/html/index.html">Spring Cloud Bus</a></li>
+</ul>
+<h4>WOOWACON 2023 영상</h4>
+<ul>
+<li><a href="https://woowacon.com/presentations?presentationId=621">Kafka를 활용한 이벤트 기반 아키텍처 구축</a></li>
+<li><a href="https://woowacon.com/presentations?presentationId=607">Kafka Streams를 활용한 이벤트 스트림 처리 삽질기</a></li>
+</ul>The post <a href="https://techblog.woowahan.com/17386/">우리팀은 카프카를 어떻게 사용하고 있을까</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+            <wfw:commentRss>https://techblog.woowahan.com/17386/feed/</wfw:commentRss>
+            <slash:comments>0</slash:comments>
+
+
+        </item>
+        <item>
+            <title>코드와 함께 살펴보는 프론트엔드 단위 테스트 &#8211; Part 2. 실전 편</title>
+            <link>https://techblog.woowahan.com/17721/</link>
+            <comments>https://techblog.woowahan.com/17721/#respond</comments>
+
+            <dc:creator><![CDATA[배민근]]></dc:creator>
+            <pubDate>Wed, 29 May 2024 01:40:05 +0000</pubDate>
+            <category><![CDATA[Web Frontend]]></category>
+            <category><![CDATA[단위테스트]]></category>
+            <category><![CDATA[웹프론트엔드]]></category>
+            <category><![CDATA[테스트]]></category>
+            <category><![CDATA[테스트코드]]></category>
+            <category><![CDATA[프론트엔드]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=17721</guid>
+
+            <description><![CDATA[<p>“책상 앞에서만 존재하는 지식은 의미 없다.” from 지금도 책상 앞에 앉아있는 내가 한 말 “Part 1. 이론 편”에서 소개한 내용들은 여러분에게 도움이 되셨나요? Part 1에서는 본격적으로 테스트 코드를 작성하기 전 알고 있으면 도움이 되는 내용을 다루었습니다. 말미에서 언급한 것처럼 이제는 머리로 배운 것을 손으로 테스트 코드를 작성하면서 익힐 때가 되었습니다. 저는 글의 시작에 있는 문장처럼 [&#8230;]</p>
+The post <a href="https://techblog.woowahan.com/17721/">코드와 함께 살펴보는 프론트엔드 단위 테스트 – Part 2. 실전 편</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0">
+<span style="font-weight: 700">“책상 앞에서만 존재하는 지식은 의미 없다.”</span> from 지금도 책상 앞에 앉아있는 내가 한 말
+</div>
+<p>“<a href="https://techblog.woowahan.com/17404/">Part 1. 이론 편</a>”에서 소개한 내용들은 여러분에게 도움이 되셨나요? Part 1에서는 본격적으로 테스트 코드를 작성하기 전 알고 있으면 도움이 되는 내용을 다루었습니다. 말미에서 언급한 것처럼 이제는 머리로 배운 것을 손으로 테스트 코드를 작성하면서 익힐 때가 되었습니다. 저는 글의 시작에 있는 문장처럼 실제로 사용 혹은 적용해 봐야 공부가 비로소 완성되었다고 생각합니다. 개발자라면 배운 지식을 본인이 개발하는 프로덕트에 필요한지 고민해 보고 필요하다면 적용해 봐야죠!</p>
+<p>오늘은 이론 편에 이어 “Part 2. 실전 편”이라는 제목을 가지고 왔습니다. 실전 편인 만큼 다양한 기술 스택이 엮인 코드에 대해서 실전에 가까운 테스트 코드와 함께 내용을 소개할 것인데요. 프론트엔드의 특징 중 하나는 사용자와 직접 상호작용하는 부분이 있다는 것입니다. 이 말을 테스트 관점에서 본다면 사용자와 상호작용하는 시나리오를 포함해 테스트 코드를 작성해야 한다고 볼 수 있습니다. Part 2에서 작성할 테스트 코드와 내용 역시 사용자와 상호작용을 포함해 다루어보도록 하겠습니다.</p>
+<blockquote>
+<p><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/26a0.png" alt="⚠" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 테스트 코드 예제를 읽기 전에</p>
+<p>이 글의 모든 테스트 코드는 React와 테스트 도구인 <a href="http://vitest.dev">Vitest</a>, <a href="https://testing-library.com/docs/react-testing-library/intro">React Testing Library</a>와 함께 작성되었습니다. 또한, 테스트 환경과 문법에 대한 이야기는 아니므로 테스트 코드 문법, 테스트 환경에 대한 설정과 테스트 유틸리티에 대한 내용은 생략하고 개별 테스트 코드에만 집중하겠습니다. Vitest가 생소하시더라도 <a href="https://jestjs.io">Jest</a>와 대부분의 문법이 호환되니 코드 보시는데 문제없을 거예요. <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f642.png" alt="🙂" class="wp-smiley" style="height: 1em; max-height: 1em;" /></p>
+</blockquote>
+<h2>간단한 단위 테스트 코드 살펴보기</h2>
+<p>현실적인 예제를 다루기 전에 먼저 간단하고 쉬운 동작을 가진 함수와 컴포넌트의 단위 테스트 코드를 살펴보겠습니다. 테스트 코드 자체가 어떤 코드의 동작을 검증하기 위한 코드이므로 본 코드와 테스트 코드 양쪽 다 보며 설명하도록 하겠습니다. 이론 편에서 다루었던 내용을 떠올리면서 아래의 내용을 읽어봅시다.</p>
+<h3>함수의 단위 테스트</h3>
+<pre><code class="language-javascript">const isBornIn2000OrLater = (digits: string) =&gt; {
+  return [&#039;3&#039;, &#039;4&#039;, &#039;7&#039;, &#039;8&#039;].includes(digits[0])
+}</code></pre>
+<p>isBornIn2000OrLater 함수는 주민등록번호 뒷자리를 받아 2000년 이후에 태어났는지 판별하는 함수입니다. 구현의 단순함을 위해 유효성 검사들은 모두 생략하겠습니다. 위 코드를 봤을 때 테스트 코드는 어떻게 작성하면 될까요?</p>
+<pre><code class="language-javascript">it(&#039;2000년 이후에 태어난 사람의 주민등록번호 뒷자리인지 검증한다&#039;, () =&gt; {
+  expect(isBornIn2000OrLater(&#039;1234567&#039;)).toBe(false);
+  expect(isBornIn2000OrLater(&#039;2134567&#039;)).toBe(false);
+  expect(isBornIn2000OrLater(&#039;3124567&#039;)).toBe(true);
+  expect(isBornIn2000OrLater(&#039;4123567&#039;)).toBe(true);
+  expect(isBornIn2000OrLater(&#039;5123467&#039;)).toBe(false);
+  expect(isBornIn2000OrLater(&#039;6123457&#039;)).toBe(false);
+  expect(isBornIn2000OrLater(&#039;7123456&#039;)).toBe(true);
+  expect(isBornIn2000OrLater(&#039;8123456&#039;)).toBe(true);
+});</code></pre>
+<p>isBornIn2000OrLater 함수를 검증하는 테스트 코드를 작성해 보았습니다. 총 8개의 expect에 각기 다른 값으로 호출한 함수의 실행 결과를 넣고 toBe의 값과 비교해 일치하는지 확인합니다. 이 테스트 케이스에서 문제가 발생하지 않는다면 8개가 모두 정상적으로 통과했다는 의미입니다. 생각보다 간단하고 쉽죠? 그럼, 이제 컴포넌트 예제를 살펴봅시다.</p>
+<h3>컴포넌트의 단위 테스트</h3>
+<pre><code class="language-javascript">import { useState } from &#039;react&#039;;
+
+export default function CountComponent() {
+  const [count, setCount] = useState(0);
+
+  function handleClick() {
+    setCount(count + 1);
+  }
+
+  return (
+    &lt;&gt;
+      &lt;p&gt;버튼을 {count}번 클릭했습니다.&lt;/p&gt;
+      &lt;button onClick={handleClick}&gt;여기를 눌러보세요&lt;/button&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+<p>CountComponent는 <a href="https://react.dev/learn#updating-the-screen">react.dev의 예제 컴포넌트 중 하나</a>를 살짝 변형한 것입니다. 함수와의 차이를 보여줄 수 있도록 상태가 존재하는 컴포넌트를 가져왔습니다. 코드를 간단히 설명하면 버튼을 누를 수 있고 그 위로는 누른 횟수가 출력됩니다. 컴포넌트의 테스트 코드는 어떻게 작성할까요? 기본적인 틀은 함수와 같겠지만 사용자와 실제로 상호작용하는 부분은 Testing Library의 도움을 받아 해결할 수 있습니다. <code>@testing-library/react</code>와 함께 CountComponent에 대한 단위 테스트 코드를 작성해 봅시다.</p>
+<pre><code class="language-javascript">import { render, screen } from &#039;@testing-library/react&#039;;
+import userEvent from &#039;@testing-library/user-event&#039;;
+import { describe, expect, it } from &#039;vitest&#039;;
+
+describe(&#039;CountComponent 단위 테스트&#039;, () =&gt; {
+  it(&#039;처음에는 0번 클릭했다는 문구가 노출된다&#039;, () =&gt; {
+    render(&lt;CountComponent /&gt;);
+
+    expect(screen.getByText(&#039;버튼을 0번 클릭했습니다.&#039;)).toBeInTheDocument();
+  });
+
+  it(&#039;버튼이 클릭되면 문구의 숫자가 1씩 증가한다&#039;, async () =&gt; {
+    const user = userEvent.setup();
+
+    render(&lt;CountComponent /&gt;);
+
+    const buttonElement = screen.getByRole(&#039;button&#039;, { name: &#039;여기를 눌러보세요&#039; });
+
+    await user.click(buttonElement);
+    expect(screen.getByText(&#039;버튼을 1번 클릭했습니다.&#039;)).toBeInTheDocument();
+
+    await user.click(buttonElement);
+    await user.click(buttonElement);
+    expect(screen.getByText(&#039;버튼을 3번 클릭했습니다.&#039;)).toBeInTheDocument();
+  });
+});</code></pre>
+<p>작성한 테스트 코드에는 총 2개의 테스트 케이스가 있습니다. 하나는 렌더링 시 문구가 노출되는지, 하나는 사용자가 버튼을 클릭하며 상호작용했을 때 변경된 문구가 노출되는지 확인합니다. 테스트 코드에서 이해되지 않는 부분이 있나요? 여전히 쉽죠? 우리의 함수와 컴포넌트가 이렇게 간단하면 참 좋겠습니다.</p>
+<h2>하지만 현실에서 우리의 코드는</h2>
+<p>바로 위에서 본 코드 예시들은 대부분 공부하실 때 볼 수 있을 법한 수준의 함수와 컴포넌트입니다. 다시 말하면 간단하고 이상적이라는 코드라는 이야기입니다. 하지만 저희가 만드는 현업의 프로덕트는 예제들처럼 간단하지 않습니다. 지금부터는 현업에서 사용할 법한 여러 가지 기술 스택이 섞인 실제 코드 혹은 그와 가까운 코드들을 보여드릴 텐데요! 아래의 기술 스택을 사용한 좀 더 현실적인 컴포넌트 코드를 살펴봅시다.</p>
+<ul>
+<li>react@18.X.X + typescript@5.X.X</li>
+<li><a href="https://tanstack.com/query/latest">@tanstack/react-query</a>@5.X.X</li>
+<li><a href="https://zustand-demo.pmnd.rs">zustand</a>@4.X.X</li>
+<li><a href="http://mswjs.io">msw</a>@2.X.X</li>
+</ul>
+<pre><code class="language-javascript">const Identification = ({ referrer, onFinish }) =&gt; {
+  const [someText, setSomeText] = useState(&#039;&#039;);
+
+  /* zustand 스토어 */
+  const { needExtraAuthentication } = useMemberStore();
+
+    /* React Query API 호출 */
+  const { data, error, isFetching } = useQuery({
+    // ...
+    queryFn: () =&gt;
+      fetchIdentificationInfo({
+        // ...
+      }),
+    // ...
+  });
+
+  // ...
+
+  const showExtraInformation = referrer === &#039;something&#039; || needExtraAuthentication;
+
+  const handleChangeInput = (e: React.ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {
+    if (e.target.value.length &gt; 8) {
+      // ...
+    } else {
+      // ...
+      setSomeText(e.target.value);
+    }
+  };
+
+  const handleClickButton = () =&gt; {
+    // ...
+    onFinish(someText);
+  };
+
+    // ...
+
+  useEffect(() =&gt; {
+    if (error) {
+      // ...
+      window.location.replace(&#039;https://HOST/fail&#039;);
+    }
+  }, [error]);
+
+  if (isFetching) return &lt;Loading aria-label=&quot;화면을 불러오는 중&quot; /&gt;;
+
+  return (
+    &lt;div&gt;
+      &lt;h1&gt;인증을 시작합니다&lt;/h1&gt;
+      {/* 컴포넌트 코드 ... */}
+      &lt;label id=&quot;comment-label&quot;&gt;Comment&lt;/label&gt;
+      &lt;input type=&quot;text&quot; value={someText} onChange={handleChangeInput} aria-labelledby=&quot;comment-label&quot;&gt;&lt;/input&gt;
+      {/* 컴포넌트 코드 ... */}
+      {showExtraInformation &amp;&amp; &lt;ExtraInfomation&gt;부가 정보&lt;/ExtraInforamtion&gt;}
+      {/* 컴포넌트 코드 ... */}
+      &lt;button type=&quot;button&quot; onClick={handleClickButton}&gt;
+        확인
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+};</code></pre>
+<p>한눈에 봐도 여러 가지 로직이 존재하는 컴포넌트입니다. Identification 컴포넌트에 대해 어떤 테스트 코드를 작성해야 할까요? 프로덕트를 개발할 때 여러분은 기획서를 기반으로 컴포넌트를 설계했을 것입니다. 여기서는 구현된 코드 먼저 살펴보았지만, 실제로는 기획서를 기반으로 아래와 같이 컴포넌트를 설계해 개발했다고 가정해 봅시다.</p>
+<ul>
+<li>최초 진입 시 인증 정보 API를 호출하며 호출 전까지 로딩 컴포넌트를 노출함
+<ul>
+<li>API 호출 성공 시, UI가 노출됨</li>
+<li>API 호출 실패 시, 실패 페이지로 이동함 (location.replace)</li>
+</ul>
+</li>
+<li>입력할 수 있는 input이 노출되며 8자까지만 입력 가능함</li>
+<li>ExtraInformation 컴포넌트는 props로 받은 referrer가 something이거나 memberStore의 값 중 needExtraAuthentication가 true인 경우에만 노출함</li>
+<li>확인 버튼이 노출되며 클릭했을 때 props로 받은 onFinish가 input에 입력된 내용과 함께 호출됨</li>
+<li>(다른 명세는 코드의 간략함을 위해 생략)</li>
+</ul>
+<p>Identification 컴포넌트는 기획서와 디자인을 기반으로 API 호출 성공/실패에 따라 처리를 어떻게 할지, 특정 정보가 조건에 맞춰 노출 혹은 노출되지 않는지, 사용자의 입력과 버튼을 눌렀을 때 어떤 처리가 일어나는지 등 여러 정책을 담아 개발되었습니다. 조건이 명확한 명세가 존재한다는 것은 모두 테스트 케이스화해야 하는 정책이라는 이야기입니다. 코드 관점에서 이야기하면, JavaScript에서 특정 조건에 따라 UI가 노출되거나 로직이 실행된다면, 해당 내용은 모두 테스트 대상이라고 볼 수 있습니다. Identification 컴포넌트의 테스트 코드는 어떻게 작성하면 될까요?</p>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 1em 0">
+<div style="font-weight: 700">Q. 왜 코드를 보고 테스트 코드를 작성하나요? 반대로 해야 하지 않나요?</div>
+<p></p>
+<div>
+A. 해당 예제에서는 이미 개발이 완료된 컴포넌트에 대해 테스트 코드를 작성하는 상황을 가정했습니다. 여러 가지 상황에 의해 많은 분들이 테스트 코드를 쓰지 않거나 비즈니스 로직 구현을 완료하고 테스트 코드를 작성하고 있지 않을까 생각했습니다. 완성된 프로덕트에 테스트 코드를 붙이기 위해 명세를 파악하고 테스트 코드를 작성하는 흐름으로 글을 풀어보았습니다. 여러분은 테스트 코드를 먼저 작성한 후에 컴포넌트 혹은 함수를 구현하시나요? 이미 TDD를 실천하거나 비슷한 흐름으로 개발하시는 분이라면, 명세를 먼저 읽고 테스트 코드를 작성한 후 컴포넌트 코드를 개발하는 순서로 글을 읽어보는 것도 추천드립니다. <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f642.png" alt="🙂" class="wp-smiley" style="height: 1em; max-height: 1em;" />
+</div>
+</div>
+<h3>시나리오 생각하기</h3>
+<p>먼저, 테스트 시나리오를 생각해야 합니다. 다르게 말하면 어떤 테스트 케이스를 가질 것인지 고민하고 코드를 작성해야 한다는 뜻인데요! 우리는 이미 컴포넌트가 어떤 기능을 가지고 어떤 역할을 수행하는지 자세히 살펴보았습니다. 이를 바탕으로 주어진 설명에서 어떤 코드를 실행시키고 어떤 것을 검증할지 생각해 시나리오를 작성해 봅시다.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>설명/명세</th>
+<th>조건(실행할 로직)</th>
+<th>검증/확인할 것</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>인증 정보 API 호출하며 성공 시 페이지 제목이 노출된다</td>
+<td>인증 정보 API 호출이 성공하도록 한다</td>
+<td>인증을 시작합니다 문구가 화면에 표시된다</td>
+</tr>
+<tr>
+<td>2</td>
+<td>인증 정보 API 호출 실패 시 실패 페이지로 이동한다</td>
+<td>인증 정보 API 호출이 실패하도록 한다</td>
+<td>실패 페이지로 location.replace한다</td>
+</tr>
+<tr>
+<td>3</td>
+<td>입력창에는 8자리까지만 입력된다</td>
+<td>입력창에 8자리를 초과해 입력한다</td>
+<td>입력창에는 8자리까지만 입력되어 노출된다</td>
+</tr>
+<tr>
+<td>4-1</td>
+<td>ExtraInformation 컴포넌트는 특정 조건에서만 표시된다</td>
+<td>referrer를 something으로 props로 전달한다</td>
+<td>ExtraInformation 컴포넌트가 노출된다</td>
+</tr>
+<tr>
+<td>4-2</td>
+<td></td>
+<td>memberStore의 needExtraAuthentication 상태를 true로 설정한다</td>
+<td>ExtraInformation 컴포넌트가 노출된다</td>
+</tr>
+<tr>
+<td>4-3</td>
+<td></td>
+<td>referrer을 something 이외의 값으로 props로 전달하고 memberStore의 needExtraAuthentication 상태를 false로 설정한다</td>
+<td>ExtraInformation 컴포넌트가 노출되지 않는다</td>
+</tr>
+<tr>
+<td>5</td>
+<td>확인 버튼 클릭 시 input에 입력한 내용과 함께 onFinish 이벤트를 호출한다</td>
+<td>입력창에 내용을 입력하고 버튼을 누른다</td>
+<td>onFinish 핸들러가 입력한 내용과 함께 호출된다</td>
+</tr>
+</tbody>
+</table>
+<h3>잠깐! 테스트 코드 with Mocking</h3>
+<p>시나리오에서 실행할 로직에 보면 클릭이나 키보드 입력 이외에도 API 호출 결과를, props, 스토어의 상태를 조작해야 합니다. 검증할 것에도 보면 단순 문구 노출 이외에 window.alert의 결과를 보는 것도 있고 어떤 함수가 호출되었는지 확인하는 것도 있습니다. 이러한 동작과 결과를 얻기 위한 코드가 필요하겠죠?</p>
+<p>테스트 코드에선 목적 달성을 위해 모킹(Mocking)을 활용합니다. 모킹이란 간단히 말하면 내부 혹은 외부 서비스의 가짜 버전을 만드는 것입니다. 모킹을 사용하지 않는다면 테스트 시간이 늘고 복잡해지며 모든 인터페이스가 구현된 환경 위에서 테스트해야 합니다. 반드시 모든 것을 모킹해야하는 것은 아니고 일부는 모킹을 피해야 하는 코드도 존재할 것입니다. 테스트에서 필요한 경우에 모킹을 활용한다면 효과적이고 효율적으로 테스트를 진행할 수 있습니다. API 호출 모킹의 경우에는 테스트뿐만 아니라 로컬 개발 시에도 개발 생산성을 높일 수 있도록 도와줍니다.</p>
+<p>Vitest나 Jest 같은 테스트 도구에서도 각종 모킹을 지원합니다. mock 함수(e.g. <code>vi.fn()</code>, <code>vi.spyOn(~~)</code>)를 비롯해 전역 수준에서 존재하는 객체를 모킹할 수 있는 인터페이스도 있고 파일이나 라이브러리 단위로도 모킹할 수 있는 인터페이스가 존재합니다. 이번 테스트 케이스에서는 mock 함수만 필요하므로 해당 인터페이스만 활용하겠습니다. API 호출의 경우는 MSW를 활용할 수 있습니다. 서비스 워커의 도움 덕분에 모킹을 한다고 해도 네트워크 레벨에서 실제로 API 호출을 하는 듯이 동작합니다. MSW 공식 홈페이지에서 테스트 환경에 설정하는 <a href="https://mswjs.io/docs/integrations/node#test-runner">가이드</a>가 있으므로 참고해서 원하는 곳에 원하는 API 호출 모킹을 설정할 수 있습니다.</p>
+<h3>테스트 코드 작성하기</h3>
+<p>테스트 코드를 작성하기 전에 반드시 적절한 expect가 테스트 코드에 존재해야 한다고 당부드리고 싶습니다. 왜냐하면 개별 테스트 케이스에서 실패하지 않으면 무조건 성공으로 취급되기 때문입니다. expect가 있어야만 테스트 코드에서 기대하는 동작에 대한 검증이 발생합니다. 또, Part 1에서 이야기한 expect 구문이 검증하는 내용도 명확해야 한다는 것도 떠올려 봅시다. 시나리오와 모킹을 기반으로 검증 절차까지 포함하는 완성된 테스트 코드를 살펴봅시다.</p>
+<pre><code class="language-javascript">const defaultIdentificationProps = {
+  referrer: &#039;&#039;,
+  onFinish: () =&gt; {},
+};
+
+describe(&#039;Identification 단위 테스트&#039;, () =&gt; {
+  // ...
+
+  it(&#039;인증 정보 API 호출하며 성공 시 페이지 제목이 노출된다&#039;, async () =&gt; {
+    /* MSW 성공 응답 설정 */
+    server.use(
+      http.get(&#039;인증정보 API URL&#039;, () =&gt; {
+        return HttpResponse.json({
+          // 성공 응답 JSON
+        });
+      }),
+    );
+    render(&lt;Identification {...defaultIdentificationProps} /&gt;);
+
+    await waitFor(() =&gt; {
+      expect(screen.queryByLabelText(&#039;화면을 불러오는 중&#039;)).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText(&#039;인증을 시작합니다&#039;)).toBeInTheDocument();
+  });
+
+  it(&#039;인증 정보 API 호출 실패 시 실패 페이지로 location.replace 처리한다&#039;, async () =&gt; {
+    /* MSW 실패 응답 설정 */
+    server.use(
+      http.get(&#039;인증정보 API URL&#039;, () =&gt; {
+        return HttpResponse.json({
+          // 실패 응답 JSON
+        });
+      }),
+    );
+    const mockReplace = vi.spyOn(window.location, &#039;replace&#039;);
+
+    render(&lt;Identification {...defaultIdentificationProps} /&gt;);
+    await waitFor(() =&gt; {
+      expect(screen.queryByLabelText(&#039;화면을 불러오는 중&#039;)).not.toBeInTheDocument();
+    });
+
+    expect(mockReplace).toBeCalledWith(&#039;https://HOST/fail&#039;);
+  });
+
+  it(&#039;input에는 8자까지만 입력할 수 있다&#039;, async () =&gt; {
+    const user = userEvent.setup();
+    render(&lt;Identification {...defaultIdentificationProps} /&gt;);
+    await waitFor(() =&gt; {
+      expect(screen.queryByLabelText(&#039;화면을 불러오는 중&#039;)).not.toBeInTheDocument();
+    });
+
+    const commentInput = screen.getByLabelText(&#039;comment-label&#039;);
+    await user.type(commentInput, &#039;여덟자리가넘어갑니다&#039;);
+
+    expect(commentInput).toHaveValue(&#039;여덟자리가넘어갑&#039;);
+  });
+
+  describe(&#039;ExtraInformation는&#039;, () =&gt; {
+    it(&#039;props로 전달된 referrer이 something일 때 노출된다&#039;, async () =&gt; {
+      const referrer = &#039;something&#039;;
+      render(&lt;Identification {...defaultIdentificationProps} referrer={referrer} /&gt;);
+      await waitFor(() =&gt; {
+        expect(screen.queryByLabelText(&#039;화면을 불러오는 중&#039;)).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByText(&#039;부가 정보&#039;)).toBeInTheDocument();
+    });
+
+    it(&#039;사용자 정보 중 needExtraAuthentication가 true일 때 노출된다&#039;, async () =&gt; {
+      const { result } = renderHook(() =&gt; useMemberStore());
+      act(() =&gt; {
+        result.current.setMemberInfo({ needExtraAuthentication: true });
+      });
+
+      render(&lt;Identification {...defaultIdentificationProps} /&gt;);
+      await waitFor(() =&gt; {
+        expect(screen.queryByLabelText(&#039;화면을 불러오는 중&#039;)).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByText(&#039;부가 정보&#039;)).toBeInTheDocument();
+    });
+
+    it(&#039;이외의 경우에는 노출되지 않는다&#039;, async () =&gt; {
+      const referrer = &#039;other&#039;;
+      const { result } = renderHook(() =&gt; useMemberStore());
+      act(() =&gt; {
+        result.current.setMemberInfo({ needExtraAuthentication: false });
+      });
+
+      render(&lt;Identification {...defaultIdentificationProps} referrer={referrer} /&gt;);
+      await waitFor(() =&gt; {
+        expect(screen.queryByLabelText(&#039;화면을 불러오는 중&#039;)).not.toBeInTheDocument();
+      });
+
+      expect(screen.queryByText(&#039;부가 정보&#039;)).not.toBeInTheDocument();
+    });
+  });
+
+  it(&#039;확인 버튼 클릭 시 input에 입력한 내용과 함께 onFinish 이벤트를 호출한다&#039;, async () =&gt; {
+    const onFinish = vi.fn();
+
+    const user = userEvent.setup();
+    render(&lt;Identification {...defaultIdentificationProps} onFinish={onFinish} /&gt;);
+    await waitFor(() =&gt; {
+      expect(screen.queryByLabelText(&#039;화면을 불러오는 중&#039;)).not.toBeInTheDocument();
+    });
+    const commentInput = screen.getByLabelText(&#039;comment-label&#039;);
+    const confirmButton = screen.getByRole(&#039;button&#039;, { name: &#039;확인&#039; });
+
+    await user.type(commentInput, &#039;입력한 내용&#039;);
+    await user.click(confirmButton);
+
+    expect(onFinish).toBeCalledWith(&#039;입력한 내용&#039;);
+  });
+
+  // ...
+});
+</code></pre>
+<p>설계한 테스트 시나리오대로 테스트 코드가 작성되었습니다. 컴포넌트 내부 구현과 상관없이 오로지 명세대로 테스트 코드가 구현했는데 느껴지시나요? 예를 하나 들어 보겠습니다. 컴포넌트 코드에 현재 useQuery에 isFetching이 활용되었지만 useSuspenseQuery와 Suspense를 가지고 로딩 컴포넌트를 표시하도록 구현했어도 테스트 코드가 통과할 것입니다. 여기서 드리고 싶은 말은 테스트 코드 작성에 내부 구현은 중요하지 않다는 이야기입니다. 어떤 식으로 구현하든 테스트 코드를 통과하는 컴포넌트를 구현해야 합니다. 작성한 테스트 코드의 설명이 다소 아쉽게 느껴지실 수도 있습니다. 하지만 실제 기획서나 정책이 아닌 현재 주어진 정보만 가지고 작성한 것이기 때문에 현 상황에선 더 고도화하기는 어려울 것으로 보입니다. Part 1에서 이야기드렸듯이 설명은 정책을 담는 게 좀 더 좋은데 실제 코드라면 기획서를 참고해서 만들었을 것 같네요!</p>
+<blockquote>
+<p><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/26a0.png" alt="⚠" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 만약 API 에러 처리가 React Portal을 이용한 커스텀 팝업 컴포넌트였다면?</p>
+<p>화면에 해당 문구와 함께 팝업(여기선 Role이 alertdialog)이 표시되었는지 검증해야 할 것입니다. 보통 screen.getBy~~ 로 찾으실 텐데 이 방법으로는 React Portal을 이용해 root 컴포넌트 밖에서 띄워진 컴포넌트는 screen에서 찾을 수 없을 것입니다. 이 땐 Testing Library의 render 함수에서 반환하는 baseElement를 활용할 수 있습니다. <code>const { baseElement } = render(...)</code>를 활용해 <code>getQueriesForElement(baseElement).getByText(...)</code> 와 같은 코드로 HTML 요소를 찾을 수 있습니다. 만약 커스텀 팝업이 아니라 <code>window.alert</code>였다면 모킹을 활용하면 되겠죠?</p>
+</blockquote>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 1em 0">
+<div style="font-weight: 700">Q. defaultIdentificationProps는 뭔가요?</div>
+<p></p>
+<div>
+A. 컴포넌트에선 Props라는 것을 사용하고 컴포넌트를 테스트하기 위해 렌더링할 때 역시 Props가 필요합니다. 하지만 모든 테스트 케이스에서 완벽히 입력된 Props를 요구하지는 않는데요! 따라서 미리 컴포넌트가 돌아가는데 필요한 Props를 기본값으로 선언해두고 사용하다면 좀 더 편하게 테스트 코드를 입력할 수 있습니다. Props 중 함수가 있다면 mock 함수를 사용하거나 예제의 onFinish처럼 인터페이스가 간단하다면 empty function으로 넣어두셔도 무방합니다. 다만, 개별 테스트 케이스에서 반드시 필요한 Props들이 있을 텐데요. 이 경우에만 개별 테스트 케이스에서 별도로 선언 혹은 구현해 사용하시면 됩니다.
+</div>
+</div>
+<h2>보너스! React Custom Hook 단위 테스트 with 타이머</h2>
+<p>지금까지 컴포넌트와 함께 테스트 코드를 작성해 보았습니다. 감이 좀 오시나요? 이번엔 여러분들이 직접 명세를 보고 테스트 코드와 본 코드를 작성하는 보너스 예제를 준비했습니다. 여러분들이 React를 사용하신다면 당연히 Custom Hook을 만드신 경험이 있을 겁니다. 훅과 함께 타이머를 사용할 때의 테스트 코드를 준비했는데 위에서는 다루지 않았죠? 역시 알고 있는 걸 쓰면서 새로운 내용을 섞어야 공부가 되는 거죠! ㅎㅎ 그렇다고 너무 걱정하지는 마세요. 약간의 흐름을 잡을 수 있는 힌트와 모범 답안까지 모두 준비했습니다.</p>
+<p>어떤 컴포넌트에서 특정 주기로 함수를 실행해야 하며 함수가 실행되는 주기는 조건에 따라 실시간으로 변경될 수 있는 상황을 가정해 봅시다. 처음에는 컴포넌트 내에 구현하려고 했으나 여러 컴포넌트에 걸쳐 해당 기능이 필요해 useInterval이라는 Custom Hook으로 분리해 구현하기로 했습니다. 해당 기능을 구현하기 위해 개발설계를 한다면 어떤 명세를 떠올리시나요? 제가 생각한 명세는 아래와 같습니다.</p>
+<ul>
+<li>특정 주기로 함수를 실행해야 함</li>
+<li>함수가 실행되는 주기를 변경할 수 있음</li>
+</ul>
+<p>간단하죠? 저희가 코드 구현에 앞서 기획서를 보고 코드에 대한 구상과 설계를 생각할 때, 모든 기능을 하나하나 명세로 분리한다기보단 이런 기능을 하는 코드가 필요하겠구나! 정도로 생각하니 그 느낌대로 작성해 보았습니다. 해당 명세를 기반으로 useInterval의 인터페이스를 고민하면서 테스트 코드를 작성해봅시다. 제가 생각한 모범답안은 아래와 같은데요! 테스트 코드를 먼저 작성해보시고 한 번 비교해서 보면 좋을 것 같습니다. <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f642.png" alt="🙂" class="wp-smiley" style="height: 1em; max-height: 1em;" /></p>
+<pre><code class="language-javascript">// 테스트 코드 - useInterval.test.ts
+describe(&#039;useInterval 단위 테스트&#039;, () =&gt; {
+  const mockAlert = vi.fn();
+
+  beforeAll(() =&gt; {
+    window.alert = mockAlert;
+  });
+
+  beforeEach(() =&gt; {
+    vi.useFakeTimers();
+    mockAlert.mockClear();
+  });
+
+  afterEach(() =&gt; {
+    vi.clearAllTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
+  });
+
+  it(&#039;callback 함수를 설정한 delay 마다 실행시킨다.&#039;, () =&gt; {
+    renderHook(() =&gt;
+      useInterval(() =&gt; {
+        window.alert(&#039;호출!&#039;);
+      }, 500),
+    );
+
+    vi.advanceTimersByTime(200);
+    expect(mockAlert).not.toBeCalled();
+
+    vi.advanceTimersByTime(300);
+    expect(mockAlert).toBeCalledWith(&#039;호출!&#039;);
+
+    vi.advanceTimersByTime(1000);
+    expect(mockAlert).toBeCalledTimes(3);
+  });
+
+  it(&#039;delay가 변경되면 반복 주기를 변경한다&#039;, () =&gt; {
+    let delay = 500;
+
+    const { rerender } = renderHook(() =&gt;
+      useInterval(() =&gt; {
+        window.alert(&#039;호출!&#039;);
+      }, delay),
+    );
+
+    vi.advanceTimersByTime(1000);
+    expect(mockAlert).toBeCalledTimes(2);
+
+    delay = 200;
+    rerender();
+
+    vi.advanceTimersByTime(1000);
+    expect(mockAlert).toBeCalledTimes(7);
+  });
+});</code></pre>
+<p>useInterval의 인터페이스까지 설계한 완성된 테스트 코드입니다. 타이머와 관련된 코드와 테스트 전체 실행 전, 각각의 케이스 실행 전후로 실행할 함수도 포함되어 있습니다. 위 예제에선 <code>renderHook</code>의 <code>rerender</code>만 사용하고 있지만 함수에서 반환하는 메소드나 값을 받아야 했다면  <code>result.current</code> 도 사용했을 것입니다. mockAlert 같은 경우는 상위에 올리지 않고 개별 테스트 코드에서 각각 사용하셔도 무방합니다. spyOn을 사용해서 테스트해도 됩니다. 제시한 테스트 코드는 여러분이 작성한 테스트 코드와 비슷한가요? 테스트 코드 작성을 했다면 이제는 useInterval 코드를 완성하고 테스트를 돌려봅시다.</p>
+<pre><code class="language-javascript">// 구현 코드 - useInterval.ts
+const useInterval = (callback: () =&gt; void, delay: number) =&gt; {
+  const intervalRef = useRef&lt;ReturnType&lt;typeof setInterval&gt; | null&gt;(null);
+
+  const stopInterval = () =&gt; {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+  };
+
+  const startInterval = (nextDelay: number) =&gt; {
+    stopInterval();
+
+    intervalRef.current = setInterval(() =&gt; {
+      callback();
+    }, nextDelay);
+  };
+
+  useEffect(() =&gt; {
+    startInterval(delay);
+  }, [delay]);
+
+  useEffect(() =&gt; {
+    return () =&gt; {
+      stopInterval();
+    };
+  }, []);
+};</code></pre>
+<p>테스트를 모두 통과하는 useInterval의 완성된 예시 코드입니다. 이제 테스트 코드에 대해서 조금은 익숙해지셨나요? 그럼 여기서 기능을 하나 더 추가한다고 생각해 봅시다. 특정 조건에 따라서만 해당 함수를 실행해야 하는 명세가 추가되었습니다. 구현 계획을 세워본다면 enabled 같은 옵션을 받을 수도 있고 useInterval에서 반복을 시작하고 종료하는 메소드를 반환할 수도 있겠죠! 여러분이 생각하는 인터페이스에 맞춰 한 번 테스트 코드와 코드를 만들어보세요. 지금까지 컴포넌트와 훅 테스트 코드를 보셨으니 이 정도는 쉽게 작성하실 수 있겠죠!?</p>
+<h2>테스트 코드도 “코드”입니다</h2>
+<p>지금까지 실전에서 있을법한 기술 스택과 명세에 대해 컴포넌트와 훅으로 테스트 코드를 살펴보았습니다. 같은 테스트 코드를 보면서도 어떤 분은 되게 상세하고 세부적인 것까지 테스트한다고 생각하실 수도 있고, 어떤 분은 반대로 테스트 케이스가 부족한 것 아닌가라고 생각하시는 분이 있을 수 있습니다. 테스트 코드를 얼마나 상세하고 자세히 적어야 할지는 사람마다 그리고 상황마다 기준이 다를 수 있습니다. 테스트 코드 또한 의견이 갈릴 수 있는데요! 여기에 대한 답변으로 아래와 같은 내용을 남기고 싶습니다.</p>
+<h3>테스트 코드도 유지 보수하며 발전시켜야 합니다</h3>
+<p>테스트 코드라는 것을 떼고 “코드”라는 관점에서 한 번 살펴봅시다. 저희가 일반적인 코드를 작성할 때도 처음 만든 상태 그대로 방치되는 것이 아니라 계속해서 유지 보수하며 많은 발전을 이루게 됩니다. 테스트 코드 역시 처음 만들고 끝이 아니라 지속적으로 유지 보수해야 합니다. 기능이 확장되면서 테스트 코드도 변할 수도 있고, 이전에 놓쳤던 테스트 케이스를 추가해야 할 수도 있고, 어떨 땐 불필요한 테스트 케이스를 발견해 삭제할 때도 있을 것입니다. 프로덕트를 개발하면서 테스트 코드도 같이 신경 써서 유지 보수하면 프로덕트의 안정성도 같이 확보하면서 작업의 부담감도 줄일 수 있습니다. 또한, 개발자 개인에게도 테스트 코드를 꾸준하게 작성하고 공부하며 발전시킨다면 새로운 분야의 역량을 갈고닦을 수 있을 것입니다.</p>
+<h3>테스트 코드에서도 가성비를 챙겨봅시다</h3>
+<p>테스트 코드의 가성비 역시 중요합니다. 테스트 코드의 효용성이 작성 비용보다 높다면 당연히 작성해야 할 것입니다. 여기서 따져야 할 효용은 단순히 개발 편의성뿐만 아니라 장애 위험도, 프로덕트 안정성 및 유지 보수성 등 전반적인 관점에서 따져야 합니다. 테스트 코드가 길고 복잡하더라도 메인 비즈니스 로직이고 자주 변경된다면 비용이 아무리 높더라도 효용이 그 이상일 것이므로 반드시 필요할 것입니다. 만약 간단한 코드인데 작성할까 말까 고민될 때, 필요 없다고 확신이 들지 않는다면 그냥 쓰는 것도 추천드립니다. 고민하는 시간도 비용입니다. 혹시 테스트 코드를 처음 쓰셔서 불안하신 거라면 가성비와 더불어 가심비를 고려해 마음 편할 때까지 쓰시는 것도 나쁘지 않을 것 같네요!</p>
+<h2>Part 2를 마치며, 일단 써보세요</h2>
+<p>Part 1과 Part 2에 걸쳐 프론트엔드에서 현실적인 테스트 코드 작성에 관한 이야기와 인사이트 그리고 팁을 코드와 함께 풀어보았습니다. 아무리 이론과 실전 예제로 살펴보았어도 처음 테스트 코드를 작성한다면 무엇을, 어떻게 작성해야 할 것인가 고민이 많으실 것입니다. 그런 분들을 위해 헤밍웨이가 남겼다고 (추정되는) 문장을 하나 소개하겠습니다.</p>
+<div style="background-color: #F3F5F7;padding: 10px 20px;border-radius: 8px;margin: 1em 0;text-align: center">
+<span style="font-weight: 700">“The first draft of everything is shit.”</span>  from 헤밍웨이
+</div>
+<p>헤밍웨이가 쓴 그 유명한 소설인 노인과 바다도 200번이 넘는 퇴고를 하며 작성했다고 알려져 있는데요. 명문도 200번을 고쳐 써서 만들어졌는데 저희의 테스트 코드도 첫 번째에 완벽할 리 없다고 생각합니다. 우리가 프로덕트를 만들거나 수정할 때 처음부터 모든 코드가 완벽하고 잘 설계되고 작성될까요? 처음부터 잘 쓰려고 시간을 많이 소모하는 것보단 일단 공부해서 간단한 것 하나라도 작성부터 해보시라는 말을 드리고 싶습니다. (도전!)</p>
+<p>지금까지 두 편의 글에 걸쳐 좋은 프로덕트를 위해 노력했던 여러 가지 중 단위 테스트에 관한 생각과 경험을 공유해 드렸는데요. 제가 적은 글이 테스트 코드와 프로덕트 안정성에 대해 고민하는 모든 개발자분께 도움이 되었길 바라며 ‘코드와 함께 살펴보는 프론트엔드 단위 테스트’에 마침표를 찍도록 하겠습니다.</p>The post <a href="https://techblog.woowahan.com/17721/">코드와 함께 살펴보는 프론트엔드 단위 테스트 – Part 2. 실전 편</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+            <wfw:commentRss>https://techblog.woowahan.com/17721/feed/</wfw:commentRss>
+            <slash:comments>0</slash:comments>
+
+
+        </item>
+        <item>
+            <title>WMS 재고 이관을 위한 분산 락 사용기</title>
+            <link>https://techblog.woowahan.com/17416/</link>
+            <comments>https://techblog.woowahan.com/17416/#respond</comments>
+
+            <dc:creator><![CDATA[김준홍]]></dc:creator>
+            <pubDate>Tue, 28 May 2024 06:00:53 +0000</pubDate>
+            <category><![CDATA[Backend]]></category>
+            <category><![CDATA[B마트]]></category>
+            <category><![CDATA[WMS]]></category>
+            <category><![CDATA[물류플랫폼]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=17416</guid>
+
+            <description><![CDATA[<p>WMS 재고 이관 과정에서 발생한 동시성 이슈를 분산 락(Distributed Lock)을 사용해 해결한 경험을 공유하는 글입니다. 본 글은 분산 락에 대해 알고 있는 분들을 대상으로 작성되었습니다. 제가 경험한 내용들이 여러분들의 비즈니스에 도움이 되는 글이 되길 바랍니다. WMS란? WMS(Warehouse Management System, 창고 관리 시스템)는 물류센터에서 반복되는 수기 작업을 시스템화하여 안정적으로 운영될 수 있도록 합니다. 재고 입/출고 과정을 [&#8230;]</p>
+The post <a href="https://techblog.woowahan.com/17416/">WMS 재고 이관을 위한 분산 락 사용기</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<blockquote>
+<p>WMS 재고 이관 과정에서 발생한 동시성 이슈를 분산 락(Distributed Lock)을 사용해 해결한 경험을 공유하는 글입니다. 본 글은 분산 락에 대해 알고 있는 분들을 대상으로 작성되었습니다. 제가 경험한 내용들이 여러분들의 비즈니스에 도움이 되는 글이 되길 바랍니다.</p>
+</blockquote>
+<h1>WMS란?</h1>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/WMS-750x246.png"></p>
+<p>WMS(Warehouse Management System, 창고 관리 시스템)는 물류센터에서 반복되는 수기 작업을 시스템화하여 안정적으로 운영될 수 있도록 합니다. 재고 입/출고 과정을 WMS로 기록하여 재고를 관리하고 재고 흐름을 추적합니다. WMS는 재고 관리 외에도 물류센터 내 다양한 작업을 시스템화하고 있으며 주요 기능은 다음과 같습니다.</p>
+<ul>
+<li>
+<p>발주 상품 입고 및 검수/검품(수량, 품질, 소비기한) 관리</p>
+</li>
+<li>
+<p>재고의 실시간 정보(소비기한, 수량, 파손 여부, 보충) 관리</p>
+</li>
+<li>
+<p>고객의 실시간 주문정보에 따른 정확하고 빠른 상품 출고</p>
+</li>
+</ul>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/WMS-process-750x128.jpg"></p>
+<p>WMS 재고들은 중앙물류기지라고 불리는 DC(Distribution Center)로 입고되며, DC에 입고된 상품들은 지역 거점 센터인 PPC(Picking Packing Center)로 재고가 이관됩니다. 그리고 B마트 서비스로부터 고객 주문이 들어오면 PPC에서 상품이 고객에게 출고됩니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_1-750x94.png" style="margin: 20px"></p>
+<p>본 글에서는 WMS 재고를 이관하는 과정에서 마주친 동시성 문제에 대해 살펴보고, 어떤 방법으로 동시성 이슈를 해결해 나갔는지에 대해 공유합니다.</p>
+<h1>WMS 재고 이관하기</h1>
+<h2>이관요청</h2>
+<p>DC에서 PPC로 재고를 이관하려면 WMS에서 이관요청서를 생성해야 합니다. 이관요청서에 입력해야 하는 주요 항목은 다음과 같습니다.</p>
+<ul>
+<li>출발지 센터</li>
+<li>목적지 센터</li>
+<li>SKU</li>
+<li>이관 수량</li>
+</ul>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"><b><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f4a1.png" alt="💡" class="wp-smiley" style="height: 1em; max-height: 1em;" /> SKU(Stock Keeping Unit)란?</b><br />물류에서 사용되는 용어로 상품을 구별하기 위한 고유의 식별 코드입니다.</div>
+<p>예를 들어, <code>인천DC(출발지)</code>에서 <code>관악신림PPC(목적지)</code>로 <code>배달이 피규어(SKU: A0123)</code>를 <code>10개(이관 수량)</code> 이관하기 위한 이관요청서를 생성했다고 가정합니다. 최초 생성된 이관요청서는 할당 상태가 미할당으로 생성됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>출발지 센터</th>
+<th>목적지 센터</th>
+<th>SKU</th>
+<th>이관 수량</th>
+<th>할당 상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>인천DC</td>
+<td>관악신림PPC</td>
+<td>배달이 피규어(A0123)</td>
+<td>10</td>
+<td>미할당</td>
+</tr>
+</tbody>
+</table>
+<p>DC 관리자에 의해 생성된 이관요청서로 재고를 옮기려면 할당 상태를 <code>미할당 → 할당</code>으로 만들어야 합니다. 할당 작업은 내부 로직에 의해 자동으로 할당 로케이션을 지정하거나, DC 관리자가 수동으로 할당 로케이션을 지정할 수 있습니다. 재고가 할당되면 할당 상태가 <code>미할당 → 할당</code>으로 변경됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>출발지 센터</th>
+<th>목적지 센터</th>
+<th>SKU</th>
+<th>이관 수량</th>
+<th>할당 상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>인천DC</td>
+<td>관악신림PPC</td>
+<td>배달이 피규어(A0123)</td>
+<td>10</td>
+<td>미할당 → 할당</td>
+</tr>
+</tbody>
+</table>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"><b><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f4a1.png" alt="💡" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 할당이란?</b><br />동일한 상품이 물류 센터 내 여러 로케이션(위치)에 흩어져 있는 경우, 작업자가 출고할 상품을 선점하는 작업이 필요한데 이 작업을 할당이라고 합니다.</div>
+<p>이관요청서를 잘못 생성한 경우(예: SKU 코드를 잘못 입력한 경우) 재고를 이관하지 않기 위해 이관요청서를 취소할 수 있습니다. 취소 대상의 이관요청서는 할당 상태가 미할당이어야 합니다. 즉, 취소를 시도할 때는 최초 이관요청서가 생성되었을 때와 할당 상태가 동일해야 합니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_2.png" width="250"></p>
+<h2>할당과 취소</h2>
+<p>할당은 <strong>(1)재고 할당</strong>과 <strong>(2)할당 상태 변경</strong>이라는 두 가지 작업을 합니다. 이때 할당 상태는 재고 할당 결과에 따라 결정됩니다. 따라서, 할당 상태는 재고 할당을 모두 시도한 후 변경해야 합니다.</p>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0">
+<b><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f4a1.png" alt="💡" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 할당 상태란?</b><br />
+&#8211; 할당 (이관요청 수량 = 할당 수량)<br />
+&#8211; 부분할당 (이관요청 수량 &gt; 할당 수량)<br />
+&#8211; 미할당 (할당 수량 = 0)<br />
+&#8211; 취소
+</div>
+<p>취소는 이관요청서에 재고가 할당되지 않은 상태(미할당)만 가능합니다. 이관요청서를 취소하면 할당 상태가 <code>미할당 → 취소</code> 상태로 변경됩니다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>할당 상태</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>할당</td>
+<td>미할당 → 할당 or 부분할당</td>
+<td>할당 결과에 따라 할당 상태가 결정됨</td>
+</tr>
+<tr>
+<td>취소</td>
+<td>미할당 → 취소</td>
+<td>미할당 상태인 경우에만 취소가 가능</td>
+</tr>
+</tbody>
+</table>
+<h1>할당과 취소를 동시에 요청한다면?</h1>
+<blockquote>
+<p><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/26a0.png" alt="⚠" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 취소된 이관요청서에 재고가 할당되어 있어요.</p>
+</blockquote>
+<p>DC 관리자로부터 취소된 이관요청서에 재고가 할당되어있다는 문의가 들어왔습니다. 해당 이관요청서를 확인해 보니 동일한 시점에 할당과 취소가 요청된 것을 확인할 수 있었습니다. 한 관리자는 재고 이관을 위해 이관요청서를 할당했고, 동일한 시점에 다른 관리자는 이관요청서를 취소한 것입니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_3.png" width="200"></p>
+<p>그런데 어떻게 취소된 이관요청서에 재고가 할당될 수 있었을까요? 먼저 할당 API를 살펴보겠습니다. 앞서 설명한 것처럼 할당은 <strong>(1)재고 할당</strong>과<strong> (2)할당 상태 변경</strong> 두 가지 작업을 하고 있으며, 재고 할당 결과(result)에 따라 할당 상태가 변경됩니다. </p>
+<p>즉, 할당 API는 재고 할당과 할당 상태 변경의 트랜잭션이 분리되어 있습니다. 그리고 재고 할당은 DB 트랜잭션을 짧게 하기 위해서 이관요청서 단위가 아닌, 이관요청서 하위 SKU 단위로 재고를 할당합니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_5_3.png" width="300" style="margin-bottom: 10px"></p>
+<pre><code class="language-kotlin">// 할당 API
+@PostMapping(&quot;/api/orders/{orderId}/items/{orderItemId}/allocation&quot;)
+fun allocateItem(
+    @PathVariable orderId: Long, // 이관요청서 ID
+    @PathVariable orderItemId: Long // 이관요청서 하위 SKU(아이템) ID
+): AllocateItemResponse {
+    // (1) 재고 할당
+    val result = orderItemAllocationService.allocateItem(orderItemId)
+    if (result) {
+        // (2) 할당 상태 변경
+        orderAllocationService.updateStatus(orderId)
+    }
+    return OrderItemAllocationResponse(result)
+}</code></pre>
+<p>할당 API는 SKU 단위로 재고를 할당하기 때문에 이관요청서 하위 SKU들을 병렬로 할당할 수 있습니다. 그리고 이관요청서 할당 상태 변경 전에 분산 락 설정이 되어 있어서, 이관요청서 SKU들을 병렬로 할당하더라도 재고 할당 결과에 따라 할당 상태가 의도한 상태로 변경됩니다.</p>
+<pre><code class="language-kotlin">@Service
+class OrderAllocationService(
+    // ...
+) {
+    fun updateStatus(orderId: Long) {
+        try {
+            // 분산 락 시작
+            wmsRedisLock.lock(key = orderId, waitSecond = 5) {
+                // 함수형 트랜잭션 적용
+                functionalWmsTransactional.run {
+                    val order = orderService.getByOrderId(orderId)
+                    order.updateStatus() // 할당 결과에 따라 할당 상태 변경
+                }
+            }
+            // 분산 락 종료
+        } catch (e: IllegalStateException) {
+            throw RuntimeException(&quot;(락 획득 실패) 동시성 이슈가 발생했습니다. [orderId: $orderId]&quot;)
+        }
+    }
+}</code></pre>
+<p>그런데 왜 재고 할당과 동시에 취소했을 때, 이관요청서 할당 상태가 취소이고 재고가 할당된 상태로 남아 있었을까요? 그 이유는 취소 API가 분산 락 설정 없이 이관요청서 할당 상태를 취소 상태로 변경하고 있었기 때문이었습니다.</p>
+<pre><code class="language-kotlin">// 취소 API
+@PostMapping(&quot;/api/orders/{orderId}&quot;)
+fun cancel(
+    @PathVariable orderId: Long
+): OrderCancelResponse {
+    val result = orderCancelService.cancel(orderId) // 분산 락 설정 없음
+    return OrderCancelResponse(result)
+}</code></pre>
+<h2>동시성 이슈 원인</h2>
+<p>동시성 이슈의 원인은 취소 작업에는 분산 락이 걸려 있지 않기 때문입니다. 즉, 재고 할당 중에는 아직 할당 상태가 변경되지 않아 미할당 상태이므로, 취소 요청이 가능합니다. 할당 요청이 처리되고 마지막에 취소 요청이 반영되면서 이관요청서가 할당된 상태로 할당 상태가 취소로 변경된 것입니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_4-750x398.png" width="800"></p>
+<p>그렇다면 왜 취소 요청 시에 재고 할당이 해제되지 않았을까요? 그 이유는 취소 로직은 이관요청서 할당 상태만 변경하고 할당과 관련된 작업은 하지 않기 때문입니다. 그럼, 이제 취소 요청에 분산 락을 설정하여 동시성 이슈를 제어해 봅시다.</p>
+<h1>할당과 취소가 동시에 처리되는 것을 막아보자</h1>
+<h2>1 단계: 분산 락 추가하기</h2>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f511.png" alt="🔑" class="wp-smiley" style="height: 1em; max-height: 1em;" /> <b>키 포인트</b><br />할당, 취소 시 동일한 분산 락 키 사용하기 (이관요청서 단위) <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f448.png" alt="👈" class="wp-smiley" style="height: 1em; max-height: 1em;" /></div>
+<h3>해결방법</h3>
+<p>앞서 동시성 이슈 원인을 살펴본 결과, 이관요청서가 할당 중일 때는 취소 요청이 되지 않아야 합니다. 재고 할당과 취소 로직에 이관요청서 단위로 분산 락을 추가하면, 동시에 이관요청서의 할당 상태를 변경하려는 것을 막을 수 있습니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_step1_1-750x466.png" width="800"></p>
+<h3>문제점</h3>
+<p>이관요청서 단위로 분산 락을 걸고 할당과 취소를 동시에 해봅시다. 이관요청서에 하나의 SKU만 있는 경우에는 정상적으로 동작하는 것으로 보입니다. 그런데, 이관요청서 하위에 N개 SKU가 있는 경우는 어떻게 될까요? 첫 번째 할당 요청만 성공하고 나머지 할당은 모두 실패합니다. </p>
+<p>왜냐하면, 하나의 이관요청서 하위에는 SKU 단위의 데이터가 있으며, SKU 단위로 재고가 할당됩니다. 그런데 이관요청서 단위로 분산 락을 설정하게 되면 어떻게 될까요? 클라이언트에서 이관요청서 하위에 있는 N개의 SKU를 동시에 할당해 달라 요청할 때, 첫 번째 SKU만 할당되고 나머지 SKU들은 분산 락 획득에 실패하여 재고가 할당되지 않습니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_step1_2-750x460.png" width="800"></p>
+<h2>2 단계: 분산 락 대기하기</h2>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f511.png" alt="🔑" class="wp-smiley" style="height: 1em; max-height: 1em;" /> <b>키 포인트</b><br />1. 할당, 취소 시 동일한 분산 락 키 사용하기 (이관요청서 단위)<br />2. 분산 락에 waitTime 설정하기 <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f448.png" alt="👈" class="wp-smiley" style="height: 1em; max-height: 1em;" /></div>
+<h3>해결방법</h3>
+<p>할당은 이관요청서 단위가 아닌, 이관요청서의 하위 SKU 단위로 진행합니다. 즉, 화면에서 이관요청서 하나를 할당 요청했을 때, 해당 이관요청서 하위에 10개 SKU가 있는 경우 실제로는 10번의 할당 요청 API가 호출됩니다. 따라서 이관요청서 단위로 분산 락 키를 사용하게 되면 첫 번째 할당 요청만 성공하고 나머지는 할당 요청은 실패하게 됩니다.</p>
+<p>첫 번째 할당 요청만 성공하고 나머지 할당 요청이 실패하는 것에 대응하기 위해, 분산 락에 waitTime(대기 시간)을 설정해서 순차 처리가 되도록 합니다. 이제 할당과 취소가 동시에 진행되는 것을 막았고, 이관요청서 하위에 N개 SKU가 있는 경우에도 할당이 정상적으로 되는 것을 확인할 수 있습니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_step2_1-750x468.png" width="800"></p>
+<h3>문제점</h3>
+<p>다만, 이와 같은 해결 방법에도 문제점이 있습니다. 분산 락 waitTime 설정에 의해서 분산 락을 획득하기까지 할당 요청을 처리하는 것을 대기합니다. 즉, 이관요청서의 하위 SKU가 많아질수록 할당 처리 시간이 늘어나게 됩니다. </p>
+<p>할당과 취소가 동시에 되는 것은 막았지만, 이 방법은 이관요청서의 할당 속도를 포기하는 방법입니다. 다음 스텝에서 할당과 취소가 동시에 되는 것은 막고, 할당은 병렬로 처리하는 방법에 대해 알아봅니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_step2_2-750x467.png" width="1000"></p>
+<h2>3 단계: 분산 락과 상태 키 함께 사용하기</h2>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f511.png" alt="🔑" class="wp-smiley" style="height: 1em; max-height: 1em;" /> <b>키 포인트</b><br />1. 할당, 취소 시 동일한 분산 락 키 사용하기 (이관요청서 단위)<br />2. 분산 락에 waitTime 설정하기<br />3. 분산 락과 상태 키 함께 사용하기 <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f448.png" alt="👈" class="wp-smiley" style="height: 1em; max-height: 1em;" /></div>
+<h3>해결방법</h3>
+<p>이관요청서 단위로 분산 락을 설정하여 할당과 취소가 동시에 되는 것은 막았지만, waitTime이 설정되어 분산 락 획득 대기 시간 만큼 할당이 지연되었습니다. 이번에는 이관요청서 단위로 분산 락을 설정하고 분산 락 안에서 재고 할당과 할당 상태를 변경하는 것이 아니라, 이관요청서가 할당중 상태인지 취소중 상태인지를 체크하는 상태 키를 추가로 사용하도록 수정합니다.</p>
+<p>상태 키 분산 락 안에서는 현재 요청이 할당이면 <code>할당(ALLOCATION)</code> 값을 Redis에 저장하고, 현재 요청이 취소면 <code>취소(CANCEL)</code> 값을 저장합니다. 그리고 상태 값을 저장할 때 해당 키의 유효시간을 갱신합니다. </p>
+<p>이관요청서의 현재 상태가 <code>할당 → 할당</code> 상태인 경우 다음 로직(재고 할당, 할당 상태 변경)으로 넘어가고,  <code>취소 → 할당</code>인 경우는 할당 작업을 진행하지 않고 예외를 발생시키고 요청을 종료합니다. 반대로 취소 요청시 상태가 <code>취소 → 취소</code>, <code>할당 → 취소</code> 인 경우에도 할당 작업의 처리 방식과 동일합니다. </p>
+<p><em>즉, Step3 에서는 할당과 취소 작업 전 상태 키 설정 분산 락 안에서 상태 값을 확인하고 이후 로직을 수행할지 여부를 결정합니다.</em></p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_step3_1-3-750x406.png" width="1000"></p>
+<pre><code class="language-kotlin">@Service
+class OrderAllocationWebService(
+    // ...
+) {
+    fun allocate(orderId: Long, orderItemId: Long): Boolean {
+        tryLock(orderId)
+        return allocateItemAndUpdateStatus(orderId, orderItemId)
+    }
+
+    private fun tryLock(orderId: Long) {
+        try {
+            // 분산 락 시작
+            wmsRedisLock.lock(key = orderId, waitSecond = 5) {
+                val statusKey = &quot;STATUS_KEY:$orderId&quot;
+                val status = redisTemplate.opsForValue()[statusKey]?.let { OrderStatus.valueOf(it.toString()) }
+                when (status) {
+                    // 현재 상태가 할당 또는 null 상태면, 키 값 설정 후 유효시간 30초로 갱신
+                    OrderStatus.ALLOCATION, null -&gt; {
+                        redisTemplate.opsForValue().set(statusKey, OrderStatus.ALLOCATION, 30, TimeUnit.SECONDS)
+                    }
+                    // 현재 상태가 취소 상태면, 예외 발생
+                    OrderStatus.CANCEL -&gt; {
+                        throw RuntimeException(&quot;(할당 -&gt; 취소) 동시성 이슈가 발생했습니다. [orderId: $orderId]&quot;)
+                    }
+                }
+            }
+            // 분산 락 종료
+        } catch (e: IllegalStateException) {
+            throw RuntimeException(&quot;(락 획득 실패) 동시성 이슈가 발생했습니다. [orderId: $orderId]&quot;)
+        }
+    }
+
+    private fun allocateItemAndUpdateStatus(orderId: Long, orderItemId: Long): Boolean {
+        // (1) 재고 할당
+        val result = orderItemAllocationService.allocateItem(orderItemId)
+        if (result) {
+            // (2) 할당 상태 변경 (분산 락 포함)
+            orderAllocationService.updateStatus(orderId)
+        }
+        return result
+    }
+}</code></pre>
+<p>상태 키 값을 설정하는 것은 단순히 값만 변경하는 작업이라 빠르게 처리되어 전체 처리 속도에 영향이 적습니다. 할당 API에서 처리 시간이 가장 오래 걸리는 부분은 재고 할당이며, 할당 결과에 따라 할당 상태가 결정되어야 하므로, 할당 상태를 변경하기 전 분산 락 설정이 필요합니다. </p>
+<p>재고 할당은 분산 락 밖에서 처리되어 같은 상태의 요청이 들어오더라도 병렬로 처리되며, 현재 상태와 다른 요청이 들어왔을 때는 예외를 발생시켜 처리를 하지 않는 프로세스를 구현할 수 있습니다.</p>
+<p align="center"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/20240528_step3_2-4-750x347.png" width="1000"></p>
+<h1>마무리</h1>
+<p>지금까지 WMS 재고 이관시 발생한 동시성 이슈를 해결하기 위해 분산 락을 사용하는 과정을 살펴보았습니다. 분산 락은 여러 프로세스가 동일한 자원에 접근할 때 발생할 수 있는 충돌을 방지하고, 시스템의 안정성을 높이는 데 큰 역할을 합니다. WMS에서는 여러 작업이 동시에 수행되더라도 재고 데이터의 일관성을 유지할 수 있도록, 분산 락을 사용하여 시스템의 신뢰성을 높이고 오류를 최소화합니다.</p>
+<p>분산 락 적용이 필요하면서도 병렬 처리가 필요한 경우, 상태 키를 설정하여 다음 로직을 수행할지를 결정했습니다. 이를 통해 할당과 취소가 동시에 발생하는 것을 방지할 수 있었고, 동일한 작업의 경우 병렬 처리까지 가능하게 되었습니다. 분산 락을 사용하면서 상태에 따라 로직을 처리할지를 결정할 수 있어 앞으로도 유용하게 사용될 수 있을 것 같습니다.</p>
+<p>본 글에서는 이관요청서 하위 SKU 단위로 할당 요청을 처리했지만, 개선안으로는 할당 요청을 이관요청 단위로 받아 하위 SKU들의 할당을 멀티 스레딩 방식으로 처리해 볼 수 있을 것 같습니다. 멀티 스레딩 방식을 사용하게 되면 API의 총 처리 시간 및 API 서버 부하에 대해 고려가 필요합니다. 비즈니스 상황에 따라 멀티 스레딩을 사용한 방식도 고려해 보면 좋을 것 같습니다.</p>
+<p>마지막으로, WMS의 동시성 문제를 해결하는 과정에서 분산 락의 중요성을 느낄 수 있었고, 이러한 기술적 해결 방법을 통해 얻은 경험과 노하우를 공유하게 되어 기쁩니다. 본 글이 여러분의 시스템 안정성과 비즈니스 성장에 도움이 되기를 바라며, 더 나은 해결책을 찾아나가는 과정에 함께하기를 기대합니다.</p>The post <a href="https://techblog.woowahan.com/17416/">WMS 재고 이관을 위한 분산 락 사용기</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+            <wfw:commentRss>https://techblog.woowahan.com/17416/feed/</wfw:commentRss>
+            <slash:comments>0</slash:comments>
+
+
+        </item>
+        <item>
+            <title>[신청 시작] 6월 우아한테크세미나 : 글로벌 개발자로 성장하는 법</title>
+            <link>https://techblog.woowahan.com/17713/</link>
+            <comments>https://techblog.woowahan.com/17713/#respond</comments>
+
+            <dc:creator><![CDATA[우아한형제들 DevRel]]></dc:creator>
+            <pubDate>Mon, 27 May 2024 05:56:16 +0000</pubDate>
+            <category><![CDATA[우아한테크세미나]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=17713</guid>
+
+            <description><![CDATA[<p>6월 우아한테크세미나 : 글로벌 개발자로 성장하는 법 ㅤ 📅 일정 2024. 6. 3.(월) 저녁 6시, 약 90분간 우아한테크 YouTube 채널 실시간 스트리밍 🖇️ https://youtube.com/@woowatech 🙋‍♂️ 신청 방법 신청 링크 : (바로가기) 강연 당일까지 신청하신 분께는 세미나가 끝난 뒤 발표 자료(.pdf)를 보내 드립니다. ㅤ 📝 주요 내용 ㅤ 우리는 늘 커리어에 대한 고민을 안고 살아갑니다. &#34;나는 [&#8230;]</p>
+The post <a href="https://techblog.woowahan.com/17713/">[신청 시작] 6월 우아한테크세미나 : 글로벌 개발자로 성장하는 법</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<h3>6월 우아한테크세미나 : 글로벌 개발자로 성장하는 법</h3>
+<hr />
+<p><a href="https://forms.gle/aimAbCbLfkjy7W7v8" title="![](https://techblog.woowa.in/wp-content/uploads/2024/05/6월-테크세미나-썸네일-1.png)"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/6월-테크세미나-썸네일-1.png" alt="" /></a><br />
+ㅤ</p>
+<h4><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f4c5.png" alt="📅" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 일정</h4>
+<ul>
+<li>2024. 6. 3.(월) 저녁 6시, 약 90분간</li>
+<li>우아한테크 YouTube 채널 실시간 스트리밍<br />
+<img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f587.png" alt="🖇" class="wp-smiley" style="height: 1em; max-height: 1em;" /> <a href="https://youtube.com/@woowatech">https://youtube.com/@woowatech</a></li>
+</ul>
+<h4><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f64b-200d-2642-fe0f.png" alt="🙋‍♂️" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 신청 방법</h4>
+<ul>
+<li>신청 링크 : (<a href="https://forms.gle/aimAbCbLfkjy7W7v8" title="바로가기">바로가기</a>)</li>
+<li>강연 당일까지 신청하신 분께는 세미나가 끝난 뒤 발표 자료(.pdf)를 보내 드립니다.<br />
+ㅤ</li>
+</ul>
+<h4><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f4dd.png" alt="📝" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 주요 내용</h4>
+<p>ㅤ<br />
+우리는 늘 커리어에 대한 고민을 안고 살아갑니다. </p>
+<p>&quot;나는 지금 잘 하고 있는 걸까?&quot;라는 고민에서부터 시작해서 &quot;어떻게 하는 게 잘하는 걸까?&quot;, &quot;계속 일할 수 있을까?&quot;와 같은 고민을 계속해서 이어가죠. </p>
+<p>고민을 하는 일은 당시에는 참 힘들고 어렵지만, 결국 내 자신의 성장에 큰 도움이 되는 일 같습니다.</p>
+<p>커리어 코칭 기업 ‘UpZen’의 창업자인 한기용 님은 30여 년간 실리콘밸리에서 일하며 커리어 코칭을 해온 분입니다.</p>
+<p>2000년 이후 실리콘 밸리에서 10여 개 이상의 크고 작은 조직에 몸 담으며 다양한 시행착오를 겪으셨고, 또 이를 토대로 수많은 멘토링 및 자문을 진행해 본 경험이 있으신데요.</p>
+<p>우아한테크세미나를 통해 한기용 님에게 여러분의 고민을 나눠보세요. </p>
+<p>내 고민을 해결할 뿐만 아니라, 나와 비슷한 고민을 가지고 있는 다른 분들에게도 도움이 되는 시간이 될 수 있습니다.<br />
+ㅤ</p>
+<p><strong>1부: 글로벌 개발자로 성장하는 법 (40분)</strong></p>
+<p><strong>2부: 고민상담 코너! 한기용 님께 궁금해요 (40분)</strong></p>
+<p>*<em>참고 도서 : <a href="https://www.yes24.com/Product/Goods/125116480">실패는 나침반이다</a></em><br />
+ㅤ<br />
+<a href="https://forms.gle/aimAbCbLfkjy7W7v8" title="![](https://techblog.woowa.in/wp-content/uploads/2024/05/6월테크세미나-고민-배너@3x.png)"><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/6월테크세미나-고민-배너@3x.png" alt="" /></a><br />
+ㅤ</p>
+<h4><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f44d.png" alt="👍" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 추천 대상</h4>
+<ul>
+<li>개발자로서 커리어를 어떻게 쌓아나가면 좋을지 궁금한 분</li>
+<li>현재의 어려움을 뛰어넘어 미래의 성장으로 나아가는 길이 고민되는 분</li>
+<li>대한민국을 넘어, 글로벌 IT 생태계로 커리어를 확장해 나가고 싶은 개발자<br />
+ㅤ</li>
+</ul>
+<h4><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f399.png" alt="🎙" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 강연자</h4>
+<h5>업젠 한기용</h5>
+<p>컴퓨터 공학 석사 후 삼성전자에서 시작된 커리어가 친구 덕에 실리콘밸리로 이어져 지난 29년간 13개의 다양한 스테이지의 회사를 다녔습니다 (창업, 대기업들, 다수의 스타트업들). 중간에 11개월 쉬어보기도 했고 본의 아니게 엔젤투자, 어드바이저, 컨설팅 등의 역할을 하면서 나만의 브랜드를 만들었습니다. 실패를 실패가 아닌 교훈으로 보는 긍정의 힘과 꾸준함이라는 복리의 힘을 믿습니다.</p>
+<p>현) UpZen 창업자 (2024-)<br />
+전) 그렙 CTO, 야후 엔지니어링 디렉터, 삼성전자 엔지니어</p>The post <a href="https://techblog.woowahan.com/17713/">[신청 시작] 6월 우아한테크세미나 : 글로벌 개발자로 성장하는 법</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+            <wfw:commentRss>https://techblog.woowahan.com/17713/feed/</wfw:commentRss>
+            <slash:comments>0</slash:comments>
+
+
+        </item>
+        <item>
+            <title>운송 관리 시스템(TMS)의 탄생부터 현장에서 사용하기까지</title>
+            <link>https://techblog.woowahan.com/17466/</link>
+            <comments>https://techblog.woowahan.com/17466/#respond</comments>
+
+            <dc:creator><![CDATA[이준한]]></dc:creator>
+            <pubDate>Thu, 23 May 2024 06:50:25 +0000</pubDate>
+            <category><![CDATA[PM]]></category>
+            <category><![CDATA[B마트]]></category>
+            <category><![CDATA[TMS]]></category>
+            <category><![CDATA[물류플랫폼]]></category>
+            <category><![CDATA[운송관리시스템]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=17466</guid>
+
+            <description><![CDATA[<p>우아한형제들의 B마트 서비스는 고객님이 주문한 상품을 물류센터를 통해 문 앞까지 배달해 드리고 있습니다. 이 때문에 센터 관리, 간선 운송 관리 등의 역할이 필요합니다. 지난 2024년 3월 물류플랫폼 TMS(운송관리시스템)가 &#8216;배차 시스템화 프로젝트&#8217; 오픈과 함께 대대적으로 개편되었습니다. 기술블로그를 통해 TMS의 탄생부터 현장에서 사용되기까지 지난 1년간 저희가 진행했던 노력과 성과, 그리고 배운 점을 공유드리고자 합니다. 1. TMS와 탄생 [&#8230;]</p>
+The post <a href="https://techblog.woowahan.com/17466/">운송 관리 시스템(TMS)의 탄생부터 현장에서 사용하기까지</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<p>우아한형제들의 B마트 서비스는 고객님이 주문한 상품을 물류센터를 통해 문 앞까지 배달해 드리고 있습니다. 이 때문에 센터 관리, 간선 운송 관리 등의 역할이 필요합니다. 지난 2024년 3월 물류플랫폼 TMS(운송관리시스템)가 <strong>&#8216;배차 시스템화 프로젝트&#8217;</strong> 오픈과 함께 대대적으로 개편되었습니다. 기술블로그를 통해 TMS의 탄생부터 현장에서 사용되기까지 지난 1년간 저희가 진행했던 노력과 성과, 그리고 배운 점을 공유드리고자 합니다.  </p>
+<h1>1. TMS와 탄생 배경</h1>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/23.02.24-TMS-로고_최종_로고-이미지-2-750x374.png" alt="" /></p>
+<blockquote>
+<p>TMS란 Transportation Management System의 약자로 한글로 직역하면 <strong><span style="color: #33cccc">운송관리시스템</span></strong>이에요.<br />
+TMS는 우아한형제들의 물류센터로 상품이 들어오고 나가는 과정에서 배차와 관련된 모든 것을 관리하는 역할을 합니다.<br />
+배차 담당자, 운송사, 차량 기사님 등이 TMS의 주요 사용자랍니다.</p>
+</blockquote>
+<h2>인천 기지 오픈</h2>
+<p>지난 2023년 5월 우아한형제들의 <strong><span style="color: #33cccc">새로운 중앙 물류기지인 인천기지가 오픈</span></strong>을 했습니다. 그리고 기존 위탁 운영 방식이 아닌 우아한청년들이 직운영 하는 방식으로 배차 관리를 하게 되었습니다. 이에 따라 센터 간 운송을 위한 배차 관리 시스템이 필요하게 되었습니다.</p>
+<ul>
+<li>우아한청년들 중앙물류기지 소개 글: <a href="https://www.woowayouths.com/story/culture/view/1/24" title="우아한청년들 중앙물류기지 소개 글">기지(wit)가 발휘되는 물류 기지(Base)</a></li>
+</ul>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/스크린샷-2024-05-20-오후-10.22.44-750x499.png" alt="" /></p>
+<blockquote>
+<p>출처: 우아한청년들 공식 홈페이지 &#8211; 중앙물류기지에서 피패킹센터로 이동을 위해 상품이 담긴 롤테이너를 운송 차량으로 옮기는 중</p>
+</blockquote>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"><b><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f4a1.png" alt="💡" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 중앙물류기지란? </b> <br /> 물류기지에서는 상온, 냉장, 냉동의 상품을 입고 받아 보관 및 관리하며, 각 피패킹센터로 상품을 공급합니다. 최고의 품질을 유지하면서도, 정확한 분류와 전달을 통해 피패킹센터가 언제나 고객 앞에 스탠드바이 할 수 있도록 지원합니다.
+</div>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"><b><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f4a1.png" alt="💡" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 피패킹센터란?</b><br />도심 곳곳에 위치하고 있는 피패킹센터(Picking &amp; Packing Center)에서는 물류기지에서 상품을 받아 보관하다가 주문이 들어오면 즉시 정확하게 피킹 및 패킹(포장)하여 라이더가 배달을 할 수 있도록 준비합니다.</div>
+<h1>2. TMS 오픈, 왜 안써요..?</h1>
+<p>인천기지 오픈에 맞추어 기본적인 배차 기능을 제공하는 신규 물류플랫폼 TMS를 오픈했습니다.<br />
+그런데 정작 현장에서는 TMS를 사용하지 않았습니다. (사용률 0%&#8230; <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f972.png" alt="🥲" class="wp-smiley" style="height: 1em; max-height: 1em;" />)<br />
+처음에는 새로운 방식이 익숙하지 않아서 못 쓰고 계신다고만 생각했고, 몇 가지 현장 요구사항을 개선하고 나면 사용하실 것으로 기대했습니다.<br />
+하지만 시간이 지나도 이 상황은 개선되지 않았습니다.<br />
+이래선 안 되겠다 싶었던 저희는 <strong>근본 원인을 파악</strong>하기 위해 <strong><span style="color: #33cccc">현장에 방문</span></strong>했습니다.</p>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/스크린샷-2024-05-21-오전-11.03.04-750x376.png" alt="" /></p>
+<blockquote>
+<p>인천기지에서 배차 및 상차, 출차 작업은 야간에 이루어져요.<br />
+저희는 4월 어느 날 밤 인천기지에 방문했답니다!</p>
+</blockquote>
+<h2>2.1 안 쓰는 이유 첫 번째 : 현장 프로세스와의 괴리</h2>
+<p>현장에 방문한 저희는 배차 담당자분들과의 인터뷰를 시작으로 이동 물량 카운팅 및 배차, 상차, 출차 과정을 관찰하였습니다.<br />
+그 결과 크게 세 가지 TMS를 사용하기 어려운 이유를 찾아냈습니다.</p>
+<ol>
+<li><strong>예상 수량 기반 배차 생성</strong>
+<ol>
+<li>실 수량과 괴리가 있는 Unit 기반 환산 방식으로 배차 생성</li>
+<li>다양한 차량유형 (차량톤수, 차폭 등)이 고려되지 않은 단일 유형의 배차 생성 및 물량 분배</li>
+</ol>
+</li>
+<li><strong>정보 수정의 유연성 부족</strong>
+<ol>
+<li>계획과 실행의 프로세스가 분리되지 않음</li>
+<li>현장 Case를 적용하려면, 운영관리자 &#8211; 운송사 양측 승인과 변경이 필요한 상황</li>
+</ol>
+</li>
+<li><strong>주어진 시간 대비 너무 오래 걸리는 배차 과정</strong>
+<ol>
+<li>운송사 지정 및 왕복/편도 개별 등록 필요</li>
+<li>배차별 기사님 개별 배정 필요</li>
+<li>운임 정보 개별 등록 (실제 계약된 운임 구조 반영 안 됨)</li>
+</ol>
+</li>
+</ol>
+<p>이러한 현장 프로세스와의 괴리로 <strong><span style="color: #33cccc">&#8216;바쁘게 움직이는 현장&#8217;에서 사용하는 데 무리가 있는 것을 확인</span></strong>하였습니다.</p>
+<h2>2.2 안쓰는 이유 두 번째 : 강력한 경쟁자 엑셀(Excel)</h2>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/스크린샷-2024-05-23-오후-2.52.40.png" alt="" /><br />
+당시 현장에서는 엑셀을 활용하여 배차를 진행하고 있었습니다.<br />
+운송사와의 계약 구조(정규차와 용차 등)와 차량 유형별 적재 가능한 수량을 반영하여 고정 차량에 자동으로 이동 물량을 분배하고, <strong><span style="color: #33cccc">정보 수정이 유연한 엑셀의 특성</span></strong>을 활용해 배차 정보 변경 및 멀티 드롭(한 차량이 여러 목적지로 운송) 적용 등 현장의 다양한 케이스에 대응하고 있었습니다.<br />
+따라서 현장에서는 엑셀 대비 TMS를 사용할 필요성을 느끼기 어려운 상황이었습니다.</p>
+<h1>3. 변화 관리</h1>
+<h2>3.1. 방향성 재수립</h2>
+<p>현장에서 실상을 확인한 저희는 먼저 아래와 같이 방향성을 재수립 했습니다.</p>
+<ol>
+<li>현장 배차 프로세스에 맞는 신규 프로세스 수립</li>
+<li>다양한 기준정보 관리를 통한 기본 배차 계획 자동화</li>
+<li>현장에서 발생하는 다양한 상황에 유연하게 대응 가능한 구조 및 UX 디자인</li>
+<li>계약 정보를 바탕으로 운임 산정 및 마감/정산 기능 제공</li>
+</ol>
+<p>이에 따라 <strong><span style="color: #33cccc">완전히 새로운 TMS가 필요할 것</span></strong>으로 판단하였습니다.<br />
+새로운 기능의 도입으로 인한 변화가 안정적으로 자리 잡을 수 있게 변화 관리를 매우 중요하게 생각하였습니다.</p>
+<h2>3.2 Slack 채널 오픈</h2>
+<p>저희가 현장에 방문하여 문제를 확인한 뒤 가장 먼저 한 행동은 Slack 채널을 오픈한 것입니다.<br />
+TMS와 관련된 분들을 한곳에 모으고, 목표를 달성하기 위한 과정을 하나하나 공유하였습니다. <br />
+운영 변경사항 공유부터, TMS 개선 관련 기획 리뷰, 현장 베타 테스트 수행, 운영 배포 후 피드백 수렴 등의 역할을 하였습니다.<br />
+또한 첫 현장 방문 이후에도 수시로 현장에 방문하여 인터뷰 및 현장 프로세스를 관찰하였습니다.<br />
+이러한 과정에서 <strong><span style="color: #33cccc">현장에서도 TMS를 사용해야 한다는 공감과 의지</span></strong>를 가져 주셨습니다.</p>
+<h2>3.3 현장 요구사항 수용</h2>
+<p>현장에서 TMS를 사용하기 위해 필요한 개선 사항들을 지속 요청 주셨습니다.<br />
+현재 기능에서 최소한의 개선을 통해 TMS를 사용하게 하는 것이 우선 과제였습니다.<br />
+대체 차량 등록 기능, 운송사 선택 방식 간소화, 기사 지정 가능 조건 변경, 계약 유형 추가 등 <strong><span style="color: #33cccc">현장 Use Case 들을 반영</span></strong>하여, TMS로 배차를 관리하기 위해 필요한 기능을 하나하나 추가해나갔습니다.<br />
+하지만 이러한 과정을 거쳐도 바쁘게 움직이는 현장에서 엑셀을 대체하는 데는 무리가 있었습니다.</p>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"> <b> 결과: 실패 <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f534.png" alt="🔴" class="wp-smiley" style="height: 1em; max-height: 1em;" /> </b> <br /> &#8211; 엑셀과 병행하며 배차 담당자 한명이 별도로 하나 하나 입력하는 수준에 그침 </div>
+<h2>3.4 일단 정산 기능 부터 제공</h2>
+<p>TMS의 주요 기능 중 하나가 운송사 운송료 정산 기능입니다.<br />
+정산 기능 주 목표는 당일 수행된 배차 이력으로 양사간 계약 정보를 반영하여 신뢰할 수 있는 정산 금액을 산출하는 것입니다.<br />
+하지만 TMS를 통해 배차를 하고 있지 않아, 정산할 배차 정보가 TMS에는 없었습니다.<br />
+그래서 엑셀로 진행한 <strong>배차 결과를 TMS에 등록하고, 등록된 결과 기반으로 마감 및 정산이 가능하도록</strong> 하였습니다.</p>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"> <b> 결과: 성공 <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f7e2.png" alt="🟢" class="wp-smiley" style="height: 1em; max-height: 1em;" /> </b> <br /> &#8211; 배차 결과가 TMS에 전부 기록되고, 신뢰할 수 있는 정산 금액 산출을 할 수 있게 됨 <br /> &#8211; 사용자로부터 엑셀로 정산 금액을 산출하는 것 보다 낫다는 평을 받음
+</div>
+<p>마감/정산 기능은 <strong> TMS를 매일 사용하는데 익숙</strong>해지고, TMS를 더 필요하게 만드는 역할을 할 수 있었습니다.</p>
+<p>또한 마감 및 정산을 위해서 위해 운송사와의 계약 구조를 분석하였고, 초기 버전에는 없던 <strong>다양한 기준 정보를 관리</strong>할 수 있게 되었습니다.<br />
+이는 곧 배차 프로세스 <strong><span style="color: #33cccc">개선의 근간</span></strong>이 되었습니다.</p>
+<h1>4. 다시 태어난 TMS</h1>
+<p>드디어 지난 2024년 3월 우아한형제들의 물류플랫폼 TMS(운송관리시스템)가 <strong><span style="color: #33cccc">&#8216;배차 시스템화 프로젝트&#8217;</span></strong> 오픈과 함께 대대적으로 개편되었습니다.</p>
+<h2>4.1 프로젝트 요약</h2>
+<ol>
+<li>배차 단계를 계획과 실행으로 분리하여 기존 수기(엑셀) 사용에서 프로덕트를 통한 최적화된 배차 프로세스를 제공하였습니다.</li>
+<li>고정 계약 차량에 대한 배차 자동 생성 및 출고 물량 자동 분배 기능을 통해 업무의 효율성과 편의성을 제공하였습니다.</li>
+<li>엑셀을 통해 수기로 관리하던 배차의 전 과정을 TMS로 시스템화하여 배차 전 과정의 이력을 가시화하였습니다.
+<ol>
+<li>출고 물량 카운팅 및 차량 관제, 입출차 이력, 마감/정산 등 배차의 전 과정을 시스템화</li>
+</ol>
+</li>
+</ol>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/스크린샷-2024-05-23-오후-2.47.39.png" alt="" /></p>
+<h4>현장 사용 사진</h4>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/스크린샷-2024-05-21-오전-11.02.37-750x378.png" alt="" /></p>
+<blockquote>
+<p>PDA를 이용해 출고 물량을 입력하는 모습과 작업 진행 상황을 TMS에 등록하는 모습</p>
+</blockquote>
+<h2>4.2 프로젝트 성과</h2>
+<h3>4.2.1 수기 배차업무 100% TMS 전환</h3>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"> <b> 결과: 성공 <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f7e2.png" alt="🟢" class="wp-smiley" style="height: 1em; max-height: 1em;" /> </b> <br /> &#8211; 운영 배포 이후 수기(엑셀) 업무 병행사용/ 모니터링 기간을 거쳐 4월 1일 부로 배차 업무 100% TMS 사용하고 있습니다. (엑셀 미사용)</div>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/스크린샷-2024-05-19-오후-11.14.10-750x286.png" alt="" /></p>
+<h3>4.2.2 배차 전 과정 이력을 가시화</h3>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"> <b> 결과: 성공 <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f7e2.png" alt="🟢" class="wp-smiley" style="height: 1em; max-height: 1em;" /> </b> <br /> &#8211; 수기 배차 업무가 100% TMS로 시스템화 되면서 배차를 계획하는 단계부터 운송사에게 운임을 정산해주는 모든 과정의 이력이 TMS에 남게 되었습니다.  </div>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/스크린샷-2024-05-19-오후-11.15.22-750x366.png" alt="" /></p>
+<h3>4.2.3 배차 계획 30분 내 완료</h3>
+<p>단순히 배차 계획을 할 수 있는 시스템이 아닌 배차 계획을 &#8216;빨리할 수 있는 시스템&#8217;이 필요한 상황이었습니다.<br />
+조금이라도 배차 계획 시간을 단축시키기 위해 가능한 부분은 자동화하였습니다.<br />
+또한 한눈에 잔여 물량과 차량 별 적재 가능 수를 확인할 수 있고, 색깔을 적용하여 동일 권역을 구분하기 쉽게 하는 등 수동으로 진행해야 하는 부분 역시 수월하게 할 수 있도록 사용자 사용성을 고려한 디자인을 적용하였습니다.</p>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0"> <b> 결과: 성공 <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f7e2.png" alt="🟢" class="wp-smiley" style="height: 1em; max-height: 1em;" /> </b><br />
+<br /> &#8211; 30분 내 배차 계획 완료라는 목표를 달성 할 수 있었습니다.
+  </div>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/스크린샷-2024-05-19-오후-11.15.53-750x171.png" alt="" /></p>
+<h1>5. 배운 점</h1>
+<h2>5.1 키워드 1: 현장</h2>
+<p>물류플랫폼의 특성상 현장 사용자들의 목소리에 귀를 많이 기울입니다.<br />
+현장에서 겪고 있는 문제를 개발 요건으로 정리하여 가지고 오시는 경우가 많습니다.<br />
+대부분 잘 정리해 주시긴 하지만 현장 사용자분들은 우리 프로덕트로 문제를 해결하는 일이 주 업무가 아니다 보니 가끔은 요청 내용 이상을 봐야 하는 경우들이 있습니다. <br />
+<strong><span style="color: #33cccc">현장을 온전히 이해하고, 최적의 솔루션을 찾아내야 합니다.</span></strong><br />
+IT 기술을 활용해 문제를 해결하는 것이 우리가 하는 일이니까요. </p>
+<p>지속적으로 현장에 방문하고 이해하려 했던 노력이 무엇보다 중요한 열쇠였던 것 같습니다.</p>
+<h2>5.2 키워드 2: 공감</h2>
+<p>또 한 가지는 배운 점은 공감의 중요성입니다.</p>
+<blockquote>
+<ul>
+<li>&#8216;이미 엑셀로 배차 잘 하고 있는데, TMS 꼭 써야 돼?&#8217; </li>
+<li>&#8216;바쁜 와중에 이거 또 익히려면 시간이 얼마나 걸리려나&#8230;&#8217; </li>
+<li>&#8216;우리한테 필요한 걸 다 만들어 줄 수 있겠어?&#8217;</li>
+</ul>
+</blockquote>
+<p>이와 같이 현장 사용자들은 변화를 받아들이기 어려울 수 있습니다.<br />
+(내부 사용자를 대상으로한 프로젝트를 진행하다보면 대안이 있는 경우 <strong>쓸 이유보다는 쓰지 않을 이유를 찾는 모습</strong>을 많이 경험할 수 있어요.)</p>
+<p>하지만 함께해 주신 우아한청년들 <strong><span style="color: #33cccc">담당자분들도 TMS 사용의 필요성을 공감</span></strong>해 주셨고, 바쁘신 와중에도 지속적으로 의견을 공유해 주셨습니다.<br />
+변화 관리를 위해 Slack 채널을 통해 적극 소통하고, 어려운 부분에 대해서 현장까지 쫓아가 질문하고, 또 경청하는 과정을 통해서 더욱 공감을 자아낼 수 있던 것 같습니다.<br />
+긴 시간 동안 지치지 않고 열정적으로 도와주신 담당자분들 덕분에 TMS가 100% 사용의 성과를 낼 수 있었다고 생각합니다.</p>
+<h1>6. 앞으로의 TMS</h1>
+<p>알고 보니 시중에 성공적으로 자리 잡은 TMS가 많지 않다고 하더라고요? (뿌듯<img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f60e.png" alt="😎" class="wp-smiley" style="height: 1em; max-height: 1em;" />)<br />
+하지만 사용 가능한 프로덕트가 된 TMS는 이제 진짜 시작이라고 생각합니다.<br />
+앞으로 물류를 효율화하고, 고객에게 더 나은 서비스를 제공할 수 있는데 도움이 되는 TMS가 되기 위한 숙제가 많이 남아있습니다.<br />
+그 숙제를 아주 간단하게 공유하며 마무리해 보겠습니다.</p>
+<h2>6.1 적용 범위 확대</h2>
+<p>현재의 TMS는 인천기지에서 서울/경기/충청권 피패킹센터로 이동하기 위한 배차만을 관리하고 있습니다.<br />
+앞으로는 우아한 형제들에서 운송이 필요한 모든 곳에서 활용될 수 있도록 확대할 계획입니다.<br />
+뿐만 아니라 이동 중인 상품의 상세 정보를 관리하고, WMS(Warehouse Management System), OMS(Order Management System) 등 다른 물류 시스템과의 연동을 통해 좀 더 고도화할 계획입니다. </p>
+<h2>6.2 최적화 (Optimization)</h2>
+<p>물류플랫폼에서 꼭 언급되는 키워드인 최적화를 앞으로 달성해 나갈 예정입니다.<br />
+M/L, AI 등 다양한 IT 기술을 기반으로 시간과 비용 관점에서의 최적화를 달성하고자 합니다.</p>The post <a href="https://techblog.woowahan.com/17466/">운송 관리 시스템(TMS)의 탄생부터 현장에서 사용하기까지</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+            <wfw:commentRss>https://techblog.woowahan.com/17466/feed/</wfw:commentRss>
+            <slash:comments>0</slash:comments>
+
+
+        </item>
+        <item>
+            <title>코드와 함께 살펴보는 프론트엔드 단위 테스트 &#8211; Part 1. 이론 편</title>
+            <link>https://techblog.woowahan.com/17404/</link>
+            <comments>https://techblog.woowahan.com/17404/#respond</comments>
+
+            <dc:creator><![CDATA[배민근]]></dc:creator>
+            <pubDate>Wed, 22 May 2024 01:00:39 +0000</pubDate>
+            <category><![CDATA[Web Frontend]]></category>
+            <category><![CDATA[단위테스트]]></category>
+            <category><![CDATA[웹프론트엔드]]></category>
+            <category><![CDATA[테스트]]></category>
+            <category><![CDATA[테스트코드]]></category>
+            <category><![CDATA[프론트엔드]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=17404</guid>
+
+            <description><![CDATA[<p>&#8220;테스트 코드 작성은 파일을 만들어서 한 글자 쓰기 전까지 엄청 귀찮다.&#8221; from 언젠가 내가 데일리 스크럼에서 한 말 개발자들에게 테스트 코드 작성은 해야 하지만 손이 잘 가지 않는 숙제 같은 일입니다. 테스트 코드를 쓰면 쓸수록 귀찮다고 얘기하는 분도 본 것 같습니다. (ㅋㅋㅋㅋ) 그럼에도 테스트의 중요성을 부정하는 개발자분은 없을 것으로 생각하는데요. 클린코드, 리팩터링을 비롯한 많은 개발 [&#8230;]</p>
+The post <a href="https://techblog.woowahan.com/17404/">코드와 함께 살펴보는 프론트엔드 단위 테스트 – Part 1. 이론 편</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 2em 0">
+<span style="font-weight: 700">&#8220;테스트 코드 작성은 파일을 만들어서 한 글자 쓰기 전까지 엄청 귀찮다.&#8221;</span> from 언젠가 내가 데일리 스크럼에서 한 말
+</div>
+<p>개발자들에게 테스트 코드 작성은 해야 하지만 손이 잘 가지 않는 숙제 같은 일입니다. 테스트 코드를 쓰면 쓸수록 귀찮다고 얘기하는 분도 본 것 같습니다. (ㅋㅋㅋㅋ) 그럼에도 테스트의 중요성을 부정하는 개발자분은 없을 것으로 생각하는데요. <a href="https://product.kyobobook.co.kr/detail/S000001032980">클린코드</a>, <a href="https://product.kyobobook.co.kr/detail/S000001810241">리팩터링</a>을 비롯한 많은 개발 서적에서도 테스트 코드의 중요성을 강조하고 필요하다고 이야기하고 있습니다. TDD(Test Driven Development)에서는 아예 테스트 코드를 먼저 만들고 본 코드를 작성하라고 이야기하고 있습니다. 최근 몇 년간 프론트엔드에서 다루는 영역이 늘어나면서 코드의 복잡성도 올라가고 예전보다 많은 비즈니스 로직을 프론트엔드에서 다루게 되었습니다. 이와 함께 프론트엔드의 품질과 테스트에 대한 관심과 중요성도 함께 올라가는 것 같은데요. 예전에는 프론트엔드 개발자에게 테스트에 대한 역량이 경쟁력이었다면 요즘은 서서히 필수 역량이 되어가는 것 같기도 합니다.</p>
+<p>이번 글에서는 테스트 코드 중에서도 단위 테스트에 집중해 프론트엔드 코드와 함께 살펴볼 예정입니다. 총 두 편으로 구성했으며 &quot;Part 1. 이론 편&quot;에서는 단위 테스트에 대한 간략한 소개와 효과적인 단위 테스트 코드 작성을 위해 신경 쓰면 좋은 부분, 그리고 테스트 코드가 코드 개발에 어떤 도움을 줄 수 있는지까지 다루어 보겠습니다.</p>
+<h2>프론트엔드와 단위 테스트</h2>
+<p>프론트엔드는 여전히 많은 분야가 불모지이고 테스트도 그중 하나입니다. 하지만 많은 개발자의 고민과 노력으로 매년 다양한 라이브러리가 나오고 있습니다. 테스트 종류에도 오늘 이야기하는 단위 테스트 말고도 <a href="https://jestjs.io/docs/snapshot-testing">스냅샷 테스트</a>, <a href="https://microsoft.github.io/code-with-engineering-playbook/automated-testing/e2e-testing/">e2e 테스트</a> 등 다양하게 존재합니다. 테스트는 기본적으로 무언가를 검증하고 확인하는 용도로 만드는 것이므로 어떤 것을 확인할 것인가에 따라 적용하는 테스트 종류가 다릅니다.</p>
+<p>단위 테스트는 특정한 모듈 혹은 단위가 기능을 의도한 대로 올바르게 수행하고 있는지 확인하는 것으로, 테스트 중에서도 가장 기본이고 기저에 깔려 있어야 하는 테스트입니다. 특정 모듈이나 단위라는 단어가 의미하는 것처럼 단위 테스트는 범위가 한정적이므로 각 단위에 대한 테스트 코드의 양이 적고 효율적입니다. 하지만 명세가 변경된다면 가장 많이 영향을 받는 테스트이기도 하니 설계에 신중해야 합니다.</p>
+<p></p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7-2024-05-16-%EC%98%A4%ED%9B%84-10.06.19-647x750.png" alt="테스트 피라미드" width="400"></p>
+<p></p>
+<h2>효과적인 테스트 코드 작성법</h2>
+<p>테스트 코드는 말 그대로 프로덕트와 코드가 올바르게 동작하고 기능하는지를 테스트하는 코드입니다. 즉, 코드가 올바르게 작성되었는지 검증하는 또 다른 코드라는 이야기입니다. 테스트 코드는 프로덕트의 안정성과 유지 보수성 향상에 기여하는 코드로 대충 쓰는 것이 아닌 잘 작성하려는 노력이 필요합니다. 테스트 코드 역시 한 번 만들고 끝이 아니라 프로덕트를 구성하는 코드처럼 계속 유지 보수되고 발전시켜야 합니다. 지금부터는 테스트 코드 작성에 앞서 좋은 테스트 코드를 작성하기 위해 알아야 할 혹은 도움이 될만한 내용을 소개하겠습니다.</p>
+<h3>F.I.R.S.T 원칙</h3>
+<p>F.I.R.S.T 원칙은 단위 테스트가 가져야 할 특성과 원칙에 관해서 이야기하고 있습니다. 프로그래밍에는 더 나은 프로덕트를 위해 다양한 방법론과 규칙들이 나왔고 이 원칙은 단위 테스트 코드에 대해 더 나은 코드를 만들 수 있는 원칙에 관해 설명합니다.</p>
+<ul>
+<li>Fast:  단위 테스트는 빨라야 한다.</li>
+<li>Isolated: 단위 테스트는 외부 요인에 종속적이지 않고 독립적으로 실행되어야 한다.</li>
+<li>Repeatable: 단위 테스트는 실행할 때마다 같은 결과를 만들어야 한다.</li>
+<li>Self-validating: 단위 테스트는 스스로 테스트를 통과했는지 아닌지 판단할 수 있어야 한다.</li>
+<li>Timely/Thorough &#8211; 2가지 해석이 존재
+<ul>
+<li>Timely: 단위 테스트는 프로덕션 코드가 테스트에 성공하기 전에 구현되어야 한다. TDD에 적합한 해석</li>
+<li>Thorough: 단위 테스트는 성공적인 흐름뿐만 아니라 가능한 모든 에러나 비정상적인 흐름에 대해서도 대응해야 한다.</li>
+</ul>
+</li>
+</ul>
+<h3>테스트 코드는 DAMP하게</h3>
+<p>테스트 코드에서는 DAMP(Descriptive And Meaningful Phrases)하게 작성하라고 이야기하는 글들이 많습니다. 한글로 풀어보면 서술적이고 의미 있게 작성하라는 이야기인데요. 내용이 추상적이죠? 좀 더 쉽게 말하면 읽기 쉽고 이해하기 쉬운 테스트 코드를 만들자는 이야기입니다. 이를 통해 유지 보수가 한층 쉬워지겠죠!</p>
+<p>DAMP하게 코드를 작성하다 보면 DRY(Don&#8217;t Repeat Yourself) 원칙과 충돌할 때도 있습니다. 일반적인 코드라면 DRY 원칙에 따라 중복을 줄이려 노력할 것입니다. 하지만 테스트 코드는 중복이 다소 발생하더라도 직관적이고 명확하게 이해되도록 테스트 코드를 작성하는 쪽에 무게를 두고 작성하는 것이 좋습니다. 그렇다고 중복이 너무 늘어나는 것도 가독성이 떨어지니 둘 사이에서 잘 저울질해야 합니다.</p>
+<p>아래의 첫 번째, 두 번째 테스트 코드는 똑같은 기능을 검증하는 데 사용됩니다. 그중 첫 번째 테스트 코드는 동작을 검증하는 데 문제가 없지만 파악이 좀 어려울 수 있습니다. 하지만 두 번째 테스트 코드는 이해가 바로 되죠? DAMP하게 테스트 코드를 작성하라는 이야기가 뭘까 고민하면서 두 테스트 코드를 비교해 보세요!</p>
+<pre><code class="language-javascript">// 첫 번째 테스트 코드
+it(&#039;설명을 생략하면 이해가 되시나요?&#039;, async () =&gt; {
+    const user = userEvent.setup();
+  render(&lt;Component {...preDefinedProps} /&gt;);
+
+  const buttonElement = screen.getByRole(&#039;button&#039;, { name: &#039;버튼입니다&#039; });
+  await user.click(buttonElement);
+
+  expect(doSomething).toBeCalledWith(1234);
+});
+
+// 두 번째 테스트 코드
+it(&#039;설명이 없어도 대충 느낌은 오시죠?&#039;, async () =&gt; {
+    const something = 1234;
+    const doSomething = vi.fn();
+    const user = userEvent.setup();
+  render(&lt;Component {...preDefinedProps} something={something} doSomething={doSomething} /&gt;);
+
+  const buttonElement = screen.getByRole(&#039;button&#039;, { name: &#039;버튼입니다&#039; });
+  await user.click(buttonElement);
+
+  expect(doSomething).toBeCalledWith(1234);
+});</code></pre>
+<h3>Given-When-Then</h3>
+<p>테스트 코드는 주어진 상황에 대한 결과를 검증하는 게 목적입니다. 이 목적을 달성하기 위해 Given-When-Then 패턴이 도움을 줄 수 있습니다. <a href="https://www.geeksforgeeks.org/behavioral-driven-development-bdd-in-software-engineering/">BDD(Behavior Driven Development)</a>에 대해 공부해 보셨다면 이미 들어보셨을 수도 있습니다. Given-When-Then 구조는 BDD의 중심인 사용자 행위를 기반으로 한 테스트 시나리오를 정의할 수 있도록 도와줍니다. 테스트 코드가 정책을 기반으로 작성되지만 테스트 코드 자체는 개발자가 이해하기 쉬워야겠죠? Given-When-Then 구조로 테스트를 구성한다면 명확한 시나리오 위에서 개발자가 코드를 쉽게 파악하고 이해할 수 있습니다.</p>
+<ul>
+<li>Given: 테스트를 하기 위해 세팅하는 주어진 환경</li>
+<li>When: 테스트를 하기 위한 조건으로 프론트엔드에선 사용자와의 상호작용인 경우도 많음</li>
+<li>Then: 예상 결과를 나타내며 의도대로 동작하는지 검증 및 확인할 수 있음</li>
+</ul>
+<pre><code class="language-javascript">it(&#039;버튼을 1회 클릭하면 1번 클릭했다는 문구가 노출된다&#039;, async () =&gt; {
+    // Given: 사용자와 화면이 준비되어 있고, 화면에는 버튼이 존재함
+    const user = userEvent.setup();
+  render(&lt;Component /&gt;);
+
+    // When: 사용자가 &#039;여기를 눌러보세요&#039;라는 버튼을 클릭함
+  const buttonElement = screen.getByRole(&#039;button&#039;, { name: &#039;여기를 눌러보세요&#039; });
+  await user.click(buttonElement);
+
+  // Then: 문구가 나타나는지 검증함
+  expect(screen.getByText(&#039;버튼을 1번 클릭했습니다.&#039;)).toBeInTheDocument();
+});</code></pre>
+<h3>개별 테스트 케이스의 목적은 명확히</h3>
+<p>각 테스트 케이스에 해당하는 테스트 코드 작성할 때 작성하고 있는 테스트 케이스의 목적이 무엇인지 명확히 생각하고 테스트 코드를 작성해야 합니다. 아래 컴포넌트 코드 예시로 한번 살펴봅시다.</p>
+<pre><code class="language-javascript">// store.ts
+interface StateAndAction {
+  word: string;
+  updateWord: (newWord: string) =&gt; void;
+}
+
+const useStore = create&lt;StateAndAction&gt;((set) =&gt; ({
+  word: &#039;사과&#039;,
+  updateWord: (newWord) =&gt; set({ word: newWord }),
+}));
+
+// WordWithButton.tsx
+const WordWithButton = () =&gt; {
+  const word = useStore((state) =&gt; state.word);
+  const updateWord = useStore((state) =&gt; state.updateWord);
+
+  return (
+    &lt;main&gt;
+      &lt;h1&gt;
+        나는 {word}를 좋아한다!
+      &lt;/h1&gt;
+      &lt;button
+        type=&quot;button&quot;
+        onClick={() =&gt; {
+          updateWord(&#039;바나나&#039;);
+        }}
+      &gt;
+        좋아하는 과일 바꾸기
+      &lt;/button&gt;
+    &lt;/main&gt;
+  );
+};</code></pre>
+<p>WordWithButton은 전역 상태와 버튼 그리고 heading 역할의 문구가 존재하는 컴포넌트입니다. 간단한 컴포넌트니 어떤 식으로 변경이 일어나고 동작을 수행할지 예측되시죠? 해당 컴포넌트에 테스트 코드를 작성한다면 버튼을 눌렀을 때 좋아하는 과일이 바나나로 바뀐 문구가 노출되는지 검증하는 내용일 것입니다. 어떤 테스트 코드가 이 목적을 달성할 수 있을까요?</p>
+<pre><code class="language-javascript">// 첫 번째 테스트 코드
+it(&#039;바나나 문자열로 updateWord 호출 시 word가 바나나로 변경된다&#039;, () =&gt; {
+  const { result } = renderHook(() =&gt; useStore());
+
+  act(() =&gt; {
+    result.current.updateWord(&#039;바나나&#039;);
+  });
+
+  expect(result.current.word).toBe(&#039;바나나&#039;);
+});</code></pre>
+<p>첫 번째 테스트 코드는 내부적으로 가지는 단어라는 상태가 올바르게 변경되는지 테스트하고 있습니다. 어쩌면 이 코드가 필요하다고 생각하실 수 있지만 이 테스트 코드는 우리가 테스트하려는 목적에 맞지 않습니다. 우리가 테스트하고자 하는 내용은 버튼을 클릭하면 표시되는 문구가 바뀌는 것입니다. 하지만 현재 테스트 코드가 검증하고 있는 것은 내부 동작입니다. 다시 말하면, 컴포넌트를 테스트하는 것이 아니라 내부에서 사용하는 zustand 라이브러리가 올바르게 동작하는지 확인하고 있습니다.</p>
+<p>우리는 컴포넌트 밖에서 드러난 인터페이스를 활용해 외부에서 테스트를 해야 하지만 현재는 내부 구현이 테스트 코드에 드러나 있습니다. 컴포넌트를 리팩토링한다면 이 테스트 코드는 컴포넌트 내부에서 사용하는 기술에 따라 또 바뀌어야 할 텐데 뭔가 이상하죠? 우리가 작성해야 할 테스트 코드는 사용하는 라이브러리가 똑바로 동작하는지 검증하는 코드가 아닙니다.</p>
+<pre><code class="language-javascript">// 두 번째 테스트 코드
+it(&#039;버튼 클릭 시 좋아하는 과일이 바나나로 바뀐다&#039;, async () =&gt; {
+  const user = userEvent.setup();
+  render(&lt;WordWithButton /&gt;);
+
+  await user.click(screen.getByRole(&#039;button&#039;, { name: &#039;좋아하는 과일 바꾸기&#039; }));
+
+  expect(screen.getByText(/바나나/i)).toBeInTheDocument();
+});</code></pre>
+<p>두 번째 테스트 코드입니다. 이 코드는 올바른 테스트 코드일까요? 사용자가 클릭하는 동작도 있고 &#8216;바나나&#8217;를 확인하는 코드도 있습니다. 원하는 대로 검증하고 있는 것 같죠? 사실 아닙니다. expect를 보시면 올바른 문구로 변경되었는지 검증하는 것이 아니라 화면 내에 ‘바나나’라는 단어가 있는지 확인하고 있습니다. 우리가 의도한 테스트 목적을 어느 정도 달성한 코드지만, ‘바나나’가 화면 다른 곳에 노출되거나 버튼명이 ‘바나나로 바꾸기’와 같은 내용이었다면 해당 테스트는 실패했을 것입니다. 테스트 목적에 맞게 내가 작성한 코드의 동작을 올바르게 검증하는 것인지 고민하면서 테스트 코드를 작성해야 합니다.</p>
+<pre><code class="language-javascript">// 세 번째 테스트 코드
+it(&#039;버튼 클릭 시 heading 영역의 문구가 바나나를 좋아한다는 내용으로 변경된다&#039;, async () =&gt; {
+  const user = userEvent.setup();
+  render(&lt;WordWithButton /&gt;);
+
+  await user.click(screen.getByRole(&#039;button&#039;, { name: &#039;좋아하는 과일 바꾸기&#039; }));
+
+  expect(screen.getByRole(&#039;heading&#039;, { name: &#039;나는 바나나를 좋아한다!&#039; })).toBeInTheDocument();
+});</code></pre>
+<p>이번엔 세 번째 테스트 코드인데요. 테스트 코드를 보면 버튼을 눌렀을 때 heading 영역의 문구가 바나나를 좋아한다는 내용으로 변경된다는 것을 검증하고 있습니다. 비로소 우리가 테스트하고자 하는 목적과 부합하는 코드가 등장했습니다. 우리가 테스트하고자 하는 것은 내부 동작이 아니라 사용자가 특정 동작을 수행했을 때 특정 영역의 문구가 정확하게 변경되는지입니다.</p>
+<p>테스트 코드의 내용과 더불어 expect 구문을 통해 검증하는 내용도 명확해야 합니다. 내가 특정 단어가 화면에 있는 것을 찾는 것인지, 문구가 특정한 형식으로 표시되는 것을 검증하는 것인지, 어떤 내용을 포함하는지 아니면 정확한 문구인지 비교하는 것인지 등 검증하고자 하는 것의 범위를 특정해야 합니다. 문구가 아니더라도 어떤 함수가 단순히 호출되었다, 몇 번 호출되었다, 특정 파라미터들을 가지고 호출되었다는 등 어떤 것으로 검증할 것인지 결정해야 합니다. 내가 작성하는 테스트 케이스가 정확하게 어떤 것을 검증할 것인지 테스트 케이스의 목적을 생각하며 코드와 expect를 작성하도록 합시다.</p>
+<h3>테스트 코드의 설명도 중요합니다</h3>
+<p>많이들 간과하지만 의외로 테스트 코드의 설명은 중요합니다. 테스트 코드의 설명을 대충 쓰거나 필요한 내용들을 빠트리는 경우도 있는데요! 설명이 잘 작성되어 있다면 기능을 수정 혹은 확장할 때, 코드를 디버깅할 때 큰 도움이 됩니다. 설명으로 이해가 되지 않는다면 코드를 한 줄씩 뜯어보며 파악에 비교적 많은 시간을 들여야 할 것입니다. 평소엔 테스트 코드의 설명을 잘 찾아보지 않을 수 있지만, 문제가 발생해 파악이 필요하거나 코드를 수정하려고 할 때 설명이 가장 먼저 코드에 대한 힌트를 제공할 것입니다.</p>
+<p>설명을 작성할 때는 구현 내용에 집중하지 말고 함수를 밖에서 본다고 생각하고 만들어야 합니다. 구현 내용에 집중하면 명세가 아니라 코드를 해석하는 설명이 나오기 십상입니다. 코드 구현보다는 이 함수의 역할이나 기획서를 보고 테스트 코드를 써봅시다. 테스트 코드를 만들고 본 코드를 작성하는 것도 한 가지 방법입니다.</p>
+<p>간결하고 명확하게 설명을 작성해 주세요. &#8216;~~하면 정상적으로 작동한다&#8217; 같은 추상적인 내용도 피해야 합니다. 코드뿐만 아니라 설명에서도 우리는 내부 구현이 아니라 결과를 검증하기 위해 테스트 코드를 작성했다는 사실을 잊지 마세요!</p>
+<blockquote>
+<p>TMI로 테스트 코드 문법에 it도 있고, test도 있는데 둘 다 사용 가능하지만 it에 영어로 설명을 작성한다면 it(’returns true only when ~~’, ~~)와 같은 식으로 문장으로 작성할 수 있습니다.</p>
+</blockquote>
+<pre><code class="language-javascript">// Hmm.. - 내부 구현에 집중되어 있고 명확하지 못한 테스트 코드입니다.
+it(&#039;입력한 숫자 문자열의 첫자리가 3,4,7,8일 때만 true, 이외엔 false를 반환한다&#039;, () =&gt; {
+  expect(doSomething(&#039;1234567&#039;)).toBe(false);
+  expect(doSomething(&#039;2134567&#039;)).toBe(false);
+  expect(doSomething(&#039;3124567&#039;)).toBe(true);
+  expect(doSomething(&#039;4123567&#039;)).toBe(true);
+  expect(doSomething(&#039;5123467&#039;)).toBe(false);
+  expect(doSomething(&#039;6123457&#039;)).toBe(false);
+  expect(doSomething(&#039;7123456&#039;)).toBe(true);
+  expect(doSomething(&#039;8123456&#039;)).toBe(true);
+});
+
+// Good! - 간결하고 명확하게 함수의 명세와 정책을 담아 설명을 표현합시다.
+it(&#039;2000년 이후에 태어난 사람의 주민번호 뒷자리인지 검증한다&#039;, () =&gt; {
+  expect(doSomething(&#039;1234567&#039;)).toBe(false);
+  expect(doSomething(&#039;2134567&#039;)).toBe(false);
+  expect(doSomething(&#039;3124567&#039;)).toBe(true);
+  expect(doSomething(&#039;4123567&#039;)).toBe(true);
+  expect(doSomething(&#039;5123467&#039;)).toBe(false);
+  expect(doSomething(&#039;6123457&#039;)).toBe(false);
+  expect(doSomething(&#039;7123456&#039;)).toBe(true);
+  expect(doSomething(&#039;8123456&#039;)).toBe(true);
+});</code></pre>
+<h2>테스트 코드와 좋은 코드</h2>
+<p>지금까지 테스트 코드 작성에 앞서 알고 있으면 도움이 될만한 내용들을 소개했습니다. 하지만 테스트 코드에 관심을 가지고 있어도 테스트 코드가 왜 필요한지 의문을 가지고 계신 분도 있을 것입니다. 그러면 여기서 여러분께 질문을 하나 드리고 싶은데요!</p>
+<p><strong>여러분이 생각하는 좋은 코드는 무엇인가요?</strong></p>
+<p>각자의 답이 있겠지만 제가 생각하는 좋은 코드는 내가 아닌 누군가가 작업해도 변경하고 확장하기 쉬운 설계를 가지고 있는 코드입니다. 개발자로 일하시는 분들은 기존에 존재하는 코드에 어떤 기능을 추가하거나 혹은 리팩토링을 진행한 경험이 있으실 겁니다. 그 과정이 항상 순탄했나요? 조금씩 리팩토링이 힘들어서 매번 크게 구조 개편이 있거나 기존 코드를 건드려서 QA 범위가 넓어진 경험은 없으신가요? 지금부터는 테스트 코드가 좋은 코드를 만들 수 있게 어떻게 도와줄 수 있는지 소개해 드리겠습니다.</p>
+<h3>잘 만든 테스트 코드는 그 자체로 명세 역할을 수행합니다</h3>
+<p>아래와 같은 기능을 구현하기 위해 컴포넌트를 설계하고자 합니다.</p>
+<ul>
+<li>처음에는 단어 리스트를 받아 노출한다.</li>
+<li>검색기능이 있어 검색창이 화면에 노출되며, 검색어 입력 후 검색 버튼을 누를 경우 해당 문자열이 포함된 단어들만 노출되며 검색창에는 입력한 값이 변경되지 않고 그대로 유지된다.</li>
+<li>검색 버튼 클릭 시 해당 검색어를 최근 검색어 목록으로 저장하며 화면에 노출된다.</li>
+<li>최근 검색어를 클릭할 경우 클릭한 검색어를 기준으로 검색 버튼을 눌렀을 때와 같은 동작을 수행하되 검색창 입력에는 반영되지 않고 기존 입력을 유지한다.</li>
+</ul>
+<p>명세를 기반으로 테스트 코드 작성을 해보겠습니다. 테스트 코드 it 내부 구현은 생략하겠습니다. 테스트 코드를 공부 중이라면 Part 2를 보시고 나서 한번 작성해 보시는 걸 권해드립니다. <img src="https://s.w.org/images/core/emoji/14.0.0/72x72/1f642.png" alt="🙂" class="wp-smiley" style="height: 1em; max-height: 1em;" /></p>
+<pre><code class="language-javascript">describe(&#039;SomeComponent 단위 테스트&#039;, () =&gt; {
+  it(&#039;현재 검색어가 없으면 단어 목록이 모두 노출된다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;검색어를 입력 후 검색 버튼 클릭 시, 단어 목록은 입력한 검색어 문자열이 포함된 목록만 노출된다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;검색어를 입력 후 검색 버튼 클릭 시, 최근 검색어로 저장되며 화면에 노출된다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;최근 검색어 클릭 시, 단어 목록은 클릭한 검색어 문자열이 포함된 목록만 노출된다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;검색어 입력 후 검색 버튼 클릭 시, 입력한 검색어가 초기화되지 않고 유지된다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;검색어 입력 후 최근 검색어 클릭 시, 입력한 검색어가 초기화되지 않고 유지된다&#039;, () =&gt; {
+    // ...
+  });
+});</code></pre>
+<p>작성한 테스트의 설명만 봐도 SomeComponent에 어떤 역할을 기대하는지 모두 알 수 있습니다. 설명뿐만 아니라 it 내부도 잘 작성했다면 좀 더 명확한 명세를 파악할 수 있을 것입니다. 평소엔 테스트 코드와 설명을 자세히 살펴보지 않을 수도 있지만, 장애가 났거나 기능 추가 혹은 리팩토링할 때 컴포넌트의 명세가 있다면 코드 파악에 큰 도움이 될 것입니다. 우리가 회사에서 코드를 작성한다면 본인이 작성한 코드를 본인만 보는 것이 아니죠? 다른 사람들이 볼 때도 테스트 코드는 컴포넌트를 빠르게 파악할 수 있도록 도움을 줄 것입니다. 테스트 코드를 기반으로 컴포넌트 코드를 한번 작성해 보겠습니다. 역시 자세한 내부 구현은 생략하도록 하겠습니다.</p>
+<pre><code class="language-javascript">const SomeComponent = ({ wordList }: SomeComponentProps) =&gt; {
+  const [keyword, setKeyword] = useState(&#039;&#039;);
+  const [keywordHistory, setKeywordHistory] = useState&lt;string[]&gt;([]);
+
+  const search = (value: string) =&gt; {
+    setKeyword(value);
+
+    setKeywordHistory([value, ...keywordHistory]);
+  };
+
+  const handleChangeInput = (...args: unknown[]) =&gt; {
+    // 검색창에서 검색어 변경하는 핸들러
+  };
+
+  const handleClickButton = (...args: unknown[]) =&gt; {
+    // 검색버튼 클릭 핸들러
+  };
+
+  const handleClickPreviousKeyword = (...args: unknown[]) =&gt; {
+    // 최근 검색어 클릭 핸들러
+  };
+
+  const filteredWordList = wordList.filter((word) =&gt; word.includes(keyword));
+
+  return &lt;&gt;{/* 컴포넌트가 조합되는 곳 */}&lt;/&gt;;
+};</code></pre>
+<p>테스트 코드를 통과하는 SomeComponent를 구현했습니다. 테스트 코드를 미리 작성하고 테스트를 통과하는 컴포넌트를 구현했으므로 작성한 코드가 의도한 대로 동작한다는 것을 보장할 수 있습니다. 테스트 코드가 있다면 개발 시에 내가 실수한 부분이 있더라도 테스트를 실행시켜 발견할 수 있을 것입니다. 코드 리뷰를 진행할 때도 해당 컴포넌트의 동작을 파악하고 좀 더 상세한 리뷰를 위해 참고할 수 있는 좋은 문서의 역할도 할 것입니다. 나중에 내가 혹은 다른 사람이 의도와 동작을 잘못 이해하고 코드를 잘못 수정하더라도 테스트 코드를 통해 손쉽게 잘못된 부분을 알 수 있을 것입니다.</p>
+<h3>테스트 코드와 함께 코드의 응집도를 높일 수 있습니다</h3>
+<p>응집도란 모듈 내부 요소들 간 얼마나 연관되어 있는지를 나타내는 것으로 다르게 말하면 함께 변경되는 정도로도 표현할 수 있습니다. 자주 바뀌는 코드라면 높은 응집도를 가지도록 코드를 구현하는 것이 여러모로 좋습니다. 방금 전 작성한 SomeComponent의 테스트 코드를 자세하게 살펴봅시다. 잘 만든 테스트 코드는 명세이자 문서가 되었는데요! 테스트 코드를 통해 컴포넌트가 아래와 같이 크게 3가지 역할을 수행하고 있는 것을 알 수 있습니다.</p>
+<ul>
+<li>단어 목록은 현재 검색어를 포함하는 문자열만 노출된다.</li>
+<li>검색창 입력 후 버튼 클릭 시 혹은 최근 검색어 클릭 시 현재 검색어가 변경된다.</li>
+<li>검색창 입력 후 버튼 클릭 시 혹은 최근 검색어 클릭 시 최근 검색어 목록에 저장된다.</li>
+</ul>
+<p>우리가 익히 알고 있는 단일 책임 원칙과 관심사 분리에 따르면 컴포넌트를 분리하는 시도를 해봐도 좋을 것 같습니다. 이미 작성한 테스트 코드가 있으므로 큰 부담 없이 리팩토링 작업을 진행할 수 있습니다. SomeComponent를 역할대로 분리해 기능을 나누어 봅시다.</p>
+<pre><code class="language-javascript">// 컴포넌트 1: 검색창 입력 후 버튼 클릭 시 혹은 최근 검색어 클릭 시 현재 검색어가 변경하는 컴포넌트
+const DividedComponentOne = ({ keywordHistory, changeKeyword }: DividedComponenOneProps) =&gt; {
+  const handleChangeInput = (...args: unknown[]) =&gt; {
+    // 검색창에서 검색어 변경하는 핸들러
+  };
+
+  const handleClickButton = (...args: unknown[]) =&gt; {
+    // ...
+    changeKeyword(...)
+    // ...
+  };
+
+  const handleClickPreviousKeyword = (...args: unknown[]) =&gt; {
+    // ...
+    changeKeyword(...)
+    // ...
+  };
+
+  return &lt;&gt;{/* 컴포넌트가 조합되는 곳 */}&lt;/&gt;;
+};
+
+// 컴포넌트 2: 현재 검색어를 포함하는 문자열만 노출하는 컴포넌트
+const DividedComponentTwo = ({ wordList, keyword }: DividedComponentTwoProps) =&gt; {
+  const filteredWordList = wordList.filter((word) =&gt; word.includes(keyword));
+
+  return &lt;&gt;{/* 컴포넌트가 조합되는 곳 */}&lt;/&gt;;
+};
+
+// 컴포넌트 3: 상위에서 데이터를 제어하며 검색어 변경 시 최근 검색어 목록에 저장하는 컴포넌트
+const SomeComponent = ({ wordList }: SomeComponentProps) =&gt; {
+  const [keyword, setKeyword] = useState(&#039;&#039;);
+  const [keywordHistory, setKeywordHistory] = useState&lt;string[]&gt;([]);
+
+  const changeKeyword = (value: string) =&gt; {
+    setKeyword(value);
+  }
+
+  useEffect(() =&gt; {
+    setKeywordHistory([keyword, ...keywordHistory]);
+  },[keyword])
+
+  return (
+    &lt;&gt;
+      &lt;DividedComponentOne changeKeyword={changeKeyword} keywordHistory={keywordHistory} /&gt;
+      {/* 컴포넌트가 조합되는 곳 */}
+      &lt;DividedComponentTwo wordList={wordList} keyword={keyword} /&gt;
+    &lt;/&gt;
+  );
+};</code></pre>
+<p>각각의 컴포넌트의 책임이 명확해지고 가독성도 향상되었습니다. 코드의 응집도 역시 높아졌는데 느껴지시나요? 예를 들어보겠습니다. 검색어 입력 시 해당 문자열을 가지고 있지 않은 단어 목록만 노출되도록 기능을 바꾼다면 위 설계에선 DividedComponentTwo 컴포넌트만 변경되고 다른 컴포넌트는 변경이 일어나지 않겠죠? 또 최근 검색어 클릭 시 입력창이 초기화되도록 정책이 바뀌었다고 생각해 봅시다. DividedComponentOne 컴포넌트만 변경하면 되겠죠? 분리하기 전의 코드라면 두 가지 경우 모두 SomeComponent에서 코드 변경이 일어납니다. 컴포넌트를 분리하고 나서 테스트 코드는 어떻게 변할까요? 사실 그대로 써도 SomeComponent 수준에서 통합 테스트 느낌으로 쓸 수 있으나 우리는 오늘 단위 테스트를 다루고 있으니 단위 테스트 수준으로 변경해 봅시다.</p>
+<pre><code class="language-javascript">describe(&#039;DividedComponentOne 단위 테스트&#039;, () =&gt; {
+  it(&#039;검색어를 입력 후 검색 버튼 클릭 시, 현재 검색어를 입력된 문자열로 변경한다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;최근 검색어 클릭 시, 현재 검색어를 클릭한 검색어로 변경한다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;검색어 입력 후 검색 버튼 클릭 시, 입력한 검색어가 초기화되지 않고 유지된다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;검색어 입력 후 최근 검색어 클릭 시, 입력한 검색어가 초기화되지 않고 유지된다&#039;, () =&gt; {
+    // ...
+  });
+});
+
+describe(&#039;DividedComponentTwo 단위 테스트&#039;, () =&gt; {
+  it(&#039;현재 검색어가 없으면 단어 목록이 모두 노출된다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;현재 검색어가 존재할 경우 검색어 문자열이 포함된 단어들만 노출된다&#039;, () =&gt; {
+    // ...
+  });
+});
+
+describe(&#039;SomeComponent 단위 테스트&#039;, () =&gt; {
+  it(&#039;검색어를 입력 후 검색 버튼 클릭 시, 최근 검색어로 저장되며 화면에 노출된다&#039;, () =&gt; {
+    // ...
+  });
+
+  it(&#039;최근 검색어 클릭 시, 최근 검색어로 저장되며 화면에 노출된다&#039;, () =&gt; {
+    // ...
+  });
+});</code></pre>
+<p>컴포넌트 코드뿐만 아니라 각 컴포넌트가 수행하는 테스트 케이스의 수도 적습니다. 컴포넌트의 분리로 각 컴포넌트로 책임이 세분화되어 각각이 가진 기능이 하나의 컴포넌트일 때보다 적기 때문이죠! 만약 어떤 컴포넌트가 테스트하기 어렵다면 응집도가 낮거나 인터페이스가 잘못 설계된 코드가 아닌지 의심해 보아야 합니다. 위의 예제만 보아도 테스트하기 좋은 코드가 잘 작성된 코드일 것 같은 느낌이지 않나요? 개선한 코드가 파악하기에도 수정하기에도 훨씬 쉽습니다. 이번엔 비교적 간단한 컴포넌트를 분리한 거라 와닿지 않으실 수도 있습니다. 하나의 기능에 테스트 코드가 많을 수 있지만 보통 테스트 코드가 많아진다는 것은 그만큼 모듈의 역할과 책임이 늘었다는 것을 의미합니다. 컴포넌트가 하는 일이 많아지고 더불어 테스트 코드가 많아진다면 그건 컴포넌트 분리를 해야 한다는 신호일 가능성이 큽니다. 코드를 분리하는 여러 가지 기준에 테스트 코드도 참고한다면 좀 더 응집도 있게 컴포넌트를 운영할 수 있을 겁니다.</p>
+<div style="background-color: #F3F5F7;padding: 20px;border-radius: 8px;margin: 1em 0">
+<div style="font-weight: 700"><img src="https://s.w.org/images/core/emoji/14.0.0/72x72/26a0.png" alt="⚠" class="wp-smiley" style="height: 1em; max-height: 1em;" /> 테스트 코드를 위해서 항상 그리고 반드시 코드를 분리하라는 이야기는 아닙니다</div>
+<p></p>
+<div>
+어설픈 추상화보다는 중복이 낫다는 말이 있죠? 좋은 코드는 코드 그 자체가 추상화가 얼마나 되어있고 책임이 분산되어 있고 이런 게 아니라 간결하고 가독성이 좋으며 유지 보수하기 쉽고 일관성 있는 코드가 좋은 코드임을 명심하세요. 코드의 분리와 추상화 역시 같은 맥락의 관점에서 고민하는 것입니다. 개발자는 단순히 코드를 작성하는 사람이 아니라 개발을 통해 주어진 문제를 해결하고 프로덕트를 만드는 사람이라는 점을 되새겨 봅시다.
+</div>
+</div>
+<h3>Testing Library를 사용하면 웹 표준과 접근성에 좀 더 신경 쓸 수 있습니다</h3>
+<p>웹 표준과 접근성은 웹프론트엔드 개발자라면 신경 써서 개발해야 할 부분입니다. 하지만 컴포넌트 단위로 개발되고 다양한 라이브러리를 사용하면서 태그 구조가 이상하거나 빠진 속성을 체크하기가 조금 어려워졌습니다. 이런 상황에서 Testing Library를 활용한다면 간단하지만, 효과적으로 웹 표준과 접근성을 좀 더 신경 쓸 수 있도록 도와주는데요! 아래 코드를 살펴봅시다.</p>
+<pre><code class="language-javascript">const ComponentOne = () =&gt; {
+  const contents = [
+    { id: 1, title: &#039;제목1&#039;, content: &#039;내용1&#039; },
+    { id: 2, title: &#039;제목2&#039;, content: &#039;내용2&#039; },
+  ];
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;안녕하세요! 배달의민족입니다.&lt;/p&gt;
+      &lt;p&gt;
+        {contents.map(({ id, title, content }) =&gt; (
+          &lt;ComponentTwo key={id} title={title} content={content} /&gt;
+        ))}
+      &lt;/p&gt;
+    &lt;/div&gt;
+  );
+};
+
+const ComponentTwo = ({ title, content }) =&gt; {
+  return (
+    &lt;&gt;
+      &lt;h4&gt;{title}&lt;/h4&gt;
+      &lt;p&gt;{content}&lt;/p&gt;
+    &lt;/&gt;
+  );
+};</code></pre>
+<p>혹시 이상한 점을 눈치채셨나요? p 태그 내에서 ComponentTwo 컴포넌트를 호출하고 있고, ComponentTwo 내부에는 h4 태그와 p 태그가 있습니다. h4 태그와 p 태그 모두 p 태그 내부에서 사용하는 건 표준에 맞지 않습니다. 여러분이 이 사실을 알고 있더라도 같은 파일이 아닌 여러 파일에 컴포넌트가 흩어져 있는 React의 특성상 놓치는 부분이 생기기 마련입니다. 일반적인 그냥 태그가 아니라 styled-components나 사내 디자인 시스템 컴포넌트 같은 것을 썼다면 모든 곳에 올바르게 웹 표준을 준수해서 HTML 태그를 작성했다고 자신할 수 있을까요? React에서 알려주긴 하지만 개발할 땐 눈에 띄지 않을 수 있습니다. Testing Library와 함께 테스트를 자동화한다면 아래와 같은 오류도 한 번 더 체크하면서 개발할 수 있습니다.</p>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/스크린샷-2024-05-16-오후-9.45.40-750x201.png" style="height: 150px;border-radius: 8px;margin: 1em 0"></img></p>
+<p>웹 표준 준수에도 도움을 줄 뿐만 아니라 Testing Library는 또 접근성에도 신경 쓸 수 있게 해줍니다. Testing Library를 사용하실 때 여러분은 혹시 TestId를 쓰시나요? Testing Library의 <a href="https://testing-library.com/docs/guiding-principles/">철학</a>상 TestId는 사실 후순위로 고려해야 할 인터페이스입니다. 물론 필요한 부분에는 사용해야겠지만 대부분은 Role이나 Text, Label로 찾을 수 있습니다. Testing Library에서 요소를 찾는 방법의 <a href="https://testing-library.com/docs/queries/about#priority">우선순위</a>를 지정해 두었는데 ByTestId는 가장 마지막에 있습니다. Role은 <a href="https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/ARIA_Techniques#roles">aria-role</a>, aria-label을 비롯한 Label Text 등 접근성과 관련한 여러 가지 방법으로 HTML 요소를 찾을 수 있으니 사용자 입장에서 볼 수 없는 요소가 아니라면 다른 방식을 이용해 테스트 코드를 작성하면서 동시에 접근성도 챙겨보아요!</p>
+<h2>Part 1을 마치며, 이제는 손으로 익힐 차례입니다</h2>
+<p>지금까지 단위 테스트 코드 작성에 앞서 도움이 될만한 “이론적인” 이야기를 여럿 소개했습니다. 이제 좋은 테스트 코드란 무엇인지 감이 좀 잡히시나요? 여전히 모르시겠나요? 만약 그렇다면 말로만 떠들었지 아직 실제 테스트 코드 작성을 하지 않아서 그럴 수도 있습니다. Part 2는 실전 편이라는 이름으로 테스트 코드 작성을 현실적인 예제와 함께 작성해볼 예정인데요! 이론 편을 다 읽으신 여러분들께 질문을 하나 남기면서 Part 1을 마무리하고 싶습니다.</p>
+<div style="background-color: #F3F5F7;padding: 10px 20px;border-radius: 8px;margin: 1em 0;font-weight: 700;text-align: center">
+여러분의 프로덕트에는 테스트 코드가 충분히, 잘 작성되어 있나요?
+</div>
+<p>오늘은 이론적인 내용을 소개해서 머리로 익혔으니 이제 손으로 직접 코드를 써가면서 익힐 때입니다. 다음 글을 조금만 기다려주세요!</p>
+<h3>참고 자료</h3>
+<ul>
+<li><a href="https://testing.googleblog.com/2019/12/testing-on-toilet-tests-too-dry-make.html">Google Testing Blog: Testing on the Toilet: Tests Too DRY? Make Them DAMP!</a></li>
+<li><a href="https://dannorth.net/introducing-bdd/">DAN NORTH &amp; ASSOCIATES LIMITED: Introducing BDD</a></li>
+<li><a href="https://medium.com/javascript-scene/what-every-unit-test-needs-f6cd34d9836d">5 Questions Every Unit Test Must Answer</a></li>
+<li><a href="https://testing-library.com">Testing Library</a></li>
+</ul>The post <a href="https://techblog.woowahan.com/17404/">코드와 함께 살펴보는 프론트엔드 단위 테스트 – Part 1. 이론 편</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+            <wfw:commentRss>https://techblog.woowahan.com/17404/feed/</wfw:commentRss>
+            <slash:comments>0</slash:comments>
+
+
+        </item>
+        <item>
+            <title>웹 애플리케이션 페이지를 패키지로 개발해 본 경험 공유</title>
+            <link>https://techblog.woowahan.com/16910/</link>
+            <comments>https://techblog.woowahan.com/16910/#respond</comments>
+
+            <dc:creator><![CDATA[조호정]]></dc:creator>
+            <pubDate>Thu, 09 May 2024 06:00:37 +0000</pubDate>
+            <category><![CDATA[Web Frontend]]></category>
+            <category><![CDATA[Frontend]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=16910</guid>
+
+            <description><![CDATA[<p>웹 애플리케이션의 일부 페이지를 다른 레포지토리에서 개발하고 적용해 본 경험이 있으신가요? Module Federation이나 iframe 활용 등 여러 방법이 생각나실 텐데요. 이 글에서는 배민 사장님들께 제공되는 서비스인 배민 셀프서비스 내의 상품관리 페이지를 패키지 형태로 배포해 본 경험기를 공유합니다. 개발 배경 보통, 웹 애플리케이션에 새로운 페이지를 추가해야 하면 하나의 레포지토리에서 개발을 진행합니다. 하지만 새로운 페이지를 추가해야 하는데 [&#8230;]</p>
+The post <a href="https://techblog.woowahan.com/16910/">웹 애플리케이션 페이지를 패키지로 개발해 본 경험 공유</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<p>웹 애플리케이션의 일부 페이지를 다른 레포지토리에서 개발하고 적용해 본 경험이 있으신가요? Module Federation이나 iframe 활용 등 여러 방법이 생각나실 텐데요. 이 글에서는 배민 사장님들께 제공되는 서비스인 <a href="https://self.baemin.com/bridge" title="배민 셀프서비스">배민 셀프서비스</a> 내의 상품관리 페이지를 패키지 형태로 배포해 본 경험기를 공유합니다.</p>
+<h2>개발 배경</h2>
+<p>보통, 웹 애플리케이션에 새로운 페이지를 추가해야 하면 하나의 레포지토리에서 개발을 진행합니다. 하지만 새로운 페이지를 추가해야 하는데 다른 팀의 레포지토리에서 개발해야 한다면 어떨까요? 이 과제가 그랬습니다.<br />
+개발을  진행하는 과정 중에는 단순히 기능 구현뿐만 아니라 각 팀마다 크고 작은 여러 컨벤션들을 지켜야 하고, 구현한 기능의 코드 리뷰까지 완료되어야 비로소 내가 구현한 코드를 반영할 수 있는데요.<br />
+이런 과정을 다른 팀에서 관리하는 레포지토리에서 진행하는 것은 효율적이지 않기 때문에, 외부에서 개발을 진행해 완성한 페이지를 셀프서비스에서 불러오는 방법을 채택했습니다.</p>
+<h2>개발 방식 알아보기</h2>
+<p>다른 레포지토리에서 개발하기로 결정했다면 이제는 개발 방식을 정해야 할 시간입니다.<br />
+외부에서 개발한 코드를 웹 애플리케이션에 통합하는 방법으로는 Module Federation(이하 MF)과, 패키지로 배포하는 방법이 있는데요. 각 방식에 대한 장단점을 간단하게 알아보겠습니다.</p>
+<h3>Module Federation</h3>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/61727377.png" alt="Module Federation logo" width="200"></p>
+<p>webpack 5부터 지원하는 기능으로 별도로 컴파일되고 배포된 코드를 호스트에서 로드할 수 있는 방식입니다. 애플리케이션에서 제공하는 기능이 복잡해지고 다양해질수록 번들의 크기가 커지고 청크가 비대해져 빌드 속도가 느려지고 의존성 관리, 코드의 재구조화가 어려워집니다. 이를 해결하기 위해 원격지에서 개별적으로 개발하고 빌드한 페이지와 컴포넌트를 애플리케이션이 가져와 사용하는 방식입니다. 간단히 도식화하면 아래와 같습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/MF-750x282.png" alt="Module Federation structure" width="700"></p>
+<p>호스트(Host)는 원격에서 개발된 여러 리모트(Remote) 애플리케이션을 소비하지만, 사용자에게는 마치 하나의 애플리케이션처럼 보입니다. MF에 대해서 자세한 정보가 궁금하시다면 우아콘에서 이 주제로 발표한 &quot;<a href="https://youtu.be/-jYSGaPAEHE?feature=shared" title="프론트엔드 개발의 미래, Module Federation">프론트엔드 개발의 미래, Module Federation의 적용</a>&quot; 영상을 참고해 주세요.</p>
+<h4>장점</h4>
+<ul>
+<li>npm 레지스트리에 패키지를 게시하거나 업데이트할 필요 없이 모듈 방식으로 유연하게 구성 가능.</li>
+<li>사용처에서 버전 관리에 대한 부담이 없고, 리모트의 변경 사항을 즉시 사용할 수 있음.</li>
+</ul>
+<h4>단점</h4>
+<ul>
+<li>프로젝트에 추가적인 설정이 필요하여 복잡성이 증가함.</li>
+<li>런타임 로드 방식이기 때문에 약간의 네트워크 대기 시간이 발생함.</li>
+</ul>
+<h3>패키지 형태로 관리</h3>
+<p align="center">
+    <img decoding="async" src="https://upload.wikimedia.org/wikipedia/commons/d/db/Npm-logo.svg" alt="npm logo" width="200"></p>
+<p>패키지 형태로 npm 레지스트리에 게시하여 버전 관리를 통해 재사용 가능한 코드를 공유할 수 있습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/npm-750x110.png" alt="npm structure" width="500"></p>
+<p>원격지에서 개발한 패키지를 빌드하여 레지스트리에 발행하고, 사용처에서는 install 명령을 통해 가져와서 사용하는 방식입니다.</p>
+<h4>장점</h4>
+<ul>
+<li>npm 패키지는 버전 관리를 지원하므로 게시된 산출물의 다양한 버전을 유지할 수 있고, 사용처에서 종속성을 관리하므로 버전 관리에 용이.</li>
+<li>Node.js를 사용하는 모든 프로젝트에서 추가 설정 없이 폭넓은 호환성을 가지고 있음.</li>
+</ul>
+<h4>단점</h4>
+<ul>
+<li>업데이트가 필요할 때마다 패키지의 새 버전을 게시하고, 사용처에서도 올바른 버전으로 업데이트 필요.</li>
+<li>MF 대비 모놀리식한 방식으로, 마이크로 프론트엔드 아키텍처 관점이나 빠른 업데이트가 필요한 경우에는 부적합할 수 있음.</li>
+</ul>
+<h3>무엇을 선택했을까요?</h3>
+<p>외부 레포지토리에서 개발하고 웹 애플리케이션에 통합하는 두 가지 방식을 검토해 보았습니다. 두 방식 모두 요구사항을 만족할 수 있지만 아래와 같은 이유가 있어 패키지로 배포된 기능을 불러와서 사용하는 것으로 결정하였습니다.</p>
+<ul>
+<li>MF 사용 시 호스트 애플리케이션의 추가적인 설정이 필요하며 산출물에 대한 안정성 검증이 필요한 점.</li>
+<li>npm 레지스트리 내에 이전 버전들도 유지되기 때문에 호스트 애플리케이션에서 중앙화된 버전 관리가 가능하다는 점. (필요시 빠른 롤백 가능)</li>
+<li>당시 각 팀마다 큰 프로젝트를 진행하고 있어 일정이 굉장히 촉박했다는 점.</li>
+</ul>
+<p>지금 돌이켜보면 기술적인 관점에서는 최고의 선택이었다고 하기에 어려울 수 있을 것 같아요. 하지만 MF를 적용하게 되면 호스트 애플리케이션도 수정이 필요하고,  QA 과정도 필요해집니다.<br />
+최소 비용으로 목표를 달성했으니 패키지 배포가 최고는 아닐 수 있어도 효율적인 수단이라는 관점에서는 최선의 선택이었습니다.</p>
+<p>개발 방식을 선택하였으니 이제 번들러를 선택할 차례입니다.</p>
+<h2>어떤 모듈 번들러를 사용할까?</h2>
+<p>모듈 번들러란 말 그대로 여러 모듈(코드 조각)을 하나로 번들링(묶어주는 것)하는 도구로, 시장에는 다양한 모듈 번들러들이 출시되어 있습니다. 그러나 번들러마다 특징이 다르므로 애플리케이션의 성격이나 목적에 맞는 번들러를 선택해 사용하는 것이 효율적이고 편리한 개발을 할 수 있습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/ViteVsWebpack-750x143.png" alt="Vite vs Webpack" width="450"></p>
+</p>
+<p>당시 팀 내에서는 패키지 개발의 모듈 번들러로 <a href="https://ko.vitejs.dev/" title="vite">Vite</a>를 채택해서 사용 중이었습니다. Vite 는 <a href="https://webpack.kr/" title="Webpack">webpack</a>과 더불어 모듈 번들러의 양대산맥처럼 여겨지는데요.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/graph-1-750x300.png" width="700px"><br /><span align="center" style="font-size: 0.8em">2024년 4월 기준 Vite와 webpack의 다운로드 수. 출처: <a href="https://npmtrends.com/vite-vs-webpack">npmtrends</a></span>
+</p>
+<p>아직 격차가 좀 있지만, Vite가 빠른 속도로 추격하고 있습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/stats-750x133.png" width="700px"></p>
+<p>인기의 척도를 나타내는 Stars는 거의 같지만, Vite는 webpack에 비해 비교적 짧은 역사를 가지고 있어 빠른 시간 안에 Star를 획득했음을 알 수 있습니다.<br />
+관리 측면에서는 최근까지 업데이트가 된 것으로 보아 둘 다 잘 되고 있음을 말해주고 있습니다.</p>
+<p>webpack은 단순한 형태의 라이브러리부터 SPA(Single Page Application), MPA(Multiple Page Application)까지 다양한 프로젝트에 사용이 가능합니다.<br />
+그 오랜 역사에서 알 수 있듯이 번들러 중 가장 거대한 커뮤니티와 생태계를 갖추고 있습니다. 또한 그만큼  많은 기능을 지원하는데, 최신 버전에서는 많이 간소화 및 자동화되었다고는 하지만 초기 설정 및 구성이 어려울 수 있습니다.</p>
+<p>Vite는 프랑스 말로 ‘빠르다’라는 의미의 단어입니다. 그 이름처럼 매우 빠른 성능을 가지고 있는데요, 특히 개발 서버를 구동하는 시간이 매우 짧은 특징을 가지고 있습니다.<br />
+Vite는 개발 서버를 구동할 때에는 <a href="https://esbuild.github.io/" title="esbuild">esbuild</a>를 사용하여 개발자에게 매우 빠른 콜드 스타트와 코드 변경에 대한 갱신을 가능하게 하고, 실제 production 빌드 시에는 <a href="https://rollupjs.org/" title="rollup">rollup</a>을 번들러로 사용하여 빠른 성능과 함께 유연한 설정과 확장성을 제공합니다.</p>
+<p>이 프로젝트에서는 일정이 넉넉하지 않아 개발 속도가 굉장히 중요했는데요.  그런 점에서 Vite는 아주 좋은 선택이 되었습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/run-dev_1.gif" width="700" style="border-radius: 5px"><br /><span align="center" style="font-size: 0.8em">개발 서버 구동 시 매우 빠른 실행 속도를 보여줍니다</span>
+</p>
+<p>개발 서버 구동 자체도 매우 빠르지만 HMR(Hot Module Replacement) 역시 매우 빨라 코드 변경사항을 브라우저에서 수시로 확인해야 할 때 많은 시간을 절약할 수 있었습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/hmr.gif" width="700" style="border-radius: 5px"><br /><span align="center" style="font-size: 0.8em">HMR(Hot Module Replacement) 적용 속도 예시입니다</span>
+</p>
+<p>기본적으로 Vite는 esbuild만을 사용하지만, <a href="https://emotion.sh/docs/introduction" title="emotion">emotion</a> 등의 사용으로 트랜스파일(transpile)이 필요한 경우 그에 맞는 플러그인을 설정해 주어야 합니다.</p>
+<p>이때 <a href="https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react" title="@vitejs/plugin-react">@vitejs/plugin-react</a>를 사용하면 <a href="https://babeljs.io/" title="Babel">Babel</a>을 통해 트랜스파일을 수행하게 되고, <a href="https://github.com/vitejs/vite-plugin-react-swc" title="@vitejs/plugin-react-swc">@vitejs/plugin-react-swc</a>를 사용하면 <a href="https://swc.rs/docs/configuration/compilation" title="SWC">SWC</a>(Speedy Web Compiler)를 통해 작업을 수행하게 됩니다.<br />
+이 프로젝트에서는 SWC를 통한 트랜스파일링을 수행하도록 설정하였습니다.<br />
+같은 역할을 하는 Babel이나 <a href="https://www.typescriptlang.org/docs/handbook/compiler-options.html" title="tsc">tsc</a>보다 작게는 몇 배, 상황에 따라 크게는 몇십 배 빠른 속도를 가지고 있기 때문입니다.</p>
+<p>최종적으로 제가 구현할 프로젝트에서 설정한 vite.config.ts파일은 아래와 같습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/viteConfig-final_2.png" width="700"></p>
+<p>필수적이지 않은 몇몇 설정값을 제외하면, 상당히 간단한 설정만으로 프로젝트를 구성할 수 있습니다.</p>
+<p>추가적으로 <code>package.json</code> 내에 아래와 같이 설정을 추가하여 외부에서 프로젝트에 대한 올바른 값을 가져갈 수 있도록 설정하였습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/package.png" width="600"></p>
+<p>이렇게 해서 제가 구현하고자 하는 프로젝트의 배포 방식과 번들러에 대한 결정을 완료하였습니다.</p>
+<h2>개발하면서 겪은 트러블슈팅</h2>
+<p>계획을 수립하는 단계에서 여러 시나리오들을 많이 고려하더라도 개발 중 많은 문제를 마주치게 되는데요, 저 역시도 계획 수립 당시에 생각하지 못했던 부분에 대한 아쉬움을 겪게 되었습니다.</p>
+<h3>구현한 기능을 바로 확인하는 방법</h3>
+<p>웹 페이지를 패키지로 구성하여 컴포넌트를 제공하기 때문에 패키지만으로는 애플리케이션으로 실행해 볼 수 없습니다. 때문에 기능의 구현 및 수정사항을 확인하기 위해서는 페이지를 구동할 기본적인 애플리케이션을 마련해야 했습니다. 그러나 beta 태그를 설정하여 배포하거나 로컬 패키지로 빌드하여 매번 별도의 애플리케이션에서 이 패키지를 설치하고 실행하는 것은 번거롭습니다. 그래서 명령어의 인수를 변경하면 패키지의 페이지를 포함한 간단한 SPA를 빌드하여 빠르게 확인할 수 있도록 구성하였습니다.</p>
+<p>다음과 같이 페이지 컴포넌트를 사용하는 아주 간단한 파일을 생성합니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/index.png" width="600"></p>
+<p>각 기능마다 추가로 전달해 주어야 하는 프롭이나 설정들을 위 코드에 추가해야 합니다.<br />
+또한 빌드 시 패키지 형태가 아니라 온전한 앱으로 동작이 가능하도록 설정해 주어야 합니다.<br />
+이를 위해서 vite.config.ts 파일 내에 아래와 같이 빌드 관련 설정을 추가해 주었고 이 스크립트는 Vite 설정에서 기본으로 제공하는 <a href="https://ko.vitejs.dev/guide/env-and-mode.html#modes" title="모드">모드</a>를 전달인자로 받아 처리하도록 구성하였습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/viteConfig2.png" width="600"></p>
+<p>이제 다음과 같이 package.json 내에서 scripts 영역에 SPA 빌드를 위한 스크립트를 추가하고 실행할 수 있습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/build-image.png" width="500"></p>
+<p>SPA 빌드 시 index.html 이 생성됩니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/deploy.png" style="border-radius: 5px;margin-bottom: 5px" width="100px"></p>
+<p>이렇게 빌드된 산출물을 정적 웹 배포 파이프라인에 제공하거나 로컬 서버에서 구동하면 구현된 내용을 실제 환경에서 빠르게 테스트할 수 있습니다.</p>
+<h3>패키지 내에서의 실행 환경에 대한 처리</h3>
+<p>패키지로 구성하여 배포한 기능의 경우 사용처의 실행 환경에 대하여 런타임에 알 수 있는 방법이 없습니다.<br />
+패키지는 빌드되어 저장소에 올라가는 순간 이미 운영 배포가 완료된 것이 됩니다. 하지만 이 프로젝트로 구현되는 기능은 하나의 온전한 지면으로 그 안에서 서버 API 호출을 통한 통신을 하고 있었습니다. 사용처가 되는 호스트 애플리케이션에서 베타 환경 실행을 하여 베타 환경의 API 엔드 포인트를 호출하게 되더라도 패키지로 구성된 본 기능에서는 이미 운영 환경 배포가 완료되었기 때문에 현재 호스트 애플리케이션이 베타 환경에서 실행되었다는 것을 알 수 없어 운영 환경의 API 엔드 포인트를 호출하게 되는 문제가 있었습니다.<br />
+그래서 실행 환경을 prop으로 전달받아 그에 맞는 API 엔드 포인트를 호출할 수 있도록 구성하였습니다.</p>
+<p>당시 이 기능을 사용할 사용처에서는 개발(dev), 베타(beta), 운영(prod), 카나리(canary) 환경을 구성하여 활용하고 있었고, 아래와 같이 엔드 포인트를 나누어서 구성하였습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/baseUrl.png" width="600"></p>
+<p>실제 API 호출 시에는 사용처에서 앱을 구동하는 때에 prop으로 전달해 주는 값을 이용하여 런타임에 엔드 포인트를 각기 다르게 호출하게 됩니다.</p>
+<p>위와 같이 구현된 컴포넌트는 패키지 빌드 시 하나의 엔트리 포인트만을 제공하기 때문에 사용처에서 일반 컴포넌트를 가져와 사용하듯이 구현할 수 있습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/productPage.png" width="600"></p>
+<h2>마무리하며</h2>
+<p>서두에 말씀드린 것처럼 개발 업무를 진행하다 보면 여러 환경적인 요인이나 조직의 내외부 상황에 의해 구현하는 방식을 달리해야 하는 경우들이 있습니다.<br />
+재사용을 위한 컴포넌트나 공통 로직을 패키지 형태로 배포한 경험은 있었지만 이처럼 하나의 웹 지면 전체를 패키지 형태로 배포하여 다른 애플리케이션에서 구동해 본 것은 처음이라, 개발하던 중 생각하지 못했던 상황들을 맞이하기도 했습니다.</p>
+<p>이 경험이 원격지에서 개발된 코드를 불러와 사용하는 방법 중 가장 스마트하고 진보적인 방법이라고 말씀드릴 수는 없을 것 같습니다. 하지만 업무 진행에 있어서 중요한 사실은, 주어진 일정과 리소스는 언제나 유한하며 우리는 그 안에서 선택과 집중을 해야 한다는 것입니다. 그 측면에서 패키지 배포는 두 팀이 특별한 비용 없이도 적용할 수 있는 좋은 방법이었습니다.<br />
+또한, 추후 MF로 노선을 변경하더라도 기능 실행 시 이미 엔트리 포인트가 하나이기 때문에 적은 비용으로 목적을 달성할 수 있을 것이라 생각합니다.</p>
+<p>익숙하지 않은 환경에서의 개발이었지만, 위와 같은 과정들을 거치며 큰 문제 없이 프로젝트를 마무리할 수 있었습니다.<br />
+물론 그 배경에는 저희 팀원 분들이 먼저 마련해두셨던 기술 리서치와 다양한 레퍼런스가 있었고, 이 페이지를 사용하게 될 조직에서도 저의 여러 문의에 빠르게 응대와 지원을 해주셔서 가능했습니다.</p>
+<p>앞으로도 더욱 재밌는 경험을 하고 싶고, 또 그것을 여러분과 공유하고 싶습니다. 보다 좋은 글로 찾아오도록 하겠습니다.</p>The post <a href="https://techblog.woowahan.com/16910/">웹 애플리케이션 페이지를 패키지로 개발해 본 경험 공유</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+            <wfw:commentRss>https://techblog.woowahan.com/16910/feed/</wfw:commentRss>
+            <slash:comments>0</slash:comments>
+
+
+        </item>
+        <item>
+            <title>[모집 마감] 우아한스터디 2024 여름시즌</title>
+            <link>https://techblog.woowahan.com/17328/</link>
+            <comments>https://techblog.woowahan.com/17328/#respond</comments>
+
+            <dc:creator><![CDATA[우아한형제들 DevRel]]></dc:creator>
+            <pubDate>Wed, 08 May 2024 06:30:52 +0000</pubDate>
+            <category><![CDATA[우아한스터디]]></category>
+            <category><![CDATA[Kubernetes]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=17328</guid>
+
+            <description><![CDATA[<p>이 글은 PC 환경에 최적화되어 있습니다. 모바일 환경에서는 우아한스터디 2024 여름시즌 페이지와 우아한스터디 2024 여름시즌 신청서를 참고하세요.</p>
+The post <a href="https://techblog.woowahan.com/17328/">[모집 마감] 우아한스터디 2024 여름시즌</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<p><i><span style="color:#a6a6a6">이 글은 PC 환경에 최적화되어 있습니다.<br />
+모바일 환경에서는 <a href="https://www.notion.so/2024-3181249c6a9a4bfeaba11eca819a7927?pvs=4" target="_blank" rel="noopener">우아한스터디 2024 여름시즌</a> 페이지와 <a href="https://docs.google.com/forms/d/e/1FAIpQLSc-_L7XP7o7eV2FlSLkSjfN-ooRZzD7S4SuALgNWKcx79Df0w/viewform?usp=sf_link" target="_blank" rel="noopener">우아한스터디 2024 여름시즌 신청서</a>를 참고하세요.</span></i></p>
+<p><img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/05/기술블로그_우아한스터디_랜딩_24여름.png" border="0" width="720" height="" usemap="#ImageMap1"></p>
+<map name="ImageMap1">
+<area shape="rect" alt="Ku배당" title="" coords="32,1898,244,2129" href="https://www.notion.so/Ku-95654679fadd40a7a35a3f6ea3315001?pvs=4" target="_blank">
+<area shape="rect" alt="기술 블로거 모여라" title="" coords="252,1899,465,2130" href="https://www.notion.so/9b8572c6f1fe4106aa986647ca405b74?pvs=4" target="_blank">
+<area shape="rect" alt="코드와 함께 쉽게 배우는 리눅스" title="" coords="473,1899,686,2130" href="https://www.notion.so/ec553d82f6fd4fe18795e0626778b1d0?pvs=4" target="_blank">
+<area shape="rect" alt="프롬프트 참 잘하는 집" title="" coords="152,2145,351,2372" href="https://www.notion.so/326ead2c31214567b01e597615485bc1?pvs=4" target="_blank">
+<area shape="rect" alt="우아한 대규모 시스템 설계 스터디2" title="" coords="366,2145,572,2372" href="https://www.notion.so/2-28c4f5ae5d8442e68937138c014b6d3f?pvs=4" target="_blank">
+<area shape="rect" alt="신청하기" coords="202,2462,532,2549" href="https://docs.google.com/forms/d/e/1FAIpQLSc-_L7XP7o7eV2FlSLkSjfN-ooRZzD7S4SuALgNWKcx79Df0w/viewform?usp=sf_link" target="_blank">
+<area shape="rect" alt="뉴스레터" coords="190,4050,550,4120" href="https://docs.google.com/forms/d/e/1FAIpQLSe5HMoawj5-lsjcOLvF5BtxWWr7D_uZXYChkWse1bgQs58C4w/viewform" target="_blank"></map>The post <a href="https://techblog.woowahan.com/17328/">[모집 마감] 우아한스터디 2024 여름시즌</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+            <wfw:commentRss>https://techblog.woowahan.com/17328/feed/</wfw:commentRss>
+            <slash:comments>0</slash:comments>
+
+
+        </item>
+        <item>
+            <title>우아한스터디 2023 여름시즌 후기: 쏙쏙 들어오는 함수형 코딩</title>
+            <link>https://techblog.woowahan.com/15660/</link>
+
+            <dc:creator><![CDATA[박선희]]></dc:creator>
+            <pubDate>Wed, 08 May 2024 06:29:12 +0000</pubDate>
+            <category><![CDATA[우아한스터디]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=15660</guid>
+
+            <description><![CDATA[<p>우아한스터디 2024 여름시즌 모집이 방금 시작되었습니다. 우아한스터디에서는 어떤 활동을 하는지 궁금하시면 &#8220;우아한스터디 2023 여름 시즌&#8221; 후기도 확인해 보세요! 이 글은 2023년 6월부터 두 달간 진행한 &#34;쏙쏙 들어오는 함수형 코딩&#34; 스터디 후기를 인터뷰 형식으로 정리한 글입니다. 우아한스터디에 관심 있는 분들과 스터디를 효율적으로 진행하는 방법을 고민하고 계신 분께 도움이 되길 바랍니다. 우아한 스터디 2023 여름 시즌 멤버들의 [&#8230;]</p>
+The post <a href="https://techblog.woowahan.com/15660/">우아한스터디 2023 여름시즌 후기: 쏙쏙 들어오는 함수형 코딩</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<div style="background-color: #f8f8f8;padding: 20px;border-radius: 8px;margin: 2em 0">
+<a href="https://techblog.woowahan.com/17328">우아한스터디 2024 여름시즌 모집</a>이 방금 시작되었습니다.<br />
+우아한스터디에서는 어떤 활동을 하는지 궁금하시면 &#8220;우아한스터디 2023 여름 시즌&#8221; 후기도 확인해 보세요!
+</div>
+<p>이 글은 2023년 6월부터 두 달간 진행한 &quot;쏙쏙 들어오는 함수형 코딩&quot; 스터디 후기를 인터뷰 형식으로 정리한 글입니다.<br />
+우아한스터디에 관심 있는 분들과 스터디를 효율적으로 진행하는 방법을 고민하고 계신 분께 도움이 되길 바랍니다.</p>
+<hr />
+<p><img fetchpriority="high" decoding="async" src="https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-1-750x422.png" alt="우아한 스터디 2023 여름 시즌 멤버들의 스터디 현장 " width="750" height="422" class="size-medium wp-image-15661" srcset="https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-1-750x422.png 750w, https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-1-870x490.png 870w, https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-1-768x432.png 768w, https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-1-1000x563.png 1000w, https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-1-1200x675.png 1200w, https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-1-889x500.png 889w, https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-1.png 1260w" sizes="(max-width: 750px) 100vw, 750px" /> 우아한 스터디 2023 여름 시즌 멤버들의 스터디 현장</p>
+<h3>Q. 스터디 인터뷰에 앞서, 어떻게 &quot;쏙쏙 들어오는 함수형 코딩&quot; 스터디를 개설 하셨나요?</h3>
+<p><strong>선희</strong>: &quot;쏙쏙 들어오는 함수형 코딩&quot; 책을 공부해보고 싶다는 단순한 생각으로 개설했어요. 우아한스터디 여름시즌 모집 전에 이미 팀 내에서 스터디를 진행하려고 새로운 주제를 논의 중이었는데, 여러 후보 중 하나가 이 책이었거든요. 팀 내 스터디로는 다른 주제가 선정되었고, 또 다른 분들과 이 책을 공부해볼까 하던 중에 슬랙에 우아한스터디 여름시즌에 대한 공지가 올라왔어요. 이왕 하는 거 회사 밖 개발자들도 만나보면 좋겠다는 생각으로 개설하게 되었습니다.</p>
+<h3>Q. 멤버 선발 기준은 어떻게 되나요?</h3>
+<p><strong>선희</strong>: 사실 이렇게 많은 분이 신청해주실 줄 몰랐는데요. (웃음) 신청서가 총 900건 정도 들어왔던 것 같아요. 스터디를 리딩하는 것도 처음이고, 이렇게 많은 분의 신청서를 받아본 것도 처음이라 손이 덜덜 떨리더라고요. ‘괜히 한다고 했나? 내가 뭐라고 이 많은 사람들 중에서 9명을 뽑지?’ 하는 생각도 들었던 것 같아요. </p>
+<p>스터디원 선발에 저는 <strong>스터디 공지를 제대로 읽었는지</strong>를 가장 최우선으로 봤어요. 스터디를 어떻게 진행하면 좋을지 고민이 많아서, 진행 방식을 같이 정할 예정이라고 공지했습니다. 대략 어떤 포맷을 고민 중 인지, 또는 이런 부분을 함께 정하면 좋겠다 하는 부분들을 적어놓았는데요, 지원서에서 자신의 스터디 경험을 소개하거나, 자신들이 추천하는 방식을 적어준 분들이 계셨어요. 그런 분들을 우선 골랐고, 이후로는 스터디원들의 개발 경험 등을 본 것 같아요. 아무래도 비슷한 경험이 있어야 더 깊은 대화를 나눌 수 있지 않을까 하는 생각이었죠.</p>
+<h3>Q. 스터디는 어떤 방식으로 진행하셨나요?</h3>
+<p><strong>주현</strong>: 스터디는 6월 3일부터 7월 29일 까지, 매주 토요일 오전 10시부터 선릉에 있는 테크살롱에서 진행했어요. 코로나 이후로 오프라인 스터디를 할 기회가 많지 않았는데, 이번에는 직접 만나서 진행해서 그런지 스터디원분들과 더 가까워질 수 있었습니다.</p>
+<p>매주 스터디를 마치면 다음 주에 진행할 챕터의 <strong>호스트 및 부호스트</strong> 를 선정해요. 호스트는 해당 챕터의 학습 진행을 맡게 됩니다. 방식이 흥미롭고 재밌는 게, 진행 방식을 호스트에게 전적으로 맡긴다는 거예요. 요약정리한 문서를 함께 읽으며 이해되지 않는 부분에 관해 토론하거나, 직접 만든 퀴즈를 함께 풀어보기도 했어요. 이렇게 다양한 방식으로 스터디가 진행될 수 있어서, 지루하지 않게 진행할 수 있었던 것 같아요. 호스트와 부호스트는 사다리 타기로 공평하게 정했습니다. 그런데 아이러니하게도 꼭 걸리는 분만 걸리더라고요. (웃음)</p>
+<p><strong>한결</strong>: (조용히 미소짓는 3주 연속 호스트) </p>
+<p><strong>선희</strong>: 부호스트는 호스트를 도와주는 역할을 해요. 호스트가 진행에 어려움을 겪을 때 말을 덧붙여 주거나, 스터디 요약을 하면서 호스트의 발표를 마무리합니다.</p>
+<h3>Q. (구성원 분들에게) 스터디를 신청한 계기가 어떻게 되시나요?</h3>
+<p><strong>한결</strong>: 당연한 얘기일 수도 있지만, 함수형 프로그래밍 패러다임을 공부해보고 싶었어요. 함수형 프로그래밍을 지향하는 팀에서 일하고 있는데, 무엇이 함수형이고 왜 그러한지에 대해 제대로 알고 있는 게 맞나 하는 의구심이 들더라고요. 함수형 프로그래밍에 대한 이해도를 더 향상시키고 싶은 마음이 컸던 것 같아요.</p>
+<p><strong>승희</strong>: 다양한 회사, 다양한 직군에서 일하는 분들과 함수형 프로그래밍에 대한 인사이트를 나누고 싶었어요. 또한, 비슷한 연차의 사람들끼리 서로의 경험과 생각을 공유할 좋은 기회가 될 것으로 생각했습니다 </p>
+<p><strong>서림</strong>: 저는 스터디를 해본 적이 없는데, 사람들과 함께 공부하면서 내가 이해한 지식이 맞는지를 검증하는 시간이 될 수 있으면 좋겠다고 생각했어요. 혼자 공부할 때 보이지 않는 부분들을 다양한 사람들과 함께 공부하며 식견을 넓히고 싶었습니다.</p>
+<p><strong>현철</strong>: 아무래도 책을 완독하고자하는 마음이 컸던 것 같아요. 스터디라는 강제성을 가지고 진행한다면 보다 책임감을 가지고 공부를 할 수 있을거라 기대했어요.</p>
+<h3>Q. 어떤 점이 좋았나요?</h3>
+<p><strong>주현</strong>: 저는 업무에서 자바 언어를 주로 사용하는데요, 이번 스터디를 통해 프론트엔드 개발자분들과 코드적으로 교류할 기회가 생겨서 좋았어요. 기존에 생각해보지 못했던 새로운 관점으로 코드를 넓게 바라볼 수 있게 되었고, 열린 시야를 가지게 된 것 같아서 좋았습니다.</p>
+<p><strong>지수</strong>: 다른 분들이 책을 읽고 공부하는 방식들을 간접적으로 경험해 볼 수 있어 좋았습니다. 예를 들면 수학적인 증명을 직접 해보기도 하고, 머리말과 추천사까지도 꼼꼼히 읽는 다던가, 책 내용에 대해 의문을 가지고 질문해본다든가 하는 식이요. 각자 책의 내용을 받아들이는 방식과 관점이 달라 팀원 분들의 좋은 점을 흡수해야겠다는 생각이 들었어요. 좋은 자극제가 되었습니다. 더불어 저를 돌아보고 자기 객관화를 할 수 있었어요.</p>
+<p><strong>동희</strong>: 팀원들과 함께 독려해가며 책을 완독할 수 있어서 좋았어요. 500쪽가량 되는 프로그래밍 책을 완독하는 것이 쉽지 않은데, 함께 한 팀원들이 있어 가능했다고 생각합니다.</p>
+<p><strong>현철</strong>: 단순히 내용을 정리하는 방식이 아니라 토론 방식으로 스터디를 진행한 것이 좋았어요. 서로의 생각을 공유하고, 중간 회고 이후부터는 각자 코드를 가져와서 실제 코드에 적용해 본 것도 좋았습니다.</p>
+<p><strong>민경</strong>: 저도 현철님과 비슷한 생각이에요. 토론 방식으로 진행하니 다른 사람들의 생각을 엿볼 수 있어 재밌었습니다. 또, 우리의 문제은행장 승희님이 직접 만들어 오시는 문제들도 너무 좋았습니다. 어느 순간부터는 승희님이 다음 스터디에는 어떤 문제를 만들어 오실지 기대가 되더라고요. (웃음)</p>
+<p><strong>진아</strong>: 책과 관련된 경험을 나누며 책 내용을 풍부하게 이해할 수 있었던 것 같아요. 그중에서도 현철님이 데이터, 계산, 액션을 분리해서 성공적으로 리팩토링을 한 경험을 공유해 주신 내용이 기억에 남습니다. 스터디를 통해 배운 내용을 직접 적용할 수 있다는 것이 재밌었어요.</p>
+<h3>Q. 다들 스터디를 통해 어떤 것을 배우셨나요?</h3>
+<p><strong>한결</strong>: 데이터, 계산, 액션이요. (웃음) 책에서 함수형 사고방식에 관해 이야기하면서, 데이터, 계산, 액션을 강조하는데요. 다른 것은 몰라도 이것만큼은 기억에 오래 남더라고요.</p>
+<p><strong>서림</strong>: 함수 내부 구현체에 대해서 더 깊이 이해할 수 있었어요. 일급객체의 특성을 살려 보다 더 다양한 패턴을 사용할 수 있다는 생각이 들었습니다.</p>
+<p><strong>승희</strong>: 순수함수에 대한 개념을 보다 확실하게 이해할 수 있었어요. 복잡한 코드를 다룰 때 어떻게 하면 좋을지에 대한 방법을 얻었습니다. 어렵지만 실무에서도 틈틈이 책에서 강조하는 관점으로 코드를 바라보고, 적용해보려고 노력하고 있어요.</p>
+<p><strong>현철</strong>: 함수형 프로그래밍 외에도 비판적으로 책을 읽는 시야에 대해서 배웠어요. 책을 읽을 때 ‘무조건 저자가 맞다’는 전제하에 책을 읽었는데 스터디를 진행하면서 다들 코드에 대해 의심하고, 보다 확실한 답을 도출해 내려는 모습을 보면서 신선하기도 하고 많이 배웠습니다.</p>
+<p><strong>선희</strong>: 좋은 스터디란 어떤 것인지에 대해 생각해 볼 수 있었어요. 책 내용을 잘 이해하는 것뿐만 아니라 어떻게 하면 팀원들이 책임감을 가지고 스터디를 끝까지 진행할 수 있을지를 고민해 볼 수 있었습니다.</p>
+<h3>Q. 스터디에서 아쉬웠던 점이 있다면 어떤건가요?</h3>
+<p><strong>민경</strong>: 스터디에서 배운 것을 적용하는 프로젝트를 진행해 보고 싶었는데 두 달이라는 제약 시간이 있다보니 시도를 못 해 본 것이 아쉬워요. 책을 읽고 이해하는 것만 해도 짧은 시간이라고 생각했어요. 회고 때 이런 얘기를 나누었는데 다른 분들도 비슷하게 생각하고 계신 것 같아요.</p>
+<p><strong>동희</strong>: 아직 함수형 프로그래밍에 대한 명확한 답을 얻지 못한 느낌이에요. 함수형 프로그래밍에 대한 단단한 개념이 잡히지 않은 것 같아 아쉬움이 남습니다.</p>
+<p><strong>진아</strong>: 중간 회고 이후로 배운 내용을 실제 코드에 적용해 보는 시간을 가졌는데, 이 시간을 보다 빨리 가지지 못한 것이 아쉬워요. 기존 코드를 함수형으로 리팩토링 하거나, 관련된 문제를 풀면서 함수형 사고를 더 잘 익힐 수 있어 좋았는데, 더 빨리 도입했으면 더 많은 인사이트를 얻을 수 있지 않았을까 싶더라고요.</p>
+<p><strong>모두 :</strong> 사실 스터디가 끝난다는 게 가장 아쉬운 부분인 것 같습니다. (웃음)</p>
+<h3>Q. 우리 스터디만의 차별점이 있다면?</h3>
+<p><strong>선희</strong>: 중간회고가 있었다는 것이 아닐까 싶어요. 두 달의 진행과정 중 한 달간 스터디를 진행한 후 중간회고 시간을 가졌어요. 스터디 팀원들과 부족한 점, 좋았던 점 등을 이야기하고 정리하니 남은 한 달을 어떻게 진행하면 좋을지에 대한 개선 방안을 도출해 낼 수 있었어요. 그 중 가장 만족도가 높은 건 스터디 시간 이후에 한 시간 정도 자율적으로 문제를 풀거나, 실제 코드에 도입하는 부분이었답니다. (웃음) 뿐만 아니라 중간회고를 하면서 현재 스터디 진행에 대해서 어떻게 느끼는지에 대해서 이야기해 볼 수 있었어요.</p>
+<p><strong>진아</strong>: 맞아요. 스터디를 진행하면서 이런 질문을 해도 될까 하는 부분이 있었는데, 그 부분을 회고 때 말씀드리니 이후로 편하게 질문할 수 있는 분위기를 조성해주셔서 감사했어요.</p>
+<p><img decoding="async" src="https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-2-750x605.png" alt="중간회고 때 달린 코멘트" width="750" height="605" class="size-medium wp-image-15662" srcset="https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-2-750x605.png 750w, https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-2-768x620.png 768w, https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-2-620x500.png 620w, https://techblog.woowahan.com/wp-content/uploads/2023/12/Untitled-2.png 860w" sizes="(max-width: 750px) 100vw, 750px" /> 중간회고 때 달린 코멘트</p>
+<p><strong>승희 :</strong> 확실히 스터디를 진행하면서도 스터디장님이 스터디를 더 나은 방향으로 이끌어가기 위해 고민을 하는 게 느껴졌어요. 그 많은 고민과 여러 가지 시도들이 스터디를 성공적으로 이끈 비결이 아닐까 싶기도 하네요.</p>
+<p><strong>선희</strong>: 덧붙이자면, 우리 스터디의 가장 특별한 점은 저희 팀원들이 아닐까 싶네요. (웃음) 9주라는 시간 동안 모든 스터디원들이 빠지지 않고 참석했고, 진행하는 동안에도 모두가 책임감 있게 스터디를 진행하고 참여했어요. 각자의 개성이 뚜렷해서 다양한 방면에서 서로에게 배울 점이 많았습니다. 스터디에서 깃허브의 레포지토리를 이용했는데 레포지토리와 슬랙에 올라온 자료들만 봐도 모든 팀원이 열심히 참여했구나 싶더라고요. 뿌듯했습니다.</p>
+<p><img decoding="async" src="https://techblog.woowahan.com/wp-content/uploads/2023/12/KakaoTalk_Photo_2023-11-25-16-10-41-1.jpeg" alt="스터디 마지막 날" width="677" height="390" class="size-full wp-image-15663" /> 스터디 마지막 날</p>
+<h3>Q. 마지막 한마디!</h3>
+<p><strong>동희</strong>: 두 달 동안 함수형 프로그래밍에 대한 기초를 다졌으니, 심화해서 배워야 하지 않을까 하는 생각이 들더라고요. 그러다 보니 팀원들 간에 함수형으로 만났으니 함수형으로 끝을 보자는 이야기가 나왔고, 다른 책을 가지고 스터디를 이어서 진행하기로 했어요.</p>
+<p><strong>지수</strong>: 다음 책은 더 두꺼워서 걱정되지만 (웃음), 지난 두 달과 같이 다 같이 열심히 한다면 충분히 해낼 수 있을 것 같아요.</p>
+<p><strong>주현</strong>: 마지막이 아니라 새로운 시작이네요.</p>
+<p><strong>서림</strong>: 그렇죠.</p>
+<p><strong>선희</strong>: 스터디원 분들에게 감사하다고 말씀드리고 싶어요. 처음에 개설할 때까지만 해도 잘 할 수 있을까? 라는 생각이 있었는데 실제로 진행하고 보니 기우였구나 싶더라고요. 열정 있고 능력 있는 동료와 배운 게 많았던 스터디였습니다. PPL을 한 번 해보자면, 우아한스터디에 관심 있으신 분들이 계시다면 구성원분들에게는 스터디 개설해 보는 것을, 외부 개발자분들에게는 일단 신청해 보시라고 권해 드리고 싶습니다. (웃음)</p>
+<p>스터디에 대해 더 자세히 듣고싶다면?</p>
+<p><a href="https://www.youtube.com/live/vub_peyogJY?si=vS5Og0Tg7jnBQW2U">[우아한스터디] 2023 여름시즌 발표회 보러가기 &gt;</a></p>The post <a href="https://techblog.woowahan.com/15660/">우아한스터디 2023 여름시즌 후기: 쏙쏙 들어오는 함수형 코딩</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+
+
+        </item>
+        <item>
+            <title>배민선물하기 AI 메시지 제작기: 생성 AI가 센스 있는 선물 메시지를 대신 쓰기까지</title>
+            <link>https://techblog.woowahan.com/17241/</link>
+            <comments>https://techblog.woowahan.com/17241/#respond</comments>
+
+            <dc:creator><![CDATA[김희선]]></dc:creator>
+            <pubDate>Thu, 02 May 2024 06:30:42 +0000</pubDate>
+            <category><![CDATA[AI]]></category>
+            <category><![CDATA[PM]]></category>
+            <category><![CDATA[생성AI]]></category>
+            <guid isPermaLink="false">https://techblog.woowa.in/?p=17241</guid>
+
+            <description><![CDATA[<p>여러분은 생성 AI를 적용한 서비스를 만들어본 적이 있으신가요? 배민선물하기팀에서는 만우절을 맞이하여 배민선물하기 서비스 내 생성 AI를 활용한 ‘AI 메시지’ 기능을 오픈했습니다. AI 메시지는 배달의민족 앱 내 선물하기 서비스에서 선물할 때, 선택한 카드에 어울리는 메시지를 AI가 대신 작성해주는 기능입니다. AI 메시지는 만우절을 맞이하여 유머러스한 메시지를 추천해주었으며, 3월 28일부터 4월 1일까지 서비스되었습니다. 배민선물하기에서 AI 메시지를 만들게 된 [&#8230;]</p>
+The post <a href="https://techblog.woowahan.com/17241/">배민선물하기 AI 메시지 제작기: 생성 AI가 센스 있는 선물 메시지를 대신 쓰기까지</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></description>
+            <content:encoded><![CDATA[<p>여러분은 <a href="https://ko.wikipedia.org/wiki/생성형_인공지능" title="생성 AI">생성 AI</a>를 적용한 서비스를 만들어본 적이 있으신가요? 배민선물하기팀에서는 만우절을 맞이하여 배민선물하기 서비스 내 생성 AI를 활용한 ‘AI 메시지’ 기능을 오픈했습니다. AI 메시지는 배달의민족 앱 내 선물하기 서비스에서 선물할 때, 선택한 카드에 어울리는 메시지를 AI가 대신 작성해주는 기능입니다. AI 메시지는 만우절을 맞이하여 유머러스한 메시지를 추천해주었으며, 3월 28일부터 4월 1일까지 서비스되었습니다.<br />
+<br /></br></p>
+<h2>배민선물하기에서 AI 메시지를 만들게 된 이유</h2>
+<p>배민선물하기는 배달의민족 앱에서 &quot;밥은 먹었니?&quot;와 같이 안부를 전하며 마음을 담은 선물을 할 수 있는 서비스입니다. 다른 선물하기 서비스와는 다르게 선물 의도에 맞게 특별한 카드를 고르고 직접 메시지를 작성해서 좀 더 마음이 담긴 선물을 할 수 있는 특징이 있습니다. 특히 배민선물하기는 선물한 사람의 따뜻한 마음을 받는 사람에게 전달할 수 있는 선물 경험을 만들기 위해 노력하며, 메시지를 작성하는 행위를 마음을 전달하는 중요한 수단으로 생각하고 있습니다. 그래서 생성 AI를 배민선물하기에 접목하는 서비스 아이디어를 고려할 때 우리는 메시지 작성에 어려움을 겪는 고객을 돕는 것에 가치를 두고 문제를 해결하고자 했습니다.<br />
+<br /></br></p>
+<h2>문제</h2>
+<p>초창기 배민선물하기 서비스에서는 고객이 선물을 선택하면 기본적으로 제공하던 메시지가 있었는데, 서비스를 업데이트하면서 기본메시지를 더 이상 제공하지 않아 아쉽다는 고객의 의견이 종종 있었습니다. 선물과 카드를 고르고 나서 메시지를 작성하려고 할 때 어떤 메시지를 보낼 지 고민된다는 고객도 있었습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/IMG_7860.png" alt="Baemin-Gift detail page" width="200"></p><figcaption align="center" style="color:gray">배민선물하기 선물상세 화면에서는 마음을 담아 최대 200자까지 메시지를 작성할 수 있습니다.</figcaption><p></br></p>
+<h2>가설</h2>
+<p>선물 메시지 작성에 어려움을 겪는 고객을 위해 AI가 대신 메시지를 써준다면 어떨까요? 메시지 작성을 고민하는 시간이 줄어들면 좀 더 편리한 선물 경험이 되지 않을까요? 이 질문과 기대로 AI 메시지 프로젝트가 시작되었습니다.<br />
+배민선물하기에는 다양한 카드가 있다는 점이 강점이지만 현실적으로 카드에 어울리는 메시지를 사람이 모두 작성하고 입력하기에는 어려움이 있습니다. 그래서 생성 AI가 사람 대신 각 카드에 어울리는 다양한 메시지를 메시지를 생성하게 하고, 고객은 카드를 고른 후 &quot;AI 메시지로 대신 써주세요&quot; 버튼을 눌러 AI가 추천해주는 여러 메시지 중에 마음에 드는 메시지를 선택하도록 하였습니다.</p>
+<p></br></p>
+<h2>금쪽이 GPT를 훈련시키는 솔루션 3단계</h2>
+<h3>Step1. 우리 (에이)아이의 성격 정의하기</h3>
+<p>Chat GPT(OpenAI에서 개발한 GPT-3.5와 GPT-4를 기반으로 하는 대화형 인공지능 서비스)를 이용하여 선물 메시지를 생성하기로 결정한 다음에 가장 먼저 한 일은 AI의 성격(아이덴티티)을 정의하는 것이었습니다. 대화형 AI에게서 원하는 답을 얻기 위해 가장 중요한 것이 바로 ‘역할 부여&#8217;이기 때문입니다. 만우절을 맞이하여 AI가 장난스러운 농담 메시지를 대신 생성해주는 것을 기대하며, ‘재기 발랄한 농담으로 사람들을 웃기는 코미디언’이란 직업뿐만 아니라, 기본적인 말투를 구체적으로 서술하여 우리의 만우절 AI에게 해당 성격을 기반으로 메시지를 생성할 수 있도록 하였습니다. </p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/%EA%B9%80%ED%9D%AC%EC%84%A0001.png" alt="results after defining AI's identity "></p>
+<p></br></p>
+<h3>Step2. 알맞은 학습교재 제공하기</h3>
+<p>성격을 정의하고 나면 AI가 한 번에 원하는 수준의 농담 메시지를 생성해주면 참 좋을텐데, 아쉽게도 Chat GPT는 유머가 부족한 데다가 한국어가 모국어가 아닌 아이였습니다. 이런 아이에게는 나머지 학습이 필요하기 마련인데요. 짧은 예시문장들을 제공하여 AI가 예시 문장을 참고하여 새로운 메시지를 만들 수 있도록 하는 작업을 ‘퓨샷러닝'(Few-shot Learning)이라고 합니다.<br />
+또한, 학습에서 중요한 것은 바로 수준에 맞는 학습 교재를 선정하는 일입니다. 배달의민족에서 선물메시지를 대신 써주는 AI라면 아무래도 음식을 기반으로 풍부한 표현과 말장난을 할 수 있어야한다고 생각하였습니다. 그래서 퓨샷 러닝의 예시 문장들을 <a href="https://spring.baemin.com/fame-hall?year=2018" title="역대 ‘배민신춘문예’ 수상작">역대 ‘배민신춘문예’ 수상작</a>의 문장으로 학습을 시킨 결과, 만우절 AI가 음식 이름을 기반으로 삼행시를 짓거나 유사한 농담을 하게 되었습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/%EA%B9%80%ED%9D%AC%EC%84%A0002.png" alt="results after few-shot learning "></p><figcaption align="center" style="color:gray">&#8216;만우절 핫도그&#8217; 카드에 어울리는 메시지를 추천해달라고 할 때<br />
+퓨샷러닝 전에는 ‘만우절&#8217;, ‘핫도그&#8217; 단어를 활용한 문장을 만들어주는 반면,<br />
+퓨샷러닝 후에는 AI가 음식 이름을 활용하여 ‘치즈처럼 쭉~ 늘어나길&#8217;, ‘겉바속촉&#8217; 등과 같은 다양한 표현과 음식 이름으로 삼행시 문장을 생성하게 되었습니다.</figcaption><p></br></p>
+<h3>Step3. 올바르게 훈육하기</h3>
+<p>그럼에도 불구하고 생성 AI는 종종 자가 학습 특성으로 인해 알 수 없는 말을 하거나 선을 넘는 농담을 하는 등의 고유한 위험이 존재하며, 잘못된 메시지가 그대로 고객에게 노출된다면 문제가 심각해질 수 있습니다. 이러한 문제를 해결하려면 가드레일(안전난간)과 같은 특정 지침을 AI에게 알려주어야 합니다.<br />
+먼저, AI 메시지를 생성하는 사람이나 AI 메시지를 선물받는 사람이 불쾌하지 않도록 인신공격형 표현을 하지 않도록 제어하였습니다. 또한 배달의민족 앱에 적용하고 있는 사용불가한 콘텐츠 표현을 제외할 수 있도록 가드레일을 마련하였습니다. 처음에는 ‘배달의민족&#8217; 대신 경쟁사 이름을 넣어 메시지를 작성하기도 했던 AI가 가드레일 적용 후 ‘배달의 민족&#8217; 이름을 활용한 센스 있는 삼행시도 작성하게 되었어요.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/%EA%B9%80%ED%9D%AC%EC%84%A0004.png" alt="results after guardrail "></p>
+<p>그리고 추가로 좀 더 장난스러움이 느껴지도록 메시지 내용에 맞게 이모티콘도 적절하게 활용하도록 하여 만우절 AI가 허용된 표현 안에서 만우절 장난 메시지를 생성할 수 있도록 하였습니다.</p>
+<p align="center">
+    <img decoding="async" src="https://techblog.woowa.in/wp-content/uploads/2024/04/%EA%B9%80%ED%9D%AC%EC%84%A0003.png" alt="results after guardrail2"></p><figcaption align="center" style="color:gray">
+가드레일을 적용하기 전에는 ‘나도 식빵이 아니야!’와 같이 알아듣지 못할 말을 하거나, ‘다이어트&#8217;에 관한 민감한 이야기를 하며, 믿지 말라고 하고 다시 ‘진짜에요’라는 사실을 강조하는 표현을 사용하는데, 가드레일 적용 후에는 ‘칼로리 제로’로 순화된 표현이나 ‘믿지 마세요&#8217; 또는 ‘믿어도 될까요?’라고 장난임을 알 수 있도록 가드레일 안에서 문장을 생성하게 되었어요</figcaption><p></br></p>
+<h2>결과</h2>
+<p>배민선물하기에서는 2024년 3월 28일에서 4월 1일간 만우절 카드를 선택하여 선물을 하는 고객에게 AI 메시지 버튼을 노출하였고, 버튼을 클릭할 때마다 카드에 어울리는 재미있는 메시지를 추천해주었습니다. </p>
+<figure class="wp-block-video"><video width="650" height="420" autoplay controls loop muted src="https://techblog.woowa.in/wp-content/uploads/2024/04/RPReplay_Final1714059306.mp4" playsinline></video></figure>
+<p>그 결과, 5일간 평균적으로 AI 메시지 버튼을 본 전체 고객의 13%가 AI 메시지 버튼을 눌러 추천메시지 기능을 이용하였습니다. 만우절 당일에는 더 많은 고객 AI 메시지 기능을 활용하는 것을 확인할 수 있었습니다.<br />
+또한 기존에 메시지를 쓰지 않던 고객도 AI 추천메시지 기능 활용하여 메시지를 작성하는 시도가 증가하였습니다. 기간 내 AI 메시지 생성 버튼이 노출된 고객의 경우 메시지를 작성하거나 추천메시지 기능을 활용하는 비율이 기존 대비 2배 가까이 증가하였습니다.</p>
+<p>재미있는 점은 AI 메시지를 사용한 선물 구매 건 중 대부분(80%)이 추천메시지를 수정하지 않고 그대로 선물한 것으로 보아 생성 AI가 대신 써 준 메시지 내용에 대체적으로 만족한 것으로 생각하였습니다. 오랜 시간 동안 금쪽이 GPT를 가르치는 3단계 솔루션이 효과가 있었던 것이 아닌가 내심 기뻤습니다.</p>
+<p>배민선물하기는 이번 만우절 AI 메시지를 시작으로 앞으로 더 많은 카드로 선물할 때 카드에 어울리는 메시지를 대신 써줄 수 있도록 확장할 계획입니다. 생성 AI가 센스 있는 선물 메시지를 대신 작성해줄 뿐만 아니라 즐거운 선물 경험을 만들어 줄지 앞으로도 기대해주세요!</p>The post <a href="https://techblog.woowahan.com/17241/">배민선물하기 AI 메시지 제작기: 생성 AI가 센스 있는 선물 메시지를 대신 쓰기까지</a> first appeared on <a href="https://techblog.woowahan.com">우아한형제들 기술블로그</a>.]]></content:encoded>
+
+            <wfw:commentRss>https://techblog.woowahan.com/17241/feed/</wfw:commentRss>
+            <slash:comments>0</slash:comments>
+
+
+        </item>
+    </channel>
+</rss>
