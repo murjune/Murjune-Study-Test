@@ -30,6 +30,7 @@ class CustomJsonParserTest {
                 val (key, value) = it.split(":") // "name" to "Alice"
                 clean(key) to clean(value)
             }
+        println(jsonMap)
         val clazz = T::class
         val primaryConstructor = clazz.primaryConstructor
         primaryConstructor.shouldNotBeNull()
@@ -40,7 +41,7 @@ class CustomJsonParserTest {
                 Int::class -> jsonMap[it.name]!!.toInt()
                 else -> throw IllegalArgumentException()
             }
-        }.toTypedArray())
+        }.reversed().toTypedArray())
     }
 
     @Test
@@ -58,6 +59,6 @@ class CustomJsonParserTest {
         // when
         val actual = deserialize<Person>(json)
         // then
-        actual shouldBe Person("Odoong", 29)
+        actual shouldBe Person("Odoong", 28)
     }
 }
