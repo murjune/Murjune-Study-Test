@@ -100,4 +100,22 @@ class PropertyReflectionTest {
             barProperty.get(foo) shouldBe "newBar"
         }
     }
+
+    @Test
+    fun `lateinit var 프로퍼티 값 읽고-변경`() {
+        class Foo {
+            lateinit var bar: String
+        }
+
+        val foo = Foo()
+        val clazz = Foo::class
+        val barProperty = clazz.declaredMemberProperties.find { it.name == "bar" }
+        if (barProperty is KMutableProperty1) {
+            val typeParameters = barProperty.returnType.arguments
+            println(typeParameters)
+            barProperty.isAccessible = true
+            barProperty.setter.call(foo, "newBar") // newBar로 변경
+            barProperty.get(foo) shouldBe "newBar"
+        }
+    }
 }
