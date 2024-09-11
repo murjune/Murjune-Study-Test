@@ -13,6 +13,8 @@
 - [디자인 패턴](https://github.com/murjune/Murjune-Study-Test/tree/main/design-pattern)
 - [Kotlin](https://github.com/murjune/Murjune-Study-Test/tree/main/kotlin-practice)
 
+> +) 보시다가 궁금하거나 잘못된 부분이 있다면 issue 로 남겨주세요 😁
+
 ## 학습 테스트란?
 
 기능 구현을 위한 테스트라기 보다 새로운 API, 라이브러리, 프레임워크가 어떻게 동작하는지를 검증하기 위한 테스트
