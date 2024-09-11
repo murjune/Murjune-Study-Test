@@ -6,7 +6,7 @@ import io.mockk.mockkObject
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
-class ObjectMockkTest {
+class MockkObjectTest {
     object Number {
         fun number() = 1
     }

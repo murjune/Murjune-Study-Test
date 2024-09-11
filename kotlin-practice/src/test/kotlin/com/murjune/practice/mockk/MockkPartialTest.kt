@@ -6,7 +6,7 @@ import io.mockk.mockk
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
-class PartialMockkTest {
+class MockkPartialTest {
     class Adder {
         fun addOne(num: Int) = num + 1
     }

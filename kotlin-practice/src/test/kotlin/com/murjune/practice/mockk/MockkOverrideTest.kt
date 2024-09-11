@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
-class OverrideMockkTest {
+class MockkOverrideTest {
     /**
      * lookUp : name 으로 찾음, 없으면 type 으로 찾음
      *

@@ -1,6 +1,7 @@
 package com.murjune.practice.reflection
 
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlin.reflect.KFunction
 import kotlin.reflect.KVisibility
@@ -16,17 +17,19 @@ import kotlin.reflect.jvm.isAccessible
 import kotlin.test.Test
 
 class FunctionReflectionTest {
-    private fun sum(x: Int, y: Int) = x + y
+
+    fun sum(x: Int, y: Int) = x + y
 
     @Test
     fun `KFunction call, invoke`() {
         val kFunction: KFunction<Int> = ::sum
+        kFunction.shouldNotBeNull()
         shouldThrow<IllegalArgumentException> {
             //2개의 인자를 받는 함수에 3개의 인자를 넘기면 KotlinReflectionInternalError 발생
             kFunction.call(1, 2, 3)
         }
         kFunction.call(1, 2) shouldBe 3
-        val kFunction2 = ::sum // KFunction2<Int, Int, Int> 타입
+        val kFunction2 = ::sum// KFunction2<Int, Int, Int> 타입
         kFunction2.invoke(1, 2) shouldBe 3 // KFunction 의 인자와 반환값을 안다면 invoke 함수를 시용하자!
     }
 

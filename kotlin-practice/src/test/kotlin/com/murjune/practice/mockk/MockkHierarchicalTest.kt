@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(MockKExtension::class)
-class HierarchicalMockkTest {
+class MockkHierarchicalTest {
     data class AddressBook(
         val contacts: List<Contact>,
     )

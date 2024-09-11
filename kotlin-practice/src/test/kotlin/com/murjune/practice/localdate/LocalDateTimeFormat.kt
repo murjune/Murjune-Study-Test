@@ -92,9 +92,9 @@ class LocalDateTimeFormat {
         // then
         assertSoftly {
             toString shouldBe "2024-04-15"
-            time shouldBe "21:00:00"
-            date shouldBe "2024-04-15"
-            dateTime shouldBe "2024-04-15T21:00:00"
+            time shouldBe "21:00:00Z"
+            date shouldBe "2024-04-15Z"
+            dateTime shouldBe "2024-04-15T21:00:00Z[UTC]"
             localTime shouldBe "21:00:00"
             localDate shouldBe "2024-04-15"
             localDateTime shouldBe "2024-04-15T21:00:00"

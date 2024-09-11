@@ -11,7 +11,7 @@ class ReduceFoldTest {
     }
 
     @Test
-    fun `refuce 는 누적합을 계산하고, 최종 누적합을 반환한다`() {
+    fun `reduce 는 누적합을 계산하고, 최종 누적합을 반환한다`() {
         val result = listOf(1, 2, 3).reduce { acc, i -> acc + i }
         result shouldBe 6
     }
