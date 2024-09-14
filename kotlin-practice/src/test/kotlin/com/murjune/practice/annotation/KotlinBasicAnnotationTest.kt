@@ -2,6 +2,9 @@ package com.murjune.practice.annotation
 
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldNotBeSameInstanceAs
+import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.hasAnnotation
 import kotlin.test.Test
 
@@ -34,6 +37,25 @@ class KotlinBasicAnnotationTest {
     @Binary
     @Runtime
     class Chicken
+
+    annotation class Burger
+
+    class Person {
+        @Burger
+        val chicken = Chicken()
+    }
+
+    @Test
+    fun `어노테이션 동등성 비교`() {
+        Person::chicken.findAnnotation<Burger>() shouldBe Burger()
+        Burger() shouldBe Burger()
+    }
+
+    @Test
+    fun `어노테이션 동일성 비교`() {
+        Person::chicken.findAnnotation<Burger>() shouldNotBeSameInstanceAs Burger()
+        Burger() shouldNotBeSameInstanceAs Burger()
+    }
 
     @Test
     fun `클래스의 어노테이션 존재 여부`() {
