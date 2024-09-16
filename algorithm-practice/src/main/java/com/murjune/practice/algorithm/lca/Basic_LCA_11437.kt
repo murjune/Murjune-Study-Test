@@ -29,7 +29,7 @@ fun main() {
     }
     // 깊이 설정
     findDepths(root, 0)
-//    println(depths.toList())
+    //    println(depths.toList())
     // LCA 함수
     fun lca(a: Int, b: Int): Int {
         val aD = depths[a]

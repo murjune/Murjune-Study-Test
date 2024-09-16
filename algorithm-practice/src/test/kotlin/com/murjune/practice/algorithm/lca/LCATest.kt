@@ -1,6 +1,7 @@
 package com.murjune.practice.algorithm.lca
 
 import com.murjune.practice.algorithm.common.Edge
+import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -22,12 +23,17 @@ class LCATest {
     fun `TestCase 1`() {
         // given
         val lca = LCA(root = 1, n = 3, arrayOf(Edge(1, 2), Edge(2, 3)))
+        val improvedLCA = ImprovedLCA(root = 1, n = 3, arrayOf(Edge(1, 2), Edge(2, 3)))
         val n1 = 2
         val n2 = 3
         // when
-        val actual = lca.lca(n1, n2)
+        val res1 = lca.lca(n1, n2)
+        val res2 = improvedLCA.lca(n1, n2)
         // then
-        actual shouldBe 2
+        assertSoftly {
+            res1 shouldBe 2
+            res2 shouldBe 2
+        }
     }
 
     //       1
@@ -37,12 +43,17 @@ class LCATest {
     fun `TestCase 2`() {
         // given
         val lca = LCA(root = 1, n = 3, arrayOf(Edge(1, 2), Edge(1, 3)))
+        val improvedLCA = ImprovedLCA(root = 1, n = 3, arrayOf(Edge(1, 2), Edge(1, 3)))
         val n1 = 2
         val n2 = 3
         // when
-        val actual = lca.lca(n1, n2)
+        val res1 = lca.lca(n1, n2)
+        val res2 = improvedLCA.lca(n1, n2)
         // then
-        actual shouldBe 1
+        assertSoftly {
+            res1 shouldBe 1
+            res2 shouldBe 1
+        }
     }
 
     //       1
@@ -54,12 +65,17 @@ class LCATest {
     fun `test3`() {
         // given
         val lca = LCA(root = 1, n = 4, arrayOf(Edge(1, 2), Edge(1, 3), Edge(3, 4)))
+        val improvedLCA = ImprovedLCA(root = 1, n = 4, arrayOf(Edge(1, 2), Edge(1, 3), Edge(3, 4)))
         val n1 = 2
         val n2 = 4
         // when
-        val actual = lca.lca(n1, n2)
+        val res1 = lca.lca(n1, n2)
+        val res2 = improvedLCA.lca(n1, n2)
         // then
-        actual shouldBe 1
+        assertSoftly {
+            res1 shouldBe 1
+            res2 shouldBe 1
+        }
     }
 
 

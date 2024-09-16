@@ -95,7 +95,22 @@ def dfs(x ,d): # 시작은 root 노드, d = 0
 ```
 
 # 2. 모든 노드에 대한 2^i(1<=i<LOG)째 부모 노드를 구한다.
+- 2^i번째 부모는 2^(i-1)번째 부모의 2^(i-1)번째 부모와 같다.
+  점화식 : parents[x][i] = parents[parents[x][i-1]][i-1]
+```
+다음과 같이 트리가 있다고 해보자
+x = 8 이라고 가정하자
+                  1
+                /   \
+              2(2^1)   3
+            / \       / \
+          4(2^0)     5    6    7
+         / \    / \   / \  / \
+        8(x)  9  10  11 12 13 14 15
 
+- 노드 8 의 2^1(2)번째 부모는 4
+parents[8][1] = parents[parents[8][0]][0] = parents[4][0] = 2 
+```
 
 ```python
 # 2. 모든 부모 노드 세팅하기 - DP
@@ -134,7 +149,7 @@ def lca(a,b):
     if depth[a] > depth[b]:
         a ,b = b,a
     # 더 큰 값 b 점프 -> 깊이 맞추기
-    for i in range(LOG-1,-1,-1): # LOG-1~0
+    for i in range(LOG-1,-1,-1): # LOG-1 ~ 0
         if depth[b] - depth[a] >= (1 << i):
             b = parent[b][i] # b는 b의  2^i번째 부모로 change
 
