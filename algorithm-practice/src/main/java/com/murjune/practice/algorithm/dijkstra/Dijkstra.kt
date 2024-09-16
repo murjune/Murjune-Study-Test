@@ -1,5 +1,7 @@
 package com.murjune.practice.algorithm.dijkstra
 
+import com.murjune.practice.algorithm.common.Edge
+import com.murjune.practice.algorithm.common.Node
 import java.util.PriorityQueue
 
 class Dijkstra(
@@ -83,8 +85,4 @@ class Dijkstra(
         if (isNodeStartZero) return distance.dropLast(1)
         return distance.drop(1)
     }
-
-    private data class Node(val v: Int, val cost: Int)
 }
-
-data class Edge(val from: Int, val to: Int, val cost: Int = 0)

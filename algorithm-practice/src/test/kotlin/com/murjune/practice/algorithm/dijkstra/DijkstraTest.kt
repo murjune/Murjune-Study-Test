@@ -1,5 +1,6 @@
 package com.murjune.practice.algorithm.dijkstra
 
+import com.murjune.practice.algorithm.common.Edge
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import kotlin.test.Test

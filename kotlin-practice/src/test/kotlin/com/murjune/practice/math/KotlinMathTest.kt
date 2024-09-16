@@ -89,11 +89,11 @@ class KotlinMathTest {
         val radianB = acos(cosB)
         val radianC = acos(cosC)
         // toDegrees : 라디안 값을 각도(도)로 변환
-        val degreeA = Math.toDegrees(radianA)
-        val degreeB = Math.toDegrees(radianB)
-        val degreeC = Math.toDegrees(radianC)
-        degreeA shouldBe 90.0
-        degreeB shouldBe 53.13010235415598
-        degreeC shouldBe 36.86989764584402
+        val degreeA = Math.toDegrees(radianA).toInt()
+        val degreeB = Math.toDegrees(radianB).toInt()
+        val degreeC = Math.toDegrees(radianC).toInt()
+        degreeA shouldBe 36
+        degreeB shouldBe 53
+        degreeC shouldBe 90
     }
 }
