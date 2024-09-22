@@ -5,16 +5,17 @@ import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import kotlin.test.assertNotNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SharedFlowOperatorTest {
@@ -30,7 +31,7 @@ class SharedFlowOperatorTest {
         }.launchIn(backgroundScope)
         // then
         runCurrent()
-        res shouldBe emptyList()
+        res shouldBe listOf(0)
     }
 
     @Test
@@ -67,4 +68,28 @@ class SharedFlowOperatorTest {
         res shouldBe emptyList()
     }
 
+    @Test
+    @DisplayName("📚 예제1 - refresh event 와 query event 를 combine을 활용해 조합하여 fetchPokemon 을 호출한다")
+    fun `sample1`() = runTest {
+        // given
+        val refreshEvent = MutableSharedFlow<Unit>()
+        val queryEvent = MutableStateFlow<String>("")
+        val res = mutableListOf<String>()
+        // when
+        combine(refreshEvent.onStart { emit(Unit) }, queryEvent) { _, query ->
+            println("query: $query")
+            fetchPokemon(query)
+        }.onEach {
+            res.add(it)
+        }.launchIn(backgroundScope)
+        runCurrent()
+        queryEvent.value = "피카츄"
+        // then
+        runCurrent()
+        res shouldBe listOf("", "피카츄")
+    }
+
+    private suspend fun fetchPokemon(query: String): String {
+        return listOf("피카츄", "라이츄", "파이리").firstOrNull { it == query }.orEmpty()
+    }
 }
