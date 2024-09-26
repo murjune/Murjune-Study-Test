@@ -6,6 +6,7 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.5.0"
 }
@@ -24,3 +25,4 @@ include("design-pattern")
 include("coroutine")
 include(":compose-test")
 include(":algorithm-practice")
+include(":java-practice")
