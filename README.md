@@ -12,7 +12,8 @@
 - [알고리즘/자료구조](https://github.com/murjune/Murjune-Study-Test/tree/main/algorithm-practice)
 - [디자인 패턴](https://github.com/murjune/Murjune-Study-Test/tree/main/design-pattern)
 - [Kotlin](https://github.com/murjune/Murjune-Study-Test/tree/main/kotlin-practice)
-
+- [Java](https://github.com/murjune/Murjune-Study-Test/tree/main/java-practice)
+  
 > +) 보시다가 궁금하거나 잘못된 부분이 있다면 issue 로 남겨주세요 😁
 
 ## 학습 테스트란?
