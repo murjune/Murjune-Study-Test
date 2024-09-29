@@ -1,6 +1,7 @@
 package poke.rogue.java.practice;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,5 +33,20 @@ class ArrayAndListConversionTest {
         Person[] arr = people.toArray(Person[]::new);
         //then
         assertThat(arr).containsExactly(new Person("John", 20), new Person("Jane", 30));
+    }
+
+
+    @Test
+    void test_arr_to_list_to_arr() {
+        //given
+        int[] arr = {3, 2, 1};
+        // when
+        List<Integer> li = Arrays.stream(arr).boxed().toList();
+        // then
+        assertThat(li).containsExactly(3, 2, 1);
+        int[] arr2 = li.stream().mapToInt(i -> i).toArray();
+        // then
+        assertThat(arr2).containsExactly(3, 2, 1);
+
     }
 }
