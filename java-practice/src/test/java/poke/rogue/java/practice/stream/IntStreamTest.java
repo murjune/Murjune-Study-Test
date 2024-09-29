@@ -1,4 +1,4 @@
-package poke.rogue.java.practice;
+package poke.rogue.java.practice.stream;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
