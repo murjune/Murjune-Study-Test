@@ -42,6 +42,10 @@ gradlePlugin {
             id = "com.murjune.practice.compose"
             implementationClass = "com.murjune.practice.plugins.ComposePlugin"
         }
+        create("compose-test") {
+            id = "com.murjune.practice.compose.test"
+            implementationClass = "com.murjune.practice.plugins.ComposeTestPlugin"
+        }
         create("kotlin-serialization") {
             id = "com.murjune.practice.kotlinx_serialization"
             implementationClass =
@@ -52,12 +56,12 @@ gradlePlugin {
             id = "com.murjune.practice.kotlin.module"
             implementationClass = "com.murjune.practice.plugins.KotlinModulePlugin"
         }
-        
+
         create("unit-test") {
             id = "com.murjune.practice.unit.test"
             implementationClass = "com.murjune.practice.plugins.JUnit5Plugin"
         }
-        
+
         register("jvm-library") {
             id = "com.murjune.practice.jvm.library"
             implementationClass = "com.murjune.practice.plugins.JvmLibraryPlugin"
