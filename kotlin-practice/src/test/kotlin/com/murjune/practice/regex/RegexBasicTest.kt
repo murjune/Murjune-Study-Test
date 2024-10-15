@@ -1,7 +1,11 @@
 package com.murjune.practice.regex
 
-import io.kotest.matchers.booleans.shouldBeFalse
-import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.assertions.assertSoftly
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldMatch
+import io.kotest.matchers.string.shouldNotContain
+import io.kotest.matchers.string.shouldNotMatch
 import org.junit.jupiter.api.DisplayName
 import kotlin.test.Test
 
@@ -19,6 +23,10 @@ import kotlin.test.Test
  * ? : 바로 앞 패턴이 0번 또는 1번 나타남 (선택적)
  * - : 범위를 지정할 때 사용 (예: [a-z])
  * \\ : 특수 문자를 문자 그대로 사용하기 위해 이스케이프할 때 사용
+ *
+ * (?=...): 긍정형 전방탐색 - ...에 해당하는 문자열이 뒤에 나오는지 확인 (캡쳐는 안함)
+ * (?!...): 부정형 전방탐색 - ...에 해당하는 문자열이 뒤에 나오지 않는지 확인 (캡쳐는 안함)
+ *
  * */
 class RegexBasicTest {
 
@@ -30,12 +38,12 @@ class RegexBasicTest {
         val s2 = "aabbc"
         val s3 = "aabbcc"
         val s4 = "abcd"
-        val regex = Regex("a+b+c")
+        val pattern = "a+b+c"
         // when & then
-        s.matches(regex).shouldBeTrue()
-        s2.matches(regex).shouldBeTrue()
-        s3.matches(regex).shouldBeFalse()
-        s4.matches(regex).shouldBeFalse()
+        s shouldMatch pattern
+        s2 shouldMatch pattern
+        s3 shouldNotMatch pattern
+        s4 shouldNotMatch pattern
     }
 
     @Test
@@ -46,12 +54,12 @@ class RegexBasicTest {
         val s2 = "a"
         val s3 = "aa"
         val s4 = "abc"
-        val regex = Regex("a.*")
+        val pattern = "a.*"
         // when & then
-        s.matches(regex).shouldBeFalse()
-        s2.matches(regex).shouldBeTrue()
-        s3.matches(regex).shouldBeTrue()
-        s4.matches(regex).shouldBeTrue()
+        s shouldNotMatch pattern
+        s2 shouldMatch pattern
+        s3 shouldMatch pattern
+        s4 shouldMatch pattern
     }
 
     @Test
@@ -60,10 +68,11 @@ class RegexBasicTest {
         // given
         val s = "abcdbd"
         val s2 = "bc"
-        val regex = Regex("^a.*")
+        val pattern = "^a.*"
         // when & then
-        s.matches(regex).shouldBeTrue()
-        s2.matches(regex).shouldBeFalse()
+
+        s shouldMatch pattern
+        s2 shouldNotMatch pattern
     }
 
     @Test
@@ -72,10 +81,10 @@ class RegexBasicTest {
         // given
         val s = "abcdbd"
         val s2 = "bc"
-        val regex = Regex(".*d$")
+        val pattern = ".*d$"
         // when & then
-        s.matches(regex).shouldBeTrue()
-        s2.matches(regex).shouldBeFalse()
+        s shouldMatch pattern
+        s2 shouldNotMatch pattern
     }
 
     @Test
@@ -86,11 +95,11 @@ class RegexBasicTest {
         val s2 = "aa"
         val s3 = "aaa"
 
-        val regex = Regex("a{2}")
+        val pattern = "a{2}"
         // when & then
-        s.matches(regex).shouldBeFalse()
-        s2.matches(regex).shouldBeTrue()
-        s3.matches(regex).shouldBeFalse()
+        s shouldNotMatch pattern
+        s2 shouldMatch pattern
+        s3 shouldNotMatch pattern
     }
 
     @Test
@@ -102,12 +111,12 @@ class RegexBasicTest {
         val s3 = "aaaaa"
         val s4 = "aaaaaa"
 
-        val regex = Regex("a{2,5}")
+        val pattern = "a{2,5}"
         // when & then
-        s.matches(regex).shouldBeFalse()
-        s2.matches(regex).shouldBeTrue()
-        s3.matches(regex).shouldBeTrue()
-        s4.matches(regex).shouldBeFalse()
+        s shouldNotMatch pattern
+        s2 shouldMatch pattern
+        s3 shouldMatch pattern
+        s4 shouldNotMatch pattern
     }
 
     @Test
@@ -118,11 +127,11 @@ class RegexBasicTest {
         val s2 = "122"
         val s3 = "오둥e"
         // when
-        val regex = "[a-zA-z]+".toRegex()
+        val pattern = "[a-zA-z]+"
         // then
-        s.matches(regex).shouldBeTrue()
-        s2.matches(regex).shouldBeFalse()
-        s3.matches(regex).shouldBeFalse()
+        s shouldMatch pattern
+        s2 shouldNotMatch pattern
+        s3 shouldNotMatch pattern
     }
 
     @Test
@@ -132,10 +141,10 @@ class RegexBasicTest {
         val s = "odoongodoong"
         val s2 = "odoongodoongodoong"
         // when
-        val regex = "(odoong){2}".toRegex()
+        val pattern = "(odoong){2}"
         // then
-        s.matches(regex).shouldBeTrue()
-        s2.matches(regex).shouldBeFalse()
+        s shouldMatch pattern
+        s2 shouldNotMatch pattern
     }
 
     @Test
@@ -145,11 +154,11 @@ class RegexBasicTest {
         val s = ""
         val s2 = "a"
         val s3 = "aaa"
-        val regex = Regex("a?")
+        val pattern = "a?"
         // when & then
-        s.matches(regex).shouldBeTrue()
-        s2.matches(regex).shouldBeTrue()
-        s3.matches(regex).shouldBeFalse()
+        s shouldMatch pattern
+        s2 shouldMatch pattern
+        s3 shouldNotMatch pattern
     }
 
     @Test
@@ -160,11 +169,11 @@ class RegexBasicTest {
         val s2 = "b"
         val s3 = "c"
 
-        val regex = Regex("a|b")
+        val pattern = "a|b"
         // when & then
-        s.matches(regex).shouldBeTrue()
-        s2.matches(regex).shouldBeTrue()
-        s3.matches(regex).shouldBeFalse()
+        s shouldMatch pattern
+        s2 shouldMatch pattern
+        s3 shouldNotMatch pattern
     }
 
     @Test
@@ -177,13 +186,13 @@ class RegexBasicTest {
         val s4 = "\t"
         val s5 = "\n"
 
-        val regex = Regex("\\s")
+        val pattern = "\\s"
         // when & then
-        s.matches(regex).shouldBeFalse()
-        s2.matches(regex).shouldBeFalse()
-        s3.matches(regex).shouldBeTrue()
-        s4.matches(regex).shouldBeTrue()
-        s5.matches(regex).shouldBeTrue()
+        s shouldNotMatch pattern
+        s2 shouldNotMatch pattern
+        s3 shouldMatch pattern
+        s4 shouldMatch pattern
+        s5 shouldMatch pattern
     }
 
     @Test
@@ -194,10 +203,56 @@ class RegexBasicTest {
         val s2 = "a"
         val s3 = "!"
 
-        val regex = Regex("\\d")
+        val pattern = "\\d"
         // when & then
-        s.matches(regex).shouldBeTrue()
-        s2.matches(regex).shouldBeFalse()
-        s3.matches(regex).shouldBeFalse()
+        s shouldMatch pattern
+        s2 shouldNotMatch pattern
+        s3 shouldNotMatch pattern
+    }
+
+    @Test
+    @DisplayName("(?=...): 긍정형 전방탐색 - ...에 해당하는 문자열이 뒤에 나오는지 확인")
+    fun `긍정형 전방탐색`() {
+        // given
+        val s = "a111"
+        val s2 = "a112"
+        val s3 = "a112"
+        // when
+        val pattern = "a(?=1{3})"
+        val regex = pattern.toRegex()
+        // then
+        s shouldContain regex
+        s2 shouldNotContain regex
+        s3 shouldNotContain regex
+    }
+
+    @Test
+    @DisplayName("(?=...) : ...에 해당하는 문자열은 캡쳐는 안함")
+    fun `?= 의 앞에 문자열만 캡쳐한다`() {
+        // given
+        val s = "a32a1"
+        // when
+        val pattern = "a(?=1)"
+        val regex = pattern.toRegex()
+        // then
+        val result = regex.find(s)?.groupValues.orEmpty()
+        result shouldBe listOf("a")
+    }
+
+    @Test
+    @DisplayName("(?!...): 부정형 전방탐색 - ...에 해당하는 문자열이 뒤에 나오지 않는지 확인")
+    fun `부정형 전방탐색`() {
+        // given
+        val s = "a111"
+        val s2 = "a211"
+        val s3 = "a311"
+        // when
+        val regex = "a(?!1{3})".toRegex()
+        // then
+        assertSoftly {
+            s shouldNotContain regex
+            s2 shouldContain regex
+            s3 shouldContain regex
+        }
     }
 }
