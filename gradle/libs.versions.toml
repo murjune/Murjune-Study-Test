@@ -186,10 +186,11 @@ murjune-hilt = { id = "com.murjune.practice.hilt", version = "unspecified" }
 murjune-android-test = { id = "com.murjune.practice.android.test", version = "unspecified" }
 murjune-unit-test = { id = "com.murjune.practice.unit.test", version = "unspecified" }
 murjune-compose = { id = "com.murjune.practice.compose", version = "unspecified" }
-
+murjune-compose-test = { id = "com.murjune.practice.compose.test", version = "unspecified" }
 [bundles]
 unit-test = ["junit5", "kotest-junit5-runner", "assertj", "mockk", "mockk-webserver", "kotlin-coroutines-test"]
 lifecycle = ["lifecycle", "lifecycle-viewmodel"]
 compose = ["ui", "ui-graphics", "ui-tooling", "ui-tooling-preview", "material3-compose", "coil-compose", "ui-foundation", "activity-compose", "lifecycle-compose"]
 retrofit = ["retrofit"]
 androidx-android-test = ["androidx-test-core", "androidx-test-espresso", "androidx-test-junit", "androidx-test-junit-ktx", "androidx-test-rules", "androidx-test-runner"]
+compose-test = ["androidx-test-espresso", "androidx-test-junit-ktx", "androidx-test-junit", "ui-test-junit4"]
