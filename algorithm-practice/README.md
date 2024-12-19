@@ -15,3 +15,8 @@
 
 - [다익스트라 알고리즘](./src/main/java/com/murjune/practice/algorithm/dijkstra)
 - [플로이드-와샬 알고리즘](./src/main/java/com/murjune/practice/algorithm/floyd)
+
+## 자료구조
+
+### 트리
+- [Red-Black Tree](./src/main/java/com/murjune/practice/algorithm/datastructure/bst/RedBlackTree.md)
