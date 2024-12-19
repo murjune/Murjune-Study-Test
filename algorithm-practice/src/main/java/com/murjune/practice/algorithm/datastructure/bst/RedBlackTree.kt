@@ -167,25 +167,37 @@ class RedBlackTree<T : Comparable<T>>(
     }
 
     fun isBalanced(): Boolean {
-        return isBalanced(root)
+        return isRootBlack() && isRedParentHasOnlyBlackChildren(root)
+                && (isOneSideBlackHeightEqual(root) != -1)
     }
 
-    /**
-     * 노드의 왼쪽 서브트리와 오른쪽 서브트리의 높이 차이가 1 이하인지 확인
-     * */
-    private fun isBalanced(node: Node<T>?): Boolean {
-        if (node == null) return true
-        val leftHeight = height(node.left)
-        val rightHeight = height(node.right)
-        val diff = leftHeight - rightHeight
-        return diff in -1..1 && isBalanced(node.left) && isBalanced(node.right)
+    private fun isOneSideBlackHeightEqual(parent: Node<T>?): Int {
+        if (parent?.key == null) return 1
+        val left = isOneSideBlackHeightEqual(parent.left)
+        val right = isOneSideBlackHeightEqual(parent.right)
+        if (left == -1 || right == -1 || left != right) {
+            println("부모 노드 ${parent.key}의 서브트리의 높이가 같지 않습니다.")
+            return -1
+        }
+        return if (parent.color == Node.Color.BLACK) left + 1 else left
     }
 
-    private fun height(node: Node<T>?): Int {
-        if (node == null) return 0
-        return 1 + maxOf(height(node.left), height(node.right))
+    private fun isRootBlack(): Boolean {
+        return root?.color == Node.Color.BLACK
     }
 
+    private fun isRedParentHasOnlyBlackChildren(parent: Node<T>?): Boolean {
+        if (parent?.key == null) return true
+        if (parent.color == Node.Color.RED) {
+            if (parent.left?.color == Node.Color.RED || parent.right?.color == Node.Color.RED) {
+                println("부모 노드 ${parent.key}의 자식 노드가 모두 블랙이 아닙니다.")
+                return false
+            }
+        }
+        return isRedParentHasOnlyBlackChildren(parent.left) && isRedParentHasOnlyBlackChildren(
+            parent.right
+        )
+    }
 
     fun printTree() {
         println("Red-Black Tree:")
@@ -216,3 +228,20 @@ class Node<T : Comparable<T>>(
         return "Node[$color, left=${left?.key}, key=${key ?: "NIL"}, right=${right?.key}]"
     }
 }
+
+///**
+// * AVL 트리의 균형을 확인하는 방법
+// * 노드의 왼쪽 서브트리와 오른쪽 서브트리의 높이 차이가 1 이하인지 확인
+// * */
+//private fun isBalanced(node: Node<T>?): Boolean {
+//    if (node == null) return true
+//    val leftHeight = height(node.left)
+//    val rightHeight = height(node.right)
+//    val diff = leftHeight - rightHeight
+//    return diff in -1..1 && isBalanced(node.left) && isBalanced(node.right)
+//}
+//
+//private fun height(node: Node<T>?): Int {
+//    if (node == null) return 0
+//    return 1 + maxOf(height(node.left), height(node.right))
+//}
