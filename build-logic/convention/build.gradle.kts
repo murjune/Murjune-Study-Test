@@ -59,7 +59,7 @@ gradlePlugin {
 
         create("unit-test") {
             id = "com.murjune.practice.unit.test"
-            implementationClass = "com.murjune.practice.plugins.JUnit5Plugin"
+            implementationClass = "com.murjune.practice.plugins.UnitTestPlugin"
         }
 
         register("jvm-library") {
