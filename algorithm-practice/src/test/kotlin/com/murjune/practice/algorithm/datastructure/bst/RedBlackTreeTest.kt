@@ -14,19 +14,29 @@ class RedBlackTreeTest {
         // when & then
         shouldNotThrowAny {
             bst.insert(1)
+            bst.isBalanced().shouldBeTrue()
             bst.insert(2)
+            bst.isBalanced().shouldBeTrue()
+            bst.insert(3)
+            bst.isBalanced().shouldBeTrue()
+            bst.insert(4)
+            bst.isBalanced().shouldBeTrue()
+            bst.insert(5)
+            bst.isBalanced().shouldBeTrue()
         }
     }
 
     @Test
     fun `삽입된 노드를 검색할 수 있다`() {
         // given
-        val keys = listOf(1, 2, 3, 4, 5)
+        val keys = listOf(3, 4, 5)
         val bst = RedBlackTree<Int>(keys)
         // then
         keys.forEach {
             bst.search(it).shouldBeTrue()
         }
+        bst.printTree()
+        bst.isBalanced().shouldBeTrue()
     }
 
     @Test
@@ -36,5 +46,6 @@ class RedBlackTreeTest {
         val bst = RedBlackTree<Int>(keys)
         // then
         bst.search(6).shouldBeFalse()
+        bst.isBalanced().shouldBeTrue()
     }
 }
