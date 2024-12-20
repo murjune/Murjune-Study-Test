@@ -101,51 +101,13 @@ class RedBlackTree<T : Comparable<T>>(
     }
 
     private fun rotateLeft(pivot: RBTreeNode<T>) {
-        val parentOfPivot = pivot.parent
-        val rightChild = requireNotNull(pivot.right) {
-            "rotateLeft 호출 시 ${pivot}의 rightChild가 null일 수 없습니다."
-        }
-        val leftChildOfRight = rightChild.left
-        // 1) pivot 부모 자식 관계
-        pivot.right = leftChildOfRight
-        pivot.parent = rightChild
-        // 2) right 부모 자식 관계
-        rightChild.left = pivot
-        rightChild.parent = parentOfPivot
-        // 3) parentOfPivot 의 자식 관계
-        if (parentOfPivot?.left == pivot) {
-            parentOfPivot.left = rightChild
-        } else {
-            parentOfPivot?.right = rightChild
-        }
-        // 4) leftChildOfRight 의 부모 관계
-        leftChildOfRight?.parent = pivot
-        // root 가 pivot 이면 root 를 right 로 변경
-        if (root == pivot) root = rightChild
+        pivot.rotateLeft()
+        root = pivot.root()
     }
 
     private fun rotateRight(pivot: RBTreeNode<T>) {
-        val parentOfPivot = pivot.parent
-        val leftChild = requireNotNull(pivot.left) {
-            "rotateRight 호출 시 ${pivot}의 leftChild가 null일 수 없습니다."
-        }
-        val rightChildOfLeft = leftChild.right
-        // 1) pivot 부모 자식 관계
-        pivot.left = rightChildOfLeft
-        pivot.parent = leftChild
-        // 2) left 부모 자식 관계
-        leftChild.right = pivot
-        leftChild.parent = parentOfPivot
-        // 3) parentOfPivot 의 자식 관계
-        if (parentOfPivot?.left == pivot) {
-            parentOfPivot.left = leftChild
-        } else {
-            parentOfPivot?.right = leftChild
-        }
-        // 4) rightChildOfLeft 의 부모 관계
-        rightChildOfLeft?.parent = pivot
-        // root 가 pivot 이면 root 를 left 로 변경
-        if (root == pivot) root = leftChild
+        pivot.rotateRight()
+        root = pivot.root()
     }
 
     fun search(key: T): Boolean {
@@ -169,6 +131,18 @@ class RedBlackTree<T : Comparable<T>>(
     fun isBalanced(): Boolean {
         return isRootBlack() && isRedParentHasOnlyBlackChildren(root)
                 && (isOneSideBlackHeightEqual(root) != -1)
+                && isAllLeavesNil(root)
+    }
+
+    private fun isAllLeavesNil(node: RBTreeNode<T>?): Boolean {
+        if (node?.key == null) {
+            val isBlack = node?.color == RBTreeNode.Color.BLACK
+            val isLeftNull = node?.left?.key == null
+            val isRightNull = node?.right?.key == null
+            return isBlack && isLeftNull && isRightNull
+        }
+        if (node.left == null || node.right == null) return false
+        return isAllLeavesNil(node.left) && isAllLeavesNil(node.right)
     }
 
     private fun isOneSideBlackHeightEqual(parent: RBTreeNode<T>?): Int {
@@ -199,7 +173,7 @@ class RedBlackTree<T : Comparable<T>>(
         )
     }
 
-    fun printTree() {
+    fun print() {
         println("Red-Black Tree:")
         printNode(root, "", false)
     }
@@ -222,6 +196,60 @@ class RBTreeNode<T : Comparable<T>>(
 ) {
     enum class Color {
         RED, BLACK
+    }
+
+    fun rotateLeft() {
+        val pivot = this
+        val parentOfPivot = pivot.parent
+        val rightChild = requireNotNull(pivot.right) {
+            "rotateLeft 호출 시 ${pivot}의 rightChild가 null일 수 없습니다."
+        }
+        val leftChildOfRight = rightChild.left
+        // 1) pivot 부모 자식 관계
+        pivot.right = leftChildOfRight
+        pivot.parent = rightChild
+        // 2) right 부모 자식 관계
+        rightChild.left = pivot
+        rightChild.parent = parentOfPivot
+        // 3) parentOfPivot 의 자식 관계
+        if (parentOfPivot?.left == pivot) {
+            parentOfPivot.left = rightChild
+        } else {
+            parentOfPivot?.right = rightChild
+        }
+        // 4) leftChildOfRight 의 부모 관계
+        leftChildOfRight?.parent = pivot
+    }
+
+    fun rotateRight() {
+        val pivot = this
+        val parentOfPivot = pivot.parent
+        val leftChild = requireNotNull(pivot.left) {
+            "rotateRight 호출 시 ${pivot}의 leftChild가 null일 수 없습니다."
+        }
+        val rightChildOfLeft = leftChild.right
+        // 1) pivot 부모 자식 관계
+        pivot.left = rightChildOfLeft
+        pivot.parent = leftChild
+        // 2) left 부모 자식 관계
+        leftChild.right = pivot
+        leftChild.parent = parentOfPivot
+        // 3) parentOfPivot 의 자식 관계
+        if (parentOfPivot?.left == pivot) {
+            parentOfPivot.left = leftChild
+        } else {
+            parentOfPivot?.right = leftChild
+        }
+        // 4) rightChildOfLeft 의 부모 관계
+        rightChildOfLeft?.parent = pivot
+    }
+
+    fun root(): RBTreeNode<T> {
+        var node = this
+        while (node.parent != null) {
+            node = node.parent!!
+        }
+        return node
     }
 
     override fun toString(): String {
