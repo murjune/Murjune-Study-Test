@@ -3,7 +3,7 @@ package com.murjune.practice.algorithm.datastructure.bst
 class RedBlackTree<T : Comparable<T>>(
     nodes: List<T> = mutableListOf()
 ) {
-    private var root: Node<T>? = null
+    private var root: RBTreeNode<T>? = null
 
     init {
         nodes.forEach(::insert)
@@ -11,8 +11,8 @@ class RedBlackTree<T : Comparable<T>>(
 
     fun insert(key: T) {
         if (root == null) {
-            root = Node(key).apply {
-                color = Node.Color.BLACK
+            root = RBTreeNode(key).apply {
+                color = RBTreeNode.Color.BLACK
                 left = nilNode(this)
                 right = nilNode(this)
             }
@@ -24,16 +24,16 @@ class RedBlackTree<T : Comparable<T>>(
         )
     }
 
-    private fun nilNode(parent: Node<T>): Node<T> {
-        return Node(null, parent = parent, color = Node.Color.BLACK)
+    private fun nilNode(parent: RBTreeNode<T>): RBTreeNode<T> {
+        return RBTreeNode(null, parent = parent, color = RBTreeNode.Color.BLACK)
     }
 
-    private fun insert(parent: Node<T>, key: T) {
+    private fun insert(parent: RBTreeNode<T>, key: T) {
         val parentKey: T? = parent.key
         // NIL 노드일 경우
         if (parentKey == null) {
             parent.key = key
-            parent.color = Node.Color.RED
+            parent.color = RBTreeNode.Color.RED
             parent.left = nilNode(parent)
             parent.right = nilNode(parent)
             return fixInsertion(parent)
@@ -53,10 +53,10 @@ class RedBlackTree<T : Comparable<T>>(
         insert(right, key)
     }
 
-    private tailrec fun fixInsertion(currentNode: Node<T>) {
+    private tailrec fun fixInsertion(currentNode: RBTreeNode<T>) {
         // Case 1: 현재 노드가 root 인 경우 root 를 BLACK 으로 변경
         if (currentNode == root) {
-            currentNode.color = Node.Color.BLACK
+            currentNode.color = RBTreeNode.Color.BLACK
             return
         }
         val parentNode = currentNode.parent
@@ -72,13 +72,13 @@ class RedBlackTree<T : Comparable<T>>(
         }
 
         // parent 가 black 이면 문제 없음
-        if (parentNode.color == Node.Color.BLACK) return
+        if (parentNode.color == RBTreeNode.Color.BLACK) return
         // Case 2: parent, uncle red 인 경우
-        if (uncleNode.color == Node.Color.RED) {
+        if (uncleNode.color == RBTreeNode.Color.RED) {
             // parent, uncle 을 BLACK 으로 변경, grandParent 를 RED 로 변경
-            parentNode.color = Node.Color.BLACK
-            uncleNode.color = Node.Color.BLACK
-            grandParent.color = Node.Color.RED
+            parentNode.color = RBTreeNode.Color.BLACK
+            uncleNode.color = RBTreeNode.Color.BLACK
+            grandParent.color = RBTreeNode.Color.RED
             // grandParent 를 기준으로 다시 fixInsertion 을 수행
             return fixInsertion(grandParent)
         }
@@ -87,8 +87,8 @@ class RedBlackTree<T : Comparable<T>>(
         // Case 3) parent 의 left/right 가 currentNode 인 경우
         if (isCurrentLeft == isParentLeft) {
             // 먼저, parent 와 grandParent 의 color 를 바꾼다
-            parentNode.color = Node.Color.BLACK
-            grandParent.color = Node.Color.RED
+            parentNode.color = RBTreeNode.Color.BLACK
+            grandParent.color = RBTreeNode.Color.RED
             // 그리고, grandParent 를 기준으로 rotateLeft/rotateRight 를 수행
             if (isParentLeft) rotateRight(grandParent) else rotateLeft(grandParent)
             return
@@ -100,7 +100,7 @@ class RedBlackTree<T : Comparable<T>>(
         return fixInsertion(parentNode)
     }
 
-    private fun rotateLeft(pivot: Node<T>) {
+    private fun rotateLeft(pivot: RBTreeNode<T>) {
         val parentOfPivot = pivot.parent
         val rightChild = requireNotNull(pivot.right) {
             "rotateLeft 호출 시 ${pivot}의 rightChild가 null일 수 없습니다."
@@ -124,7 +124,7 @@ class RedBlackTree<T : Comparable<T>>(
         if (root == pivot) root = rightChild
     }
 
-    private fun rotateRight(pivot: Node<T>) {
+    private fun rotateRight(pivot: RBTreeNode<T>) {
         val parentOfPivot = pivot.parent
         val leftChild = requireNotNull(pivot.left) {
             "rotateRight 호출 시 ${pivot}의 leftChild가 null일 수 없습니다."
@@ -152,7 +152,7 @@ class RedBlackTree<T : Comparable<T>>(
         return search(root ?: return false, key)
     }
 
-    private tailrec fun search(parent: Node<T>, key: T): Boolean {
+    private tailrec fun search(parent: RBTreeNode<T>, key: T): Boolean {
         val parentKey: T = parent.key ?: return false // NIL 노드
 
         if (key == parentKey) return true
@@ -171,7 +171,7 @@ class RedBlackTree<T : Comparable<T>>(
                 && (isOneSideBlackHeightEqual(root) != -1)
     }
 
-    private fun isOneSideBlackHeightEqual(parent: Node<T>?): Int {
+    private fun isOneSideBlackHeightEqual(parent: RBTreeNode<T>?): Int {
         if (parent?.key == null) return 1
         val left = isOneSideBlackHeightEqual(parent.left)
         val right = isOneSideBlackHeightEqual(parent.right)
@@ -179,17 +179,17 @@ class RedBlackTree<T : Comparable<T>>(
             println("부모 노드 ${parent.key}의 서브트리의 높이가 같지 않습니다.")
             return -1
         }
-        return if (parent.color == Node.Color.BLACK) left + 1 else left
+        return if (parent.color == RBTreeNode.Color.BLACK) left + 1 else left
     }
 
     private fun isRootBlack(): Boolean {
-        return root?.color == Node.Color.BLACK
+        return root?.color == RBTreeNode.Color.BLACK
     }
 
-    private fun isRedParentHasOnlyBlackChildren(parent: Node<T>?): Boolean {
+    private fun isRedParentHasOnlyBlackChildren(parent: RBTreeNode<T>?): Boolean {
         if (parent?.key == null) return true
-        if (parent.color == Node.Color.RED) {
-            if (parent.left?.color == Node.Color.RED || parent.right?.color == Node.Color.RED) {
+        if (parent.color == RBTreeNode.Color.RED) {
+            if (parent.left?.color == RBTreeNode.Color.RED || parent.right?.color == RBTreeNode.Color.RED) {
                 println("부모 노드 ${parent.key}의 자식 노드가 모두 블랙이 아닙니다.")
                 return false
             }
@@ -204,7 +204,7 @@ class RedBlackTree<T : Comparable<T>>(
         printNode(root, "", false)
     }
 
-    private fun printNode(node: Node<T>?, prefix: String, isLeft: Boolean) {
+    private fun printNode(node: RBTreeNode<T>?, prefix: String, isLeft: Boolean) {
         if (node?.key == null) return
         if (node == root) println("Root[${node.key}] (${node.color})")
         else println("$prefix${if (isLeft) "├── L " else "└── R "}[${node.key}] (${node.color})")
@@ -213,12 +213,12 @@ class RedBlackTree<T : Comparable<T>>(
     }
 }
 
-class Node<T : Comparable<T>>(
+class RBTreeNode<T : Comparable<T>>(
     var key: T?,
     var color: Color = Color.RED,
-    var parent: Node<T>? = null,
-    var left: Node<T>? = null,
-    var right: Node<T>? = null
+    var parent: RBTreeNode<T>? = null,
+    var left: RBTreeNode<T>? = null,
+    var right: RBTreeNode<T>? = null
 ) {
     enum class Color {
         RED, BLACK
