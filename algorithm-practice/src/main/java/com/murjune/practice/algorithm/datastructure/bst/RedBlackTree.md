@@ -117,14 +117,16 @@ Red-Black Tree 의 삽입 조정 case에 대해 알아보기 전에 트리의 �
   15(LR)  30
 ```
 
-## Case 1)
+# Red-Black Tree 의 삽입 조정
 
 - 삽입한 노드가 root 노드인 경우
 
 Red-Black Tree 의 rule 2 에 의해 root 노드는 black 이어야 한다.   
 따라서 삽입한 노드의 색깔을 black 으로 변경 해야한다.
 
-## Case 2)
+삽입 조정은 크게 3가지 case 로 나눌 수 있다.
+
+## Case 1)
 
 ![img.png](image/img.png)
 
@@ -180,9 +182,9 @@ rule 4 과 rule 5를 동시에 지키기 위해, 부모와 삼촌 노드의 색�
 2. 할아버지 노드 기준으로 왼쪽으로 회전한다.
 3. 회전 후, 할아버지 노드의 오른쪽 자식으로 부모 노드의 왼쪽 자식을 넣어준다.
 
-## Case 4
+## Case 2
 
-Case 4는 Case 3 으로 변환하여 해결한다.
+Case 2는 Case 3 으로 변환하여 해결한다.
 
 - 부모 노드: red
 - 삼촌 노드: black
