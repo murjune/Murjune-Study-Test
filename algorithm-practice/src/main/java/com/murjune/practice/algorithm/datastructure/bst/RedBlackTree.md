@@ -53,3 +53,11 @@ rule 5 에 의해 모든 leaf 노드까지 동일한 개수의 black 노드가 �
 ![img_1.png](image/img12.png)
 
 따라서, Red-Black Tree 의 높이는 최대 `2log(n+1)` 이고, 탐색시 `O(log n)` 의 시간복잡도를 보장한다.
+
+## Red-Black Tree Color 반전
+
+![img_10.png](image/img_24.png)
+
+자식의 color 가 같고 Red-Black의 조건을 만족하는 경우, 부모와 자식의 color 를 모두 반전 시켜도 rule 5 를 만족한다.
+
+이 아이디어는 Red-Black Tree 의 삽입, 삭제 연산에서 매우 중요한 역할을 하기 때문에 잘 알고 있어야 한다.

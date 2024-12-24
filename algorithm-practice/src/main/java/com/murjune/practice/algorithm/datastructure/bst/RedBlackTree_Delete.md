@@ -69,10 +69,8 @@ rule 5) 어떤 노드로부터 leaf 노드까지의 모든 경로에는 동일�
 
 red-black Tree 의 삭제 조정은 크게 6가지 경우로 나뉜다.
 
-- root 노드가 red 인 경우(1): root 노드의 red 를 black 으로 변경하면 된다.  
-
-
-root 노드가 red 인 경우를 제외(2~6)할 경우, 모두 rule 5를 위반한다.   
+- root 노드가 red 인 경우(1): root 노드의 red 를 black 으로 변경하면 된다.
+- root 노드가 red 인 경우를 제외(2~6)할 경우, 모두 rule 5를 위반한다.   
 
 이는, black 노드를 삭제했기 때문에 삭제한 노드의 반대 방향 서브트리와의 bh(Black Height) 가 달라지기 떄문이다.
 이런 경우 `extra black` 이라는 개념을 도입한다.
@@ -129,7 +127,7 @@ black 이 삭제되었기 때문에, extra black 이 추가된다.
 
 Red-Black Tree 의 조정은 6 가지 경우 나뉜다 했고, 2가지 경우를 알아보았다.
 
-- root 노드가 red 인 경우 -> root 노드의 red 를 black 으로 변경
+- root 노드가 red, doubly black 인 경우 -> root 노드의 red 를 black 으로 변경
 - red-and-black 인 경우 -> red-and-black 을 black 으로 변경
 
 이제 나머지 4개의 경우는 `doubly black` 인 경우이다.
@@ -289,5 +287,26 @@ B 노드를 기준으로 왼쪽 회전
 > 1) `extra black` 을 다른 red 노드로 이동시키는 것
 > 2) red 노드가 없다면 `extra black` 을 부모 노드로 이동시키는 것
 > 
-> 이것만 기억하면, 과정을 까먹어도 바로 구현할 수 있을 것이다~   
-> 쉬운 코딩님 감사합니다 🙇‍♂️
+> 이것만 기억하면, 과정을 까먹어도 바로 구현할 수 있을 것이다~ 
+
+## 최종 정리
+
+- 노드 삭제 방식은 일반 BST 삭제 메커니즘과 같다.
+- color 삭제 방식은 자식의 개수에 따라 달라진다.
+- 자식이 0, 1개이면 삭제되는 노드의 색을 삭제한다.
+- 자식이 2개이면 successor 노드의 색을 삭제한다.
+- 삭제되는 color 가 red 일 경우, 추가적인 작업이 필요하지 않다.
+- 삭제되는 color 가 black 이고, 삭제 이상이 발생할 경우 `extra black` 이 추가된다.
+- `extra black` 이 추가된 노드는 `doubly black` or `red-and-black` 이 된다.
+
+삭제 이상이 발생할 case 는 6가지가 있고, 이를 해결하기 위한 방법은 다음과 같다.(doubly black 의 노드가 서브 트리의 왼쪽에 있는 경우)
+
+1. root 노드가 red 인 경우
+2. red-and-black 인 경우
+3. doubly black 인 경우
+   - case 1) 형제 노드의 color : red, 형제 노드 오른쪽 자식 노드 color : black, 형제 노드 왼쪽 자식 노드 color : black 
+   - case 2) 형제 노드 color : black, 형제 노드 오른쪽 자식 노드 color : black, 형제 노드 왼쪽 자식 노드 color : black
+   - case 3) 형제 노드 color : black, 형제 노드 오른쪽 자식 노드 color : black, 형제 노드 왼쪽 자식 노드 color : red
+   - case 4) 형제 노드 color : black, 형제 노드 오른쪽 자식 노드 color : red
+
+쉬운 코딩님 감사합니다 🙇‍♂️
