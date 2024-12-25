@@ -15,3 +15,13 @@
 
 - [다익스트라 알고리즘](./src/main/java/com/murjune/practice/algorithm/dijkstra)
 - [플로이드-와샬 알고리즘](./src/main/java/com/murjune/practice/algorithm/floyd)
+
+## 자료구조
+
+### BST (Binary Search Tree)
+- [Red-Black Tree 코드 구현](./src/main/java/com/murjune/practice/algorithm/datastructure/bst/RedBlackTree.kt) | [Test 코드](./src/test/kotlin/com/murjune/practice/algorithm/datastructure/bst/RedBlackTreeTest.kt)
+- [BST 삭제](./src/main/java/com/murjune/practice/algorithm/datastructure/bst/BST_Delete.md)
+- [Red-Black Tree](./src/main/java/com/murjune/practice/algorithm/datastructure/bst/RedBlackTree.md)
+- [Red-Black Tree 삽입](./src/main/java/com/murjune/practice/algorithm/datastructure/bst/RedBlackTree_Insert.md)
+- [Red-Black Tree 제거](./src/main/java/com/murjune/practice/algorithm/datastructure/bst/RedBlackTree_Delete.md)
+- [트리의 회전](./src/main/java/com/murjune/practice/algorithm/datastructure/bst/TreeRotate.md)
