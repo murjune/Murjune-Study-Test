@@ -61,3 +61,35 @@ rule 5 에 의해 모든 leaf 노드까지 동일한 개수의 black 노드가 �
 자식의 color 가 같고 Red-Black의 조건을 만족하는 경우, 부모와 자식의 color 를 모두 반전 시켜도 rule 5 를 만족한다.
 
 이 아이디어는 Red-Black Tree 의 삽입, 삭제 연산에서 매우 중요한 역할을 하기 때문에 잘 알고 있어야 한다.
+
+## Red Black Tree vs AVL Tree
+
+| 속성                      | Red-Black 트리                          | AVL 트리                          |
+|---------------------------|-----------------------------------------|-----------------------------------|
+| 삽입/삭제/검색              | 최악의 경우: O(log N)                   | 최악의 경우: O(log N)             |
+| 삽입/삭제 성능              | AVL 트리에 비해 빠르다                   | Red-Black 트리에 비해 느리다       |
+| 검색 성능                   | AVL 트리에 비해 느리다                   | Red-Black 트리에 비해 빠르다       |
+| 균형 잡는 방식              | Red-Black 트리의 속성 만족               | 균형 인자(balance factor) ∈ {-1, 0, 1} |
+| 응용 사례                   | Linux 커널, Java TreeMap 등              | 사전(dictionary), C++ std::map 등  |
+
+
+- AVL Tree 는 높이를 최소화하여 탐색, 삽입, 삭제 연산을 O(log n) 시간에 수행한다.
+- AVL Tree 는 Red-Black Tree 보다 높이가 낮아 탐색 시 더 빠르지만, 삽입, 삭제 연산 시 더 느리다.
+
+#### Q) AVL Tree 는 Red-Black Tree 보다 삽입/삭제 연산이 느릴까?
+AVL Tree 는 삭제/삽입 연산 시, 항상 root 노드까지 올라가 balance factor 를 조정한다.
+반면, Red-Black Tree 는 삽입/삭제 연산 시, 균형이 깨져도 root 까지 거슬러 올라가 균형을 맞추는 경우가 더 적다.
+
+즉, AVL 이 더 엄격하게 균형을 맞추기 때문에 삽입/삭제 연산이 더 느리다.
+
+#### Q) Red-Black Tree 는 AVL Tree 보다 검색 성능이 느릴까?
+
+검색 성능은 AVL Tree 가 더 빠른데, 그 이유는 균형이 더 잘 맞춰져서 높이가 더 낮기 때문에 검색이 더 빠르다.
+
+#### Q) Red-Black Tree 랑 AVL Tree 중 어떤 것을 사용해야 할까?
+
+삭제/삽입 연산이 더 빈번하게 발생하는 경우 Red-Black Tree 를 사용한다.  
+검색만 빈번하게 발생하는 경우 AVL Tree 를 사용한다.
+
+실 사례) Red-Black Tree - 리눅스 커널, 자바에서는 TreeMap, TreeSet  
+실 사례) AVL Tree 는 삭제/삽입 연산이 거의 일어나지 않는 dictionary 
