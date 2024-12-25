@@ -31,7 +31,10 @@ class RedBlackTree<T : Comparable<T>>(
             root = null
             return
         }
+        // 삭제되는 color
         var deletedColor = deleteNode.color
+        // replaceNode 는 삭제된 노드의 위치로 이동하는 노드
+        // 즉, extra black을 부여 받을 수 있는 노드
         var replacedNode = deleteNode
         val leftChild = deleteNode.left
         val rightChild = deleteNode.right
@@ -85,9 +88,12 @@ class RedBlackTree<T : Comparable<T>>(
                 val successorRight =
                     requireNotNull(successor.right) { "successorRight 는 null 일 수 없습니다." }
                 val successorParent = requireNotNull(successor.parent) { "부모 노드는 null 일 수 없습니다." }
-                successorParent.left = successorRight
+                if (successor == successorParent.left) {
+                    successorParent.left = successorRight
+                } else {
+                    successorParent.right = successorRight
+                }
                 successorRight.parent = successorParent
-                successorRight.color = successor.color
                 replacedNode = successorRight
             }
             deletedColor = successor.color

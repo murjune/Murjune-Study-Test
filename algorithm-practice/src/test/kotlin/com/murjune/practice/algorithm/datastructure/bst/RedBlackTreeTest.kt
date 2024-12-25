@@ -112,7 +112,9 @@ class RedBlackTreeTest {
     }
 
     /**
-     * 자식 2개인 black 삭제 + root 삭제 case
+     * 삭제하는 노드 : root
+     * 삭제하는 노드의 자식 개수: 2개
+     * successor 의 오른쪽 자식 유무 : 없음
      *
      * Root[20] (BLACK)
      *     ├── L [10] (RED)
@@ -124,9 +126,39 @@ class RedBlackTreeTest {
      *
      */
     @Test
-    fun `root 의 자식이 2개일 때, root를 삭제 시 균형을 유지한다`() {
+    fun `삭제 노드가 root, 자식 2개, succesor 오른쪽 자식 없을 경우 균형을 유지한다`() {
         // given
         val nodes = listOf(10, 20, 30)
+        val bst = RedBlackTree<Int>(nodes)
+        // when
+        bst.print()
+        bst.delete(20)
+        bst.print()
+        // then
+        bst.isBalanced().shouldBeTrue()
+    }
+
+    /**
+     * 삭제하는 노드 : root
+     * 삭제하는 노드의 자식 개수: 2개
+     * successor 의 오른쪽 자식 유무 : 있음
+     *
+     * Root[20] (BLACK)
+     *     ├── L [10] (BLACK)
+     *     └── R [30] (BLACK)
+     *         └── R [40] (RED)
+     *
+     * (20) 삭제
+     *
+     * Root[30] (BLACK)
+     *     ├── L [10] (BLACK)
+     *     └── R [40] (BLACK)
+     *
+     */
+    @Test
+    fun `삭제 노드가 root, 자식 2개, succesor 오른쪽 자식 있을 경우 균형을 유지한다`() {
+        // given
+        val nodes = listOf(10, 20, 30, 40)
         val bst = RedBlackTree<Int>(nodes)
         // when
         bst.print()
