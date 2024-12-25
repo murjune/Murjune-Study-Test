@@ -110,25 +110,27 @@ class RedBlackTree<T : Comparable<T>>(
         root = pivot.root()
     }
 
-    fun search(key: T): Boolean {
-        return search(root ?: return false, key)
+    fun search(key: T): RBTreeNode<T> {
+        val startNode = requireNotNull(root) { "root 는 null 일 수 없습니다." }
+        return search(startNode, key)
     }
 
-    private tailrec fun search(parent: RBTreeNode<T>, key: T): Boolean {
-        val parentKey: T = parent.key ?: return false // NIL 노드
+    private tailrec fun search(parent: RBTreeNode<T>, key: T): RBTreeNode<T> {
+        val parentKey: T = parent.key ?: throw IllegalArgumentException("key: $key 를 찾을 수 없습니다.")
 
-        if (key == parentKey) return true
+        if (key == parentKey) return parent
 
         if (key < parentKey) {
-            val left = parent.left ?: return false
+            val left = parent.left ?: throw IllegalArgumentException("key: $key 를 찾을 수 없습니다.")
             return search(left, key)
         }
 
-        val right = parent.right ?: return false
+        val right = parent.right ?: throw IllegalArgumentException("key: $key 를 찾을 수 없습니다.")
         return search(right, key)
     }
 
     fun isBalanced(): Boolean {
+        if (root == null) return true
         return isRootBlack() && isRedParentHasOnlyBlackChildren(root)
                 && (isOneSideBlackHeightEqual(root) != -1)
                 && isAllLeavesNil(root)

@@ -85,8 +85,10 @@ class RedBlackTreeTest {
         val keys = listOf(3, 4, 5)
         val bst = RedBlackTree<Int>(keys)
         // then
-        keys.forEach {
-            bst.search(it).shouldBeTrue()
+        shouldNotThrowAny {
+            keys.forEach {
+                bst.search(it)
+            }
         }
 //        bst.printTree()
     }
@@ -97,6 +99,8 @@ class RedBlackTreeTest {
         val keys = listOf(1, 2, 3, 4, 5)
         val bst = RedBlackTree<Int>(keys)
         // then
-        bst.search(6).shouldBeFalse()
+        shouldThrow<IllegalArgumentException> {
+            bst.search(6)
+        }
     }
 }
