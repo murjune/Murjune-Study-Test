@@ -24,6 +24,238 @@ class RedBlackTree<T : Comparable<T>>(
         )
     }
 
+    fun delete(key: T) {
+        val deleteNode = search(key)
+        // node 가 1개인 경우
+        if (deleteNode == root && deleteNode.left?.key == null && deleteNode.right?.key == null) {
+            root = null
+            return
+        }
+        var deletedColor = deleteNode.color
+        var replacedNode = deleteNode
+        val leftChild = deleteNode.left
+        val rightChild = deleteNode.right
+        // 자식 노드가 없는 경우 - 노드 삭제, 삭제할 color 는 삭제되는 node 의 color
+        if (leftChild?.key == null && rightChild?.key == null) {
+            val parent = requireNotNull(deleteNode.parent) { "부모 노드는 null 일 수 없습니다." }
+            if (deleteNode == parent.left) {
+                parent.left = nilNode(parent).also { replacedNode = it }
+            } else {
+                parent.right = nilNode(parent).also { replacedNode = it }
+            }
+        }
+        // 자식 노드가 1개 있는 경우 - 자식 노드를 삭제할 노드의 위치로 이동, 삭제할 color 는 삭제되는 node 의 color
+        // delete 노드의 오른쪽 자식 노드가 있는 경우
+        if (leftChild?.key == null && rightChild?.key != null) {
+            val parent = deleteNode.parent
+            if (deleteNode == parent?.left) {
+                parent.left = rightChild
+                rightChild.parent = parent
+            } else {
+                parent?.right = rightChild
+                rightChild.parent = parent
+            }
+            replacedNode = rightChild
+        }
+        // 왼쪽 자식 노드가 있는 경우
+        if (leftChild?.key != null && rightChild?.key == null) {
+            val parent = deleteNode.parent
+            if (deleteNode == parent?.left) {
+                parent.left = leftChild
+                leftChild.parent = parent
+            } else {
+                parent?.right = leftChild
+                leftChild.parent = parent
+            }
+            replacedNode = leftChild
+        }
+
+        // 자식 노드가 2개 있는 경우 - successor 노드를 찾아서 삭제할 노드와 교체, 삭제할 color 는 successor 의 color
+        if (leftChild?.key != null && rightChild?.key != null) {
+            val successor = findSuccessor(deleteNode)
+            deleteNode.key = successor.key
+            if (successor.right?.key == null) { // successor 의 오른쪽 자식이 없는 경우
+                val successorParent = requireNotNull(successor.parent) { "부모 노드는 null 일 수 없습니다." }
+                if (successor == successorParent.left) {
+                    successorParent.left = nilNode(successorParent).also { replacedNode = it }
+                } else {
+                    successorParent.right = nilNode(successorParent).also { replacedNode = it }
+                }
+            } else { // successor 의 오른쪽 자식이 있는 경우
+                val successorRight =
+                    requireNotNull(successor.right) { "successorRight 는 null 일 수 없습니다." }
+                val successorParent = requireNotNull(successor.parent) { "부모 노드는 null 일 수 없습니다." }
+                successorParent.left = successorRight
+                successorRight.parent = successorParent
+                successorRight.color = successor.color
+                replacedNode = successorRight
+            }
+            deletedColor = successor.color
+        }
+
+        // 6) 삭제할 color 가 red 인 경우 - 끝
+        if (deletedColor == RBTreeNode.Color.RED) {
+            root = replacedNode.root()
+            return
+        }
+        // 7) 삭제할 color 가 black 인 경우
+        fixDeletion(replacedNode)
+    }
+
+    private fun findSuccessor(node: RBTreeNode<T>): RBTreeNode<T> {
+        var current = node.right
+        while (current?.left?.key != null) {
+            current = current.left
+        }
+        return requireNotNull(current) { "$node 의 successor 노드를 찾을 수 없습니다." }
+    }
+
+    private fun fixDeletion(node: RBTreeNode<T>) {
+        // red-and-black
+        if (node.color == RBTreeNode.Color.RED) {
+            fixRedAndBlackCase(node)
+            root = node.root()
+            return
+        }
+        // Doubly black
+        fixDoublyBlackCase(node)
+        root = node.root()
+    }
+
+    private fun fixDoublyBlackCase(doublyBlackNode: RBTreeNode<T>) {
+        val sibling = doublyBlackNode.sibling()
+        val parent = requireNotNull(doublyBlackNode.parent) { "부모 노드는 null 일 수 없습니다." }
+        val isParentLeft = parent.left == doublyBlackNode
+        val isSiblingRed = sibling.color == RBTreeNode.Color.RED
+        if (isSiblingRed) {
+            return fixDoublyBlackCase1(doublyBlackNode)
+        }
+        if (isParentLeft) {
+            val siblingLeft = requireNotNull(sibling.left) { "siblingLeft 는 null 일 수 없습니다." }
+            val siblingRight = requireNotNull(sibling.right) { "siblingRight 는 null 일 수 없습니다." }
+            if (siblingRight.color == RBTreeNode.Color.RED) {
+                return fixDoublyBlackCase4(doublyBlackNode)
+            }
+            if (siblingLeft.color == RBTreeNode.Color.RED) {
+                return fixDoublyBlackCase3(doublyBlackNode)
+            }
+            return fixDoublyBlackCase2(doublyBlackNode)
+        }
+        val siblingLeft = requireNotNull(sibling.left) { "siblingLeft 는 null 일 수 없습니다." }
+        val siblingRight = requireNotNull(sibling.right) { "siblingRight 는 null 일 수 없습니다." }
+        if (siblingLeft.color == RBTreeNode.Color.RED) {
+            return fixDoublyBlackCase4(doublyBlackNode)
+        }
+        if (siblingRight.color == RBTreeNode.Color.RED) {
+            return fixDoublyBlackCase3(doublyBlackNode)
+        }
+        return fixDoublyBlackCase2(doublyBlackNode)
+    }
+
+    /**
+     * Case 1) 부모가 black, 형제가 red 이고, 형제의 자식이 black 인 경우
+     * 1) 형제와 부모의 색을 반전
+     * 2) 부모를 기준으로 rotateLeft/rotateRight 를 수행
+     * 3) 다시 fixDeletion 을 수행
+     * */
+    private fun fixDoublyBlackCase1(doublyBlackNode: RBTreeNode<T>) {
+        val sibling = doublyBlackNode.sibling()
+        val parent = requireNotNull(doublyBlackNode.parent) { "부모 노드는 null 일 수 없습니다." }
+        val isParentLeft = parent.left == doublyBlackNode
+        // 형제와 부모의 색을 반전
+        sibling.color = RBTreeNode.Color.BLACK
+        parent.color = RBTreeNode.Color.RED
+        // 부모를 기준으로 rotateLeft/rotateRight 를 수행
+        if (isParentLeft) rotateLeft(parent) else rotateRight(parent)
+        // 다시 fixDeletion 을 수행
+        fixDeletion(doublyBlackNode)
+    }
+
+    /**
+     * Case 2) 형제가 black 이고, 형제의 자식이 모두 black 인 경우
+     * - 부모 노드가 red 인 경우
+     *  1) 부모를 black 으로 변경, 형제를 red 로 변경
+     * - 부모 노드가 black 인 경우
+     *  1) 형제를 red 로 변경
+     *  2-1) 부모가 root 인 경우 - 끝
+     *  2-2) 부모가 root 가 아닌 경우 - 부모를 기준으로 fixDeletion 을 수행
+     * */
+    fun fixDoublyBlackCase2(doublyBlackNode: RBTreeNode<T>) {
+        val sibling = doublyBlackNode.sibling()
+        val parent = requireNotNull(doublyBlackNode.parent) { "부모 노드는 null 일 수 없습니다." }
+        val isParentRed = parent.color == RBTreeNode.Color.RED
+        // 부모 노드가 red 인 경우
+        if (isParentRed) {
+            parent.color = RBTreeNode.Color.BLACK
+            sibling.color = RBTreeNode.Color.RED
+            return
+        }
+        // 부모 노드가 root O, black 인 경우
+        if (parent == root) {
+            sibling.color = RBTreeNode.Color.RED
+            return
+        }
+        // 부모 노드가 root x, black 인 경우
+        sibling.color = RBTreeNode.Color.RED
+        fixDeletion(parent)
+    }
+
+    /**
+     * Case 4) 형제가 black 이고, 형제의 오른쪽 자식이 red 인 경우
+     * 1) 형제는 부모색, 형제의 오른쪽 자식 black, 부모의 색 black 으로 변경
+     * 2) 부모 기준으로 왼쪽 회전
+     * */
+    private fun fixDoublyBlackCase4(doublyBlackNode: RBTreeNode<T>) {
+        val sibling = doublyBlackNode.sibling()
+        val parent = requireNotNull(doublyBlackNode.parent) { "부모 노드는 null 일 수 없습니다." }
+        val isParentLeft = parent.left == doublyBlackNode
+        val siblingChild = if (isParentLeft) sibling.right else sibling.left
+        requireNotNull(siblingChild) { "siblingChild 는 null 일 수 없습니다." }
+        // 형제는 부모색, 형제의 오른쪽 자식 black, 부모의 색 black 으로 변경
+        sibling.color = parent.color
+        parent.color = RBTreeNode.Color.BLACK
+        siblingChild.color = RBTreeNode.Color.BLACK
+        // 부모 기준으로 왼쪽/오른쪽 회전
+        if (isParentLeft) rotateLeft(parent) else rotateRight(parent)
+    }
+
+    /**
+     * Case 3) 형제가 black 이고, 형제의 왼쪽 자식이 red, 형제의 오른쪽 자식이 black 인 경우
+     * 1) 형제의 왼쪽 자식과 형제의 색을 반전
+     * 2) 형제를 기준 으로 오른쪽/왼쪽 회전
+     * 3) case 4 로 변경
+     * */
+    private fun fixDoublyBlackCase3(doublyBlackNode: RBTreeNode<T>) {
+        val sibling = doublyBlackNode.sibling()
+        val parent = requireNotNull(doublyBlackNode.parent) { "부모 노드는 null 일 수 없습니다." }
+        val isParentLeft = parent.left == doublyBlackNode
+        val siblingChild = if (isParentLeft) sibling.left else sibling.right
+        requireNotNull(siblingChild) { "siblingChild 는 null 일 수 없습니다." }
+        // 형제의 왼쪽 자식과 형제의 색을 반전
+        sibling.color = RBTreeNode.Color.RED
+        siblingChild.color = RBTreeNode.Color.BLACK
+        // 형제를 기준 으로 오른쪽/왼쪽 회전
+        if (isParentLeft) rotateRight(sibling) else rotateLeft(sibling)
+        // case 4 로 변경
+        fixDoublyBlackCase4(doublyBlackNode)
+    }
+
+    private fun RBTreeNode<T>.sibling(): RBTreeNode<T> {
+        val parent = requireNotNull(parent) { "parent 는 null 일 수 없습니다." }
+        val sibling = if (this == parent.left) parent.right else parent.left
+        return requireNotNull(sibling) { "sibling 는 null 일 수 없습니다." }
+    }
+
+    private fun fixRootNodeIsRedCase(node: RBTreeNode<T>) {
+        if (node == root && node.color == RBTreeNode.Color.RED) {
+            node.color = RBTreeNode.Color.BLACK
+        }
+    }
+
+    private fun fixRedAndBlackCase(node: RBTreeNode<T>) {
+        node.color = RBTreeNode.Color.BLACK
+    }
+
     private fun nilNode(parent: RBTreeNode<T>): RBTreeNode<T> {
         return RBTreeNode(null, parent = parent, color = RBTreeNode.Color.BLACK)
     }

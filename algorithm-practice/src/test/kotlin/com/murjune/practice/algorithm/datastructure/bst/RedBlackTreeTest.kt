@@ -2,7 +2,6 @@ package com.murjune.practice.algorithm.datastructure.bst
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import kotlin.test.Test
 
@@ -51,6 +50,136 @@ class RedBlackTreeTest {
             bst.insert(5)
             bst.isBalanced().shouldBeTrue()
         }
+    }
+
+    @Test
+    fun `root 노드를 삭제시에도 균형을 유지한다`() {
+        // given
+        val nodes = listOf(10)
+        val bst = RedBlackTree<Int>(nodes)
+        // when
+        bst.delete(10)
+        // then
+        bst.print()
+        bst.isBalanced().shouldBeTrue()
+    }
+
+    /**
+     * red 삭제
+     *
+     * Root[20] (BLACK)
+     *     ├── L [10] (RED)
+     *     └── R [30] (RED)
+     *
+     * (10) 삭제
+     *
+     * Root[20] (BLACK)
+     *     └── R [30] (RED)
+     */
+    @Test
+    fun `자식이 red인 노드를 삭제시에도 균형을 유지한다`() {
+        // given
+        val nodes = listOf(10, 20, 30)
+        val bst = RedBlackTree<Int>(nodes)
+        // when
+        bst.delete(10)
+        // then
+        bst.isBalanced().shouldBeTrue()
+    }
+
+    /**
+     * 자식 1개인 black 삭제 + root 삭제 case
+     *
+     * Root[10] (BLACK)
+     *     └── R [20] (RED)
+     *
+     * (10) 삭제
+     *
+     * Root[20] (BLACK)
+     *
+     */
+    @Test
+    fun `root 의 자식이 1개일 때, root를 삭제 시 균형을 유지한다`() {
+        // given
+        val nodes = listOf(10, 20)
+        val bst = RedBlackTree<Int>(nodes)
+        // when
+        bst.print()
+        bst.delete(10)
+        bst.print()
+        // then
+        bst.isBalanced().shouldBeTrue()
+    }
+
+    /**
+     * 자식 2개인 black 삭제 + root 삭제 case
+     *
+     * Root[20] (BLACK)
+     *     ├── L [10] (RED)
+     *     └── R [30] (RED)
+     *
+     * (10) 삭제
+     *
+     * Root[20] (BLACK)
+     *
+     */
+    @Test
+    fun `root 의 자식이 2개일 때, root를 삭제 시 균형을 유지한다`() {
+        // given
+        val nodes = listOf(10, 20, 30)
+        val bst = RedBlackTree<Int>(nodes)
+        // when
+        bst.print()
+        bst.delete(20)
+        bst.print()
+        // then
+        bst.isBalanced().shouldBeTrue()
+    }
+
+    /**
+     *  case 4
+     *
+     *  Root[5] (BLACK)
+     *     ├── L [3] (BLACK)
+     *     │   ├── L [1] (RED)
+     *     └── R [10] (BLACK)
+     *         └── R [15] (RED)
+     *
+     *  삭제할 노드 : 3
+     * */
+    @Test
+    fun `red-and-black 이 발생하는 case 에도, 균형을 유지한다`() {
+        // given
+        val nodes = listOf(5, 3, 10, 1, 15, 8, 4)
+        val bst = RedBlackTree<Int>(nodes)
+        bst.print()
+        // when
+//        bst.delete(3)
+        // then
+        bst.isBalanced().shouldBeTrue()
+    }
+
+    /**
+     *  case 4
+     *
+     *  Root[5] (BLACK)
+     *     ├── L [3] (BLACK)
+     *     │   ├── L [1] (RED)
+     *     └── R [10] (BLACK)
+     *         └── R [15] (RED)
+     *
+     *  삭제할 노드 : 3
+     * */
+    @Test
+    fun `삭제 이상 case 4 - doubly black 의 형제가 black, 형제의 오른쪽 자식이 red인 경우에도 균형을 유지한다`() {
+        // given
+        val nodes = listOf(5, 3, 10, 1, 15, 8)
+        val bst = RedBlackTree<Int>(nodes)
+        bst.print()
+        // when
+//        bst.delete(3)
+        // then
+        bst.isBalanced().shouldBeTrue()
     }
 
     // 테스트 케이스 출처 : https://www.youtube.com/watch?v=2MdsebfJOyM
