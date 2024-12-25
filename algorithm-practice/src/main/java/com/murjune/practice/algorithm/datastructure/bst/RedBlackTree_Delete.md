@@ -246,7 +246,8 @@ Case 2번은 아래와 같다.
 Case 2번 해결 방법은 매우 간단하다.  
 extra black 을 부모 노드로 이동시키는 것이다.
 
-A, B, D 의 색을 반전시킨다.  
+B, D 의 색을 반전시킨다.  
+A 의 색을 black 으로 변경한다.
 
 ![img_4.png](image/img_35.png)
 
