@@ -12,7 +12,7 @@ class MaxTest {
     void test_max() {
         int[] arr = {1, 2, 3};
         var res = Arrays.stream(arr).map(i -> i * 2).max().orElse(0);
-        assertThat(res).isEqualTo(12);
+        assertThat(res).isEqualTo(6);
     }
 
 
