@@ -26,6 +26,6 @@ rootProject.name = "kotlin-study-murjune"
 include("kotlin-practice")
 include("design-pattern")
 include("coroutine")
-include(":compose-test")
+include(":compose-practice")
 include(":algorithm-practice")
 include(":java-practice")
