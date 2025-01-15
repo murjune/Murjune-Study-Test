@@ -1,4 +1,4 @@
-package com.murjune.practice.plugins.utils
+package com.murjune.practice.plugins
 
 import org.gradle.api.Project
 import org.gradle.api.artifacts.VersionCatalog

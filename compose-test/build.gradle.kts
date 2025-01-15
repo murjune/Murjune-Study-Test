@@ -1,17 +1,11 @@
 plugins {
-    alias(libs.plugins.murjune.application)
-    alias(libs.plugins.murjune.compose)
-    alias(libs.plugins.murjune.compose.test)
-    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.murjune.android.application)
 }
 
 android {
     namespace = "com.murjune.pratice.compose.study"
 
-    packaging {
-        resources {
-            excludes += "META-INF/**"
-            excludes += "win32-x86*/**"
-        }
+    defaultConfig {
+        applicationId = "com.murjune.pratice.compose.study"
     }
 }

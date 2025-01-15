@@ -1,70 +1,57 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     `kotlin-dsl`
 }
 
 group = "com.murjune.practice.buildlogic"
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+    }
 }
 
 dependencies {
-    compileOnly(libs.kotlin.gradleplugin)
-    compileOnly(libs.agp)
+    compileOnly(libs.android.gradlePlugin)
+    compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.ksp.gradlePlugin)
+    compileOnly(libs.room.gradlePlugin)
+    compileOnly(libs.compose.gradlePlugin)
 }
 
 gradlePlugin {
     plugins {
         create("android-application") {
-            id = "com.murjune.practice.application"
+            id = libs.plugins.murjune.android.application.get().pluginId
             implementationClass =
-                "com.murjune.practice.plugins.AndroidApplicationPlugin"
-        }
-        create("android-library") {
-            id = "com.murjune.practice.library"
-            implementationClass = "com.murjune.practice.plugins.AndroidLibraryPlugin"
+                "AndroidApplicationPlugin"
         }
         create("android-feature") {
-            id = "com.murjune.practice.feature"
-            implementationClass = "com.murjune.practice.plugins.AndroidFeaturePlugin"
+            id = libs.plugins.murjune.android.feature.get().pluginId
+            implementationClass = "AndroidFeaturePlugin"
         }
-        create("android-hilt") {
-            id = "com.murjune.practice.hilt"
-            implementationClass = "com.murjune.practice.plugins.AndroidHiltPlugin"
+        create("android-library") {
+            id = libs.plugins.murjune.android.library.get().pluginId
+            implementationClass = "AndroidLibraryPlugin"
         }
-        create("android-test") {
-            id = "com.murjune.practice.android.test"
-            implementationClass = "com.murjune.practice.plugins.AndroidTestPlugin"
+        create("android-compose") {
+            id = libs.plugins.murjune.android.compose.get().pluginId
+            implementationClass = "ComposePlugin"
         }
-        create("compose") {
-            id = "com.murjune.practice.compose"
-            implementationClass = "com.murjune.practice.plugins.ComposePlugin"
-        }
-        create("compose-test") {
-            id = "com.murjune.practice.compose.test"
-            implementationClass = "com.murjune.practice.plugins.ComposeTestPlugin"
-        }
-        create("kotlin-serialization") {
-            id = "com.murjune.practice.kotlinx_serialization"
+        create("kotlinx-serialization") {
+            id = libs.plugins.murjune.kotlinx.serialization.get().pluginId
             implementationClass =
-                "com.murjune.practice.plugins.KotlinSerializationPlugin"
+                "KotlinSerializationPlugin"
         }
-
-        register("kotlin-module") {
-            id = "com.murjune.practice.kotlin.module"
-            implementationClass = "com.murjune.practice.plugins.KotlinModulePlugin"
-        }
-
         create("unit-test") {
-            id = "com.murjune.practice.unit.test"
-            implementationClass = "com.murjune.practice.plugins.UnitTestPlugin"
+            id = libs.plugins.murjune.unit.test.get().pluginId
+            implementationClass = "UnitTestPlugin"
         }
 
         register("jvm-library") {
-            id = "com.murjune.practice.jvm.library"
-            implementationClass = "com.murjune.practice.plugins.JvmLibraryPlugin"
+            id = libs.plugins.murjune.jvm.library.get().pluginId
+            implementationClass = "JvmLibraryPlugin"
         }
     }
 }

@@ -1,11 +1,8 @@
-package com.murjune.practice.plugins
-
-import com.murjune.practice.plugins.utils.libs
+import com.murjune.practice.plugins.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.dependencies
-import org.gradle.kotlin.dsl.kotlin
 import org.gradle.kotlin.dsl.withType
 
 class UnitTestPlugin : Plugin<Project> {
@@ -17,8 +14,7 @@ class UnitTestPlugin : Plugin<Project> {
             }
 
             dependencies {
-                add("testImplementation", kotlin("test"))
-                add("testImplementation", libs.findBundle("unit-test").get())
+                add("testImplementation", libs.findBundle("unit.test").get())
             }
         }
 }

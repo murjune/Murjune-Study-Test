@@ -1,7 +1,4 @@
-package com.murjune.practice.plugins
-
-
-import com.murjune.practice.plugins.utils.libs
+import com.murjune.practice.plugins.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.dependencies

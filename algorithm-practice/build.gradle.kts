@@ -1,5 +1,6 @@
 plugins {
-    alias(libs.plugins.murjune.kotlin.module)
+    alias(libs.plugins.murjune.jvm.library)
+    alias(libs.plugins.murjune.unit.test)
 }
 
 group = "com.murjune.practice.algorithm"
