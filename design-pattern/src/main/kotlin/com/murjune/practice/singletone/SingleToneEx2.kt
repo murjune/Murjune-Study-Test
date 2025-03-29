@@ -1,7 +1,6 @@
-package designpattern.singletone
+package com.murjune.practice.singletone
 
 import kotlinx.coroutines.InternalCoroutinesApi
-import kotlinx.coroutines.internal.synchronized
 import kotlin.concurrent.thread
 
 class SingleToneEx2 private constructor() {

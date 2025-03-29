@@ -1,17 +1,17 @@
 package com.murjune.practice.lamda.closure
 
 
-data class Closure(val increaseCount: () -> Unit, val printCnt: () -> Unit)
+private data class KotlinClosure(val increaseCount: () -> Unit, val printCnt: () -> Unit)
 
 // Closure - JS 에서 이 형태로 Closure 를 자주 사용한다
-fun createClosure(): Closure {
+private fun createClosure(): KotlinClosure {
     var cnt = 0
 
     fun increaseCount() = cnt++
 
     fun printCnt() = println(cnt)
 
-    return Closure(::increaseCount, ::printCnt)
+    return KotlinClosure(::increaseCount, ::printCnt)
 }
 
 fun main() {

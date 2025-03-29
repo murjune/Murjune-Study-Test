@@ -16,7 +16,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
-import org.assertj.core.api.Assertions.assertThat
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import kotlin.test.Test
@@ -82,7 +81,7 @@ class SharedVariantTest {
             }
         }.also { it.joinAll() }
 
-        assertThat(count).isEqualTo(1000)
+        count shouldBe 1000
     }
 
     @Test

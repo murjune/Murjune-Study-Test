@@ -4,6 +4,7 @@ import com.murjune.practice.utils.launchWithName
 import com.murjune.practice.utils.log
 import com.murjune.practice.utils.runErrorTest
 import io.kotest.core.test.testCoroutineScheduler
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
@@ -21,7 +22,6 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.assertj.core.api.Assertions.assertThat
 import kotlin.concurrent.thread
 import kotlin.test.Test
 
@@ -207,7 +207,7 @@ class CoroutineExceptionPropagateTest {
             throwError()
         }
         testDispatcher.testCoroutineScheduler.runCurrent()
-        assertThat(caught).isNotNull()
+        caught.shouldNotBeNull()
     }
 }
 
