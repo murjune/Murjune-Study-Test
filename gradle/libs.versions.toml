@@ -118,6 +118,7 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 assertj = { group = "org.assertj", name = "assertj-core", version.ref = "assertj" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 junit5 = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5Jupiter" }
+junit5-params= {group= "org.junit.jupiter", name="junit-jupiter-params", version.ref="junit5Jupiter"}
 junit5-android-test-core = { module = "de.mannodermaus.junit5:android-test-core", version.ref = "androidJunit5Core" }
 junit5-android-test-runner = { module = "de.mannodermaus.junit5:android-test-runner", version.ref = "androidJunit5Core" }
 junit5-vintage = { module = "org.junit.vintage:junit-vintage-engine", version.ref = "junit5Jupiter" }
@@ -143,7 +144,7 @@ compose = [
     "androidx-compose-material-iconsExtended",
     "androidx-material3",
 ]
-unit-test = ["kotlinx-test", "kotlinx-coroutines-test", "junit5", "kotest-runner-junit5", "mockk"]
+unit-test = ["kotlinx-test", "kotlinx-coroutines-test", "junit5", "junit5-params", "kotest-runner-junit5", "mockk"]
 androidx-android-test = ["androidx-test-ext", "androidx-test-runner", "androidx-test-rules"]
 
 [plugins]
