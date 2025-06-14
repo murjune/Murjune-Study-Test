@@ -23,6 +23,8 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "kotlin-study-murjune"
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 include("kotlin-practice")
 include("design-pattern")
 include("coroutine")
