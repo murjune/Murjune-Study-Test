@@ -12,6 +12,9 @@ kotlinxDatetime = "0.6.1"
 kotlinxSerialization = "1.8.0"
 ksp = "2.1.0-1.0.29"
 
+# rxjava
+rxJava2="2.2.14"
+
 # android
 agp = "8.7.3"
 activityCompose = "1.9.3"
@@ -60,6 +63,9 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kotlinx-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
+
+# rxJava2
+rxjava2 = { group = "io.reactivex.rxjava2", name = "rxjava", version.ref = "rxJava2" }
 
 # androidx
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
