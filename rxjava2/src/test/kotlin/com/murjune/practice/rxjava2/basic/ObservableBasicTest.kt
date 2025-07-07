@@ -149,7 +149,7 @@ class ObservableBasicTest : BehaviorSpec({
         }
     }
 
-    Given("Disposable을 통한 구독 관리") {
+    Given("Disposable을 통한 구독 해제 관리") {
 
         lateinit var testScheduler: TestScheduler
 
