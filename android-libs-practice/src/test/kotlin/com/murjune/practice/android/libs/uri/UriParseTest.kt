@@ -3,6 +3,7 @@ package com.murjune.practice.android.libs.uri
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -91,5 +92,16 @@ class UriParseTest {
 
         uri.path shouldBe "/path with spaces/file.txt"
         uri.encodedPath shouldBe "/path%20with%20spaces/file.txt" // 원본 authority
+    }
+
+    @Test
+    fun `잘못된 URI 문자열이 주어질 때 null 반환`() {
+        val malformedUrl = "not-a-valid-uri"
+        val uri = Uri.parse(malformedUrl)
+
+        uri shouldNotBe null
+        uri.scheme shouldBe null
+        uri.host shouldBe null
+        uri.path shouldBe malformedUrl
     }
 }
