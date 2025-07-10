@@ -1,4 +1,4 @@
-package com.murjune.pratice.compose.study
+package com.murjune.practice.android.libs.uri
 
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -8,7 +8,6 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
 @RunWith(AndroidJUnit4::class)
 class UriTest : BehaviorSpec({
