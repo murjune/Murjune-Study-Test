@@ -90,7 +90,7 @@ val params = queryString.split("&")
 
 ### 5. 국제화 문제
 ```kotlin
-// 한글이나 특수문자가 포함된 경우
+// 한글이나 특수문자가 포함된 경우 (인코딩 처리가 안 됨)
 val koreanText = "안녕하세요"
 val unsafeUrl = "https://api.example.com/search?q=$koreanText"
 // 결과: 깨진 URL 또는 서버 오류

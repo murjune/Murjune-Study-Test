@@ -1,7 +1,7 @@
 # java.net.URI vs android.net.Uri 비교
 
 ## 개요
-
+ 
 URI를 다루는 두 가지 주요 클래스의 차이점과 사용법을 비교합니다.
 
 ## 기본 정보
@@ -306,13 +306,13 @@ val param = androidUri.getQueryParameter("param")
 
 ## 결론
 
-**Android 개발에서는 `android.net.Uri`가 권장됩니다:**
+**`android.net.Uri`**
 - 더 편리한 API
 - 자동 인코딩/디코딩
 - Android 생태계와 완벽한 통합
 - Query Parameter 처리의 편의성
 
-**순수 JVM 환경이나 테스트에서는 `java.net.URI`가 적합합니다:**
+**`java.net.URI`**
 - 추가 의존성 불필요
 - 표준 라이브러리 사용
 - 더 가벼운 메모리 사용량
