@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 전체 배경 -->
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M0,0h24v24h-24z" />
+
+    <!-- 산 (더 크게 확대) -->
+    <path
+        android:fillColor="#BDBDBD"
+        android:pathData="M2,20l6,-7l4,4l6,-10l4,13z" />
+
+    <!-- 해 (더 크게, 상단 왼쪽) -->
+    <path
+        android:fillColor="#BDBDBD"
+        android:pathData="M7,5a3,3 0 1,0 6,0a3,3 0 1,0 -6,0" />
+</vector>

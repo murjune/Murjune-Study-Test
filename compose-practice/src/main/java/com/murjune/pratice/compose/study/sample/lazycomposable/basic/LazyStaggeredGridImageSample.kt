@@ -11,11 +11,9 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.murjune.pratice.compose.study.R
 import com.murjune.pratice.compose.study.sample.fake.rememberRandomSampleImageUrls
 
 /**
@@ -27,8 +25,8 @@ import com.murjune.pratice.compose.study.sample.fake.rememberRandomSampleImageUr
  */
 @Preview(showBackground = true)
 @Composable
-fun LazyStaggeredGridAdaptiveImageSample() {
-    val photos = rememberRandomSampleImageUrls(100)
+private fun LazyStaggeredGridAdaptiveImageSample() {
+    val imageUrls = rememberRandomSampleImageUrls(100)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Adaptive(130.dp),
         verticalItemSpacing = 4.dp,
@@ -38,7 +36,7 @@ fun LazyStaggeredGridAdaptiveImageSample() {
             .systemBarsPadding()
         ,
     ) {
-        items(photos) { photo ->
+        items(imageUrls) { photo ->
             AsyncImage(
                 model = photo,
                 contentScale = ContentScale.Crop,
@@ -60,15 +58,15 @@ fun LazyStaggeredGridAdaptiveImageSample() {
  */
 @Preview(showBackground = true)
 @Composable
-fun LazyStaggeredGridFixedImageSample() {
-    val photos = rememberRandomSampleImageUrls(100)
+private fun LazyStaggeredGridFixedImageSample() {
+    val imageUrls = rememberRandomSampleImageUrls(100)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(3),
         verticalItemSpacing = 4.dp,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
-        items(photos) { photo ->
+        items(imageUrls) { photo ->
             AsyncImage(
                 model = photo,
                 contentScale = ContentScale.Crop,
@@ -89,8 +87,8 @@ fun LazyStaggeredGridFixedImageSample() {
  */
 @Preview(showBackground = true)
 @Composable
-fun LazyStaggeredGridTwoColumnsImageSample() {
-    val photos = rememberRandomSampleImageUrls(100)
+private fun LazyStaggeredGridTwoColumnsImageSample() {
+    val imageUrls = rememberRandomSampleImageUrls(100)
 
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
@@ -101,7 +99,7 @@ fun LazyStaggeredGridTwoColumnsImageSample() {
             .systemBarsPadding()
         ,
     ) {
-        items(photos) { photo ->
+        items(imageUrls) { photo ->
             AsyncImage(
                 model = photo,
                 contentScale = ContentScale.Crop,
