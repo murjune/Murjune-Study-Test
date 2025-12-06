@@ -12,6 +12,9 @@ kotlinxDatetime = "0.7.1"
 kotlinxSerialization = "1.9.0"
 ksp = "2.1.0-1.0.29"
 
+# serialization
+gson = "2.13.2"
+
 # android
 agp = "8.13.1"
 activityCompose = "1.11.0"
@@ -54,6 +57,7 @@ assertj = "3.27.6"
 
 [libraries]
 # kotlin
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
@@ -101,6 +105,9 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 # google
 protobuf-kotlin-lite = { group = "com.google.protobuf", name = "protobuf-kotlin-lite", version.ref = "protobuf" }
 protobuf-protoc = { group = "com.google.protobuf", name = "protoc", version.ref = "protobuf" }
+
+# serialization
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 
 # third-party
 coil-kt = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
