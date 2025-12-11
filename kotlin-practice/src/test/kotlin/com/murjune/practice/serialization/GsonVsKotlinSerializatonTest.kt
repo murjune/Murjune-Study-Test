@@ -1,8 +1,10 @@
 package com.murjune.practice.serialization
 
 import com.google.gson.Gson
+import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import kotlinx.serialization.Serializable
@@ -98,6 +100,71 @@ class GsonVsKotlinSerializatonTest : FunSpec(
                 // non-nullable String 타입인데 null이 들어감
                 result.email shouldBe null
                 println("Gson 결과: $result (email이 null임!)")
+            }
+
+            test("Gson은 값이 안오면 Primitive 은 기본값, 참조형은 null 할당") {
+                data class GsonUser(
+                    val id: Int,
+                    val id2: Long,
+                    val id3: Float,
+                    val isActive: Boolean,
+                    val name: String,
+                    val list: List<String>,
+                    val map: Map<String, Int>,
+                    val set: Set<Double>,
+                )
+
+                // name 필드가 null인 JSON
+                val emptyString = ""
+                val emptyResult = gson.fromJson(emptyString, GsonUser::class.java)
+
+                emptyResult.shouldBeNull()
+
+                val jsonString = """{}"""
+                val result = gson.fromJson(jsonString, GsonUser::class.java)
+
+                assertSoftly {
+                    result.id shouldBe 0
+                    result.id2 shouldBe 0L
+                    result.id3 shouldBe 0f
+                    result.isActive shouldBe false
+                    result.name.shouldBeNull()
+                    result.list.shouldBeNull()
+                    result.map.shouldBeNull()
+                    result.set.shouldBeNull()
+                }
+            }
+
+            test("Gson 에 default Argument 넣어도 Primitive 은 기본값, 참조형은 null 할당") {
+                data class GsonUser(
+                    val id: Int = 10,
+                    val id2: Long = 20L,
+                    val id3: Float = 30f,
+                    val isActive: Boolean = true,
+                    val name: String = "defaultName",
+                    val list: List<String> = listOf("a", "b"),
+                    val map: Map<String, Int> = mapOf("key" to 1),
+                    val set: Set<Double> = setOf(1.1, 2.2),
+                )
+
+                val emptyString = ""
+                val emptyResult = gson.fromJson(emptyString, GsonUser::class.java)
+
+                emptyResult.shouldBeNull()
+
+                // name 필드가 null인 JSON
+                val jsonString = """{}"""
+                val result = gson.fromJson(jsonString, GsonUser::class.java)
+                assertSoftly {
+                    result.id shouldBe 0
+                    result.id2 shouldBe 0L
+                    result.id3 shouldBe 0f
+                    result.isActive shouldBe false
+                    result.name.shouldBeNull()
+                    result.list.shouldBeNull()
+                    result.map.shouldBeNull()
+                    result.set.shouldBeNull()
+                }
             }
 
             test("Kotlin-Serialization은 coerceInputValues로 null을 default로 대체") {
