@@ -4,6 +4,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -11,6 +12,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.currentTime
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
@@ -19,7 +22,39 @@ import kotlin.test.Test
 class CombineOperatorTest {
 
     @Test
-    fun `Upstream Flow 들이 값을 방출할 때마다 값을 방출한다`() = runTest {
+    fun `onStart 연산자는 collect 를 시작할 때 호출된다`() = runTest {
+        // given
+        val mutableStateFlow = MutableStateFlow(1)
+        var callOnStartTimes = 0L
+        val flow = mutableStateFlow
+            .onStart {
+                callOnStartTimes = currentTime
+            }
+
+        delay(100)
+        // 100ms -collecrtor 1 - onStart 호출
+        flow.launchIn(backgroundScope)
+        advanceUntilIdle()
+        runCurrent()
+        callOnStartTimes shouldBe 100L
+
+        delay(100)
+        // 200ms - collecrtor 2 - onStart 호출
+        flow.launchIn(backgroundScope)
+        advanceUntilIdle()
+        runCurrent()
+        callOnStartTimes shouldBe 200L
+
+        delay(100)
+        // 200ms - collecrtor 3 - onStart 호출
+        flow.launchIn(backgroundScope)
+        advanceUntilIdle()
+        runCurrent()
+        callOnStartTimes shouldBe 300
+    }
+
+    @Test
+    fun `Combine 연산자는 Upstream Flow 들이 값을 방출할 때마다 값을 방출한다`() = runTest {
         // given
         val flow1 = flowOf(1, 2, 3).onEach { delay(20) }
         val flow2 = flowOf("a", "b", "c").onEach { delay(31) }
@@ -47,8 +82,8 @@ class CombineOperatorTest {
         val res = mutableListOf<String>()
         // when
         // 7ms   14ms   21ms   28ms   35ms   42ms   49ms
-        //  1(🔥유실)      2     3
-        //            a            b              c
+        //  1(🔥유실) 2       3
+        //             a            b              c
         combine(flow1, flow2) { a, b ->
             "$a$b"
         }.onEach {
