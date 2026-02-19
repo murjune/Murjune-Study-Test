@@ -1,4 +1,5 @@
 ---
+name: study
 description: "Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌린지 → 코드 리뷰 4단계 사이클로 학습. 각 Phase 완료 시 STUDY_BACKLOG.md 상태 자동 업데이트 및 커밋."
 allowed-tools:
   - WebFetch
