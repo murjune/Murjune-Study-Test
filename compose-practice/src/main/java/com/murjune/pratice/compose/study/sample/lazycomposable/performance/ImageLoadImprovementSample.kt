@@ -38,9 +38,10 @@ private fun ImprovementImageLoadWithAspectRatio() {
         columns = StaggeredGridCells.Adaptive(130.dp),
         verticalItemSpacing = 4.dp,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .systemBarsPadding(),
     ) {
         items(photos) { photo ->
             val aspectRatio = photo.width.toFloat() / photo.height.toFloat()
@@ -48,14 +49,18 @@ private fun ImprovementImageLoadWithAspectRatio() {
                 model = photo.url,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // ★ 핵심: 이미지가 로딩되기 전에 자리를 미리 잡아둡니다.
-                    .then(
-                        if (photo.height == 0 || photo.width == 0) Modifier
-                        else Modifier.aspectRatio(aspectRatio)
-                    ),
-                placeholder = painterResource(R.drawable.ic_placeholder)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        // ★ 핵심: 이미지가 로딩되기 전에 자리를 미리 잡아둡니다.
+                        .then(
+                            if (photo.height == 0 || photo.width == 0) {
+                                Modifier
+                            } else {
+                                Modifier.aspectRatio(aspectRatio)
+                            },
+                        ),
+                placeholder = painterResource(R.drawable.ic_placeholder),
             )
         }
     }
@@ -75,31 +80,38 @@ private fun ImprovementImageLoadWitImageLoader() {
         columns = StaggeredGridCells.Adaptive(130.dp),
         verticalItemSpacing = 4.dp,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .systemBarsPadding(),
     ) {
         items(photos) { photo ->
             val aspectRatio = photo.width.toFloat() / photo.height.toFloat()
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(photo.url)
-                    .crossfade(durationMillis = 300) // 부드러운 전환
-                    // ★ 핵심: 가로세로 둘 다 200px '박스' 안에 들어오도록 요청하되,
-                    // INEXACT(부정확함)를 줘서 비율을 깨지 않고 알아서 맞추게 함.
-                    .size(200)
-                    .precision(Precision.INEXACT)
-                    .build(),
+                model =
+                    ImageRequest
+                        .Builder(LocalContext.current)
+                        .data(photo.url)
+                        .crossfade(durationMillis = 300) // 부드러운 전환
+                        // ★ 핵심: 가로세로 둘 다 200px '박스' 안에 들어오도록 요청하되,
+                        // INEXACT(부정확함)를 줘서 비율을 깨지 않고 알아서 맞추게 함.
+                        .size(200)
+                        .precision(Precision.INEXACT)
+                        .build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // ★ 핵심: 이미지가 로딩되기 전에 자리를 미리 잡아둡니다.
-                    .then(
-                        if (photo.height == 0 || photo.width == 0) Modifier
-                        else Modifier.aspectRatio(aspectRatio)
-                    ),
-                placeholder = painterResource(R.drawable.ic_placeholder)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        // ★ 핵심: 이미지가 로딩되기 전에 자리를 미리 잡아둡니다.
+                        .then(
+                            if (photo.height == 0 || photo.width == 0) {
+                                Modifier
+                            } else {
+                                Modifier.aspectRatio(aspectRatio)
+                            },
+                        ),
+                placeholder = painterResource(R.drawable.ic_placeholder),
             )
         }
     }

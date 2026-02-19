@@ -54,9 +54,10 @@ private fun LazyVerticalGridFixedSample() {
         ) { item ->
             GridItemCard(
                 item = item,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f),
             )
         }
     }
@@ -87,9 +88,10 @@ private fun LazyVerticalGridAdaptiveSample() {
         ) { item ->
             GridItemCard(
                 item = item,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f),
             )
         }
     }
@@ -165,9 +167,10 @@ private fun GridItemCard(
 ) {
     Card(modifier = modifier) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(item.color),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(item.color),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -186,11 +189,12 @@ private fun StaggeredItemCard(
 ) {
     Card(modifier = modifier) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(item.height.dp)
-                .background(item.color)
-                .padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(item.height.dp)
+                    .background(item.color)
+                    .padding(12.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -209,16 +213,17 @@ private data class GridItem(
 ) {
     companion object {
         fun fakeList(size: Int): List<GridItem> {
-            val colors = listOf(
-                Color(0xFF6200EE),
-                Color(0xFF3700B3),
-                Color(0xFF03DAC5),
-                Color(0xFF018786),
-                Color(0xFFBB86FC),
-                Color(0xFF3F51B5),
-                Color(0xFF009688),
-                Color(0xFFFF5722),
-            )
+            val colors =
+                listOf(
+                    Color(0xFF6200EE),
+                    Color(0xFF3700B3),
+                    Color(0xFF03DAC5),
+                    Color(0xFF018786),
+                    Color(0xFFBB86FC),
+                    Color(0xFF3F51B5),
+                    Color(0xFF009688),
+                    Color(0xFFFF5722),
+                )
 
             return List(size) { index ->
                 GridItem(
@@ -239,16 +244,17 @@ private data class StaggeredItem(
 ) {
     companion object {
         fun fakeList(size: Int): List<StaggeredItem> {
-            val colors = listOf(
-                Color(0xFF6200EE),
-                Color(0xFF3700B3),
-                Color(0xFF03DAC5),
-                Color(0xFF018786),
-                Color(0xFFBB86FC),
-                Color(0xFF3F51B5),
-                Color(0xFF009688),
-                Color(0xFFFF5722),
-            )
+            val colors =
+                listOf(
+                    Color(0xFF6200EE),
+                    Color(0xFF3700B3),
+                    Color(0xFF03DAC5),
+                    Color(0xFF018786),
+                    Color(0xFFBB86FC),
+                    Color(0xFF3F51B5),
+                    Color(0xFF009688),
+                    Color(0xFFFF5722),
+                )
 
             return List(size) { index ->
                 StaggeredItem(
@@ -285,11 +291,12 @@ private fun LazyVerticalGridWithSpanSample() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp)
-                        .background(Color(0xFF6200EE))
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(Color(0xFF6200EE))
+                            .padding(16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -310,10 +317,11 @@ private fun LazyVerticalGridWithSpanSample() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .background(Color(0xFF03DAC5)),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .background(Color(0xFF03DAC5)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -331,10 +339,11 @@ private fun LazyVerticalGridWithSpanSample() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .background(Color(0xFF3F51B5)),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .background(Color(0xFF3F51B5)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -352,11 +361,12 @@ private fun LazyVerticalGridWithSpanSample() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .background(Color(0xFFFF5722))
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .background(Color(0xFFFF5722))
+                            .padding(16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -374,10 +384,11 @@ private fun LazyVerticalGridWithSpanSample() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .background(Color(0xFF009688)),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .background(Color(0xFF009688)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -434,20 +445,22 @@ private fun LazyVerticalGridWithConditionalSpanSample() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(if (item.isFeatured) 2f else 1f)
-                        .background(
-                            if (item.isFeatured) Color(0xFFFF5722) else Color(0xFF3F51B5),
-                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(if (item.isFeatured) 2f else 1f)
+                            .background(
+                                if (item.isFeatured) Color(0xFFFF5722) else Color(0xFF3F51B5),
+                            ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = if (item.isFeatured) {
-                            "${item.title}\n★ Featured"
-                        } else {
-                            item.title
-                        },
+                        text =
+                            if (item.isFeatured) {
+                                "${item.title}\n★ Featured"
+                            } else {
+                                item.title
+                            },
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                     )
@@ -489,11 +502,12 @@ private fun LazyVerticalGridAdaptiveWithSpanSample() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .background(Color(0xFF6200EE))
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .background(Color(0xFF6200EE))
+                            .padding(16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -514,10 +528,11 @@ private fun LazyVerticalGridAdaptiveWithSpanSample() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .background(Color(0xFFFF5722)),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .background(Color(0xFFFF5722)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -535,10 +550,11 @@ private fun LazyVerticalGridAdaptiveWithSpanSample() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .background(Color(0xFF3F51B5)),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .background(Color(0xFF3F51B5)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(

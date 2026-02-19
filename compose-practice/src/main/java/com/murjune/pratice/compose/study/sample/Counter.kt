@@ -19,13 +19,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
-
 @Composable
 fun Counter(
     modifier: Modifier = Modifier,
     count: Int,
     onPlusCount: () -> Unit,
-    onRefreshCount: () -> Unit
+    onRefreshCount: () -> Unit,
 ) {
     Column(
         modifier.border(1.dp, color = Color.Black),
@@ -35,13 +34,13 @@ fun Counter(
             Icon(
                 modifier = Modifier.clickable { onPlusCount() },
                 imageVector = Icons.Default.Add,
-                contentDescription = "Plus Count"
+                contentDescription = "Plus Count",
             )
             Spacer(modifier = Modifier.padding(16.dp))
             Icon(
                 modifier = Modifier.testTag("Refresh").clickable { onRefreshCount() },
                 imageVector = Icons.Default.Refresh,
-                contentDescription = "Refresh Count"
+                contentDescription = "Refresh Count",
             )
         }
         Spacer(modifier = Modifier.padding(16.dp))

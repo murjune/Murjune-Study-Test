@@ -38,9 +38,10 @@ private fun BasicStickyHeaderSample() {
     val groupedContacts = remember(contacts) { contacts.groupBy { it.name.first().uppercaseChar() } }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(Color.White),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -50,10 +51,11 @@ private fun BasicStickyHeaderSample() {
                 Text(
                     text = initial.toString(),
                     style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.LightGray)
-                        .padding(vertical = 8.dp, horizontal = 16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(Color.LightGray)
+                            .padding(vertical = 8.dp, horizontal = 16.dp),
                 )
             }
 
@@ -85,9 +87,10 @@ private fun CategoryStickyHeaderSample() {
     val groupedProducts = products.groupBy { it.category }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(Color.White),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -158,10 +161,11 @@ private fun CategoryHeader(category: String) {
     Text(
         text = category,
         style = MaterialTheme.typography.headlineSmall,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFFFF3E0))
-            .padding(vertical = 12.dp, horizontal = 16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFFFF3E0))
+                .padding(vertical = 12.dp, horizontal = 16.dp),
     )
 }
 
@@ -172,12 +176,29 @@ private data class Contact(
 ) {
     companion object {
         fun fakeList(size: Int): List<Contact> {
-            val firstNames = listOf(
-                "Alice", "Bob", "Charlie", "David", "Emma",
-                "Frank", "Grace", "Henry", "Iris", "Jack",
-                "Kate", "Leo", "Mike", "Nina", "Oscar",
-                "Paul", "Quinn", "Rachel", "Sam", "Tom",
-            )
+            val firstNames =
+                listOf(
+                    "Alice",
+                    "Bob",
+                    "Charlie",
+                    "David",
+                    "Emma",
+                    "Frank",
+                    "Grace",
+                    "Henry",
+                    "Iris",
+                    "Jack",
+                    "Kate",
+                    "Leo",
+                    "Mike",
+                    "Nina",
+                    "Oscar",
+                    "Paul",
+                    "Quinn",
+                    "Rachel",
+                    "Sam",
+                    "Tom",
+                )
             val lastNames = listOf("Kim", "Lee", "Park", "Choi", "Jung")
 
             return List(size) { index ->
@@ -201,13 +222,14 @@ private data class Product(
     companion object {
         fun fakeList(size: Int): List<Product> {
             val categories = listOf("과일", "채소", "육류", "수산물", "유제품")
-            val productNames = mapOf(
-                "과일" to listOf("사과", "배", "포도", "딸기", "바나나", "오렌지"),
-                "채소" to listOf("양배추", "당근", "브로콜리", "시금치", "양파", "감자"),
-                "육류" to listOf("소고기", "돼지고기", "닭고기", "양고기"),
-                "수산물" to listOf("고등어", "연어", "참치", "새우", "오징어"),
-                "유제품" to listOf("우유", "치즈", "요거트", "버터"),
-            )
+            val productNames =
+                mapOf(
+                    "과일" to listOf("사과", "배", "포도", "딸기", "바나나", "오렌지"),
+                    "채소" to listOf("양배추", "당근", "브로콜리", "시금치", "양파", "감자"),
+                    "육류" to listOf("소고기", "돼지고기", "닭고기", "양고기"),
+                    "수산물" to listOf("고등어", "연어", "참치", "새우", "오징어"),
+                    "유제품" to listOf("우유", "치즈", "요거트", "버터"),
+                )
 
             return List(size) { index ->
                 val category = categories[index % categories.size]

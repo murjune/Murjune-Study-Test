@@ -31,19 +31,20 @@ private fun LazyStaggeredGridAdaptiveImageSample() {
         columns = StaggeredGridCells.Adaptive(130.dp),
         verticalItemSpacing = 4.dp,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-        ,
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .systemBarsPadding(),
     ) {
         items(imageUrls) { photo ->
             AsyncImage(
                 model = photo,
                 contentScale = ContentScale.Crop,
                 contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
             )
         }
     }
@@ -71,10 +72,10 @@ private fun LazyStaggeredGridFixedImageSample() {
                 model = photo,
                 contentScale = ContentScale.Crop,
                 contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .systemBarsPadding()
-                ,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .systemBarsPadding(),
             )
         }
     }
@@ -94,19 +95,20 @@ private fun LazyStaggeredGridTwoColumnsImageSample() {
         columns = StaggeredGridCells.Fixed(2),
         verticalItemSpacing = 8.dp,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-        ,
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .systemBarsPadding(),
     ) {
         items(imageUrls) { photo ->
             AsyncImage(
                 model = photo,
                 contentScale = ContentScale.Crop,
                 contentDescription = "Random image",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
             )
         }
     }

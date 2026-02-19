@@ -11,7 +11,7 @@
 
 | 모듈 | 주제 | 상태 | 링크 |
 |------|------|------|------|
-| compose-practice | Navigation 2 (NavHost, Type-Safe, BackStack, DeepLink) | 학습 계획 완료 | [README](compose-practice/study/plan/navigation/README.md) |
+| compose-practice | Navigation 2 (NavHost, Type-Safe, BackStack, DeepLink) | 진행 중 🔄 (Phase 1) | [README](compose-practice/src/main/java/com/murjune/pratice/compose/study/sample/navigation/README.md) |
 
 ---
 
@@ -20,7 +20,11 @@
 ### compose-practice ⭐ 최우선
 | 주제 | 우선순위 | 메모 |
 |------|----------|------|
-| Navigation 3 | 높음 | Navigation 2 완료 후. Scene, NavBackStack API 변화 |
+| Navigation 3 | 높음 | 🆕 2025.11 stable. BackStack을 개발자가 직접 소유(SnapshotStateList), NavDisplay, Navigation 2 완료 후 |
+| retain API (retain {}, RetainedEffect) | 높음 | 🆕 2025.12 신규. remember↔rememberSaveable 사이 새 상태 primitive. config change 생존, process death 불가. Flow/람다/비트맵 등 비직렬화 객체 유지 |
+| Shared Element Transition | 높음 | 🆕 1.10 stable. SharedTransitionLayout, sharedElement modifier, skipToLookaheadPosition, initialVelocity 지원 |
+| Predictive Back Gesture + Compose | 높음 | 🆕 Android 14+ in-app predictive back. OnBackPressedCallback, Progress API로 커스텀 애니메이션 |
+| Pausable Composition & Lazy Prefetch 성능 | 중 | 🆕 2025.12 BOM 기본 활성화. 런타임이 composition 일시중지/재개, 스크롤 성능 View 수준 달성 |
 | SideEffect (LaunchedEffect, SideEffect, DisposableEffect) | 높음 | |
 | `inline` vs `noinline` 람다 최적화 | 중 | |
 | Paging3 + LazyColumn | 중 | |
@@ -33,10 +37,17 @@
 | Custom Layout (Layout, SubcomposeLayout) | 중 | |
 | Canvas & Drawing | 낮음 | |
 
+### android-architecture 🏗️ 최신 아키텍처 API
+| 주제 | 우선순위 | 메모 |
+|------|----------|------|
+| SavedStateHandle 신규 API (getMutableStateFlow, saved delegate, KotlinX Serialization 연동) | 높음 | 🆕 process death 대응. nullable 지원 추가 |
+| CreationExtras 개선 (builder factory, map-like operator overloads) | 중 | 🆕 ViewModel Factory에서 Kotlin-idiomatic하게 사용 |
+
 ### android-libs-practice
 | 주제 | 우선순위 | 메모 |
 |------|----------|------|
 | Intent / PendingIntent | 높음 | DeepLink 연계 |
+| Notification.ProgressStyle (Android 16) | 중 | 🆕 Android 16 신규. 배달/내비게이션 등 진행 상황 중심 알림 스타일 |
 | ContentProvider | 중 | Uri 학습과 연계 |
 | BroadcastReceiver | 낮음 | |
 

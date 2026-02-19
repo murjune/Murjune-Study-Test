@@ -22,7 +22,6 @@ import org.junit.Test
 * ref: https://developer.android.com/develop/ui/compose/testing/testing-cheatsheet/
  */
 class CounterTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -77,11 +76,13 @@ class CounterTest {
             Counter(count = count.value, onPlusCount = onPlusCount, onRefreshCount = {})
         }
         // when
-        composeTestRule.onNodeWithContentDescription("Plus Count")
+        composeTestRule
+            .onNodeWithContentDescription("Plus Count")
             .performClick()
         // then
         val expected = "1"
-        composeTestRule.onNodeWithText(expected)
+        composeTestRule
+            .onNodeWithText(expected)
             .assertExists()
     }
 
@@ -94,11 +95,13 @@ class CounterTest {
             Counter(count = count.value, onPlusCount = {}, onRefreshCount = onRefreshCount)
         }
         // when
-        composeTestRule.onNodeWithTag("Refresh")
+        composeTestRule
+            .onNodeWithTag("Refresh")
             .performClick()
         // then
         val expected = "0"
-        composeTestRule.onNodeWithText(expected)
+        composeTestRule
+            .onNodeWithText(expected)
             .isDisplayed()
     }
 }

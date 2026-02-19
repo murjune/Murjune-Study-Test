@@ -30,9 +30,10 @@ private fun LazyColumnSample() {
     }
 
     LazyColumn(
-        modifier = Modifier
-            .background(Color.Yellow)
-            .fillMaxSize(),
+        modifier =
+            Modifier
+                .background(Color.Yellow)
+                .fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -41,12 +42,11 @@ private fun LazyColumnSample() {
         ) { message ->
             MessageRow(
                 modifier = Modifier.fillMaxWidth(),
-                message = message
+                message = message,
             )
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable
@@ -56,9 +56,10 @@ private fun LazyColumnWithItemSample() {
     }
 
     LazyColumn(
-        modifier = Modifier
-            .background(Color.Yellow)
-            .fillMaxSize(),
+        modifier =
+            Modifier
+                .background(Color.Yellow)
+                .fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -91,20 +92,21 @@ private fun MessageRow(
     Card(modifier = modifier) {
         Column(
             modifier = Modifier.padding(8.dp),
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
-            val authorText = if (index != null) {
-                "${message.author} - index: $index"
-            } else {
-                message.author
-            }
+            val authorText =
+                if (index != null) {
+                    "${message.author} - index: $index"
+                } else {
+                    message.author
+                }
             Text(
                 text = authorText,
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
             )
             Text(
                 text = message.body,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
     }
@@ -116,14 +118,13 @@ private data class Message(
     val body: String,
 ) {
     companion object {
-        fun fakeList(size: Int): List<Message> {
-            return List(size) {
+        fun fakeList(size: Int): List<Message> =
+            List(size) {
                 Message(
                     id = it,
                     author = "Author $it",
-                    body = "This is the body of message number $it. ".repeat((1..5).random())
+                    body = "This is the body of message number $it. ".repeat((1..5).random()),
                 )
             }
-        }
     }
 }

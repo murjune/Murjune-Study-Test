@@ -69,14 +69,40 @@ Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌
    - "이해됐어요" → 다음으로
    - "이 부분 다시 설명해줘" → 해당 개념 보완 설명 후 재확인 (핑퐁 반복)
 
+**Phase 1 산출물:**
+
+1. **`study/plan/<topic>/README.md`** — 개념 정리 문서 (출처 링크 + Mermaid 다이어그램)
+2. **Demo App 화면** — 실행/Preview 가능한 샘플 Composable
+   - `src/main/` 하위에 토픽별 패키지로 배치
+   - 기존 패키지 컨벤션 준수 (예: `com.murjune.pratice.compose.study.sample.navigation`)
+   - 각 개념별 샘플 화면 + `@Preview` 포함
+   - 사용자가 앱을 실행하거나 Preview로 직접 동작을 확인할 수 있어야 함
+3. **학습 테스트 코드** — 개념을 assertion으로 검증하는 테스트
+   - Android 모듈: `src/test/` (Robolectric) 또는 `src/androidTest/`
+   - JVM 모듈: `src/test/`
+   - 테스트 함수명은 한글로 작성
+   - 각 개념별 별도 테스트 클래스 분리
+4. **빌드 + 테스트 검증** — 코드 작성 후 반드시 빌드 및 테스트 실행하여 통과 확인
+
+**Phase 1 학습 흐름:**
+
+1. 개념 설명 (README + 대화)
+2. Demo 코드 작성 → 사용자에게 Preview/실행 안내
+3. 학습 테스트 작성 → 테스트 실행하여 통과 확인
+4. `AskUserQuestion`으로 이해도 확인 + 추가 질문 대기:
+   - 사용자가 질문하면 → **코드 레벨로 답변** (Demo 코드 수정/추가 + 테스트로 검증)
+   - "이해됐어요" → 다음 개념 또는 Phase 2로
+   - 핑퐁 반복 — 질문이 있는 한 계속 코드로 보여주고 검증
+
 **Phase 1 완료 시:**
-- `study/plan/<topic>/README.md` 개념 섹션 업데이트 (출처 링크 포함)
 - STUDY_BACKLOG.md 상태 → "진행 중 🔄 (Phase 2)"
 - 커밋:
   ```
   study: teach <topic>
 
   - 공식 문서 기반 핵심 개념 정리
+  - Demo App 샘플 코드 작성
+  - 학습 테스트 코드 작성
   - <학습한 핵심 개념 1~3줄 요약>
   ```
 
@@ -86,6 +112,32 @@ Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌
 - 코드 예제는 반드시 공식 문서 또는 우수 샘플에서 가져온 것 사용
 - "왜 이렇게 쓰는가" 이유 설명 필수
 - 출처 항상 명시 (어느 문서/샘플의 어느 부분인지)
+- **코드 검증 필수** — 작성한 코드는 빌드(`assembleDebug`) + 테스트(`test`)로 반드시 검증
+- **Mermaid 다이어그램 활용** — 아래 가이드 참고
+
+---
+
+### Mermaid 다이어그램 가이드
+
+개념 설명 시 시각화가 도움이 되는 경우 Mermaid 다이어그램을 적극 활용한다.
+
+**활용 시점:**
+- 컴포넌트 간 관계/흐름 (예: NavHost → NavController → composable 관계)
+- 상태 전이 (예: 백스택 변화, 화면 전환 흐름)
+- 비교/대조 (예: popBackStack vs navigateUp 동작 차이)
+- 아키텍처 구조 (예: 멀티모듈 Navigation 구성)
+- 데이터 흐름 (예: 인자 전달 경로, DeepLink 처리 순서)
+
+**사용 가능한 다이어그램 유형:**
+- `graph TD/LR` — 흐름도 (화면 전환, 아키텍처)
+- `sequenceDiagram` — 시퀀스 (API 호출 순서, 이벤트 흐름)
+- `stateDiagram-v2` — 상태도 (백스택 변화, 라이프사이클)
+- `classDiagram` — 클래스 관계 (컴포넌트 구조)
+
+**규칙:**
+- README.md에 기록할 때도 Mermaid 블록 포함
+- 다이어그램은 설명을 보조하는 용도로, 코드 예제를 대체하지 않음
+- 복잡한 개념일수록 다이어그램 우선 제시 후 코드로 보충
 
 ---
 

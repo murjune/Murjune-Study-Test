@@ -29,24 +29,26 @@ inline fun CurrentMsText(
     var msPath: Path? by remember { mutableStateOf(null) }
 
     Text(
-        modifier = modifier
-            .padding(horizontal = 5.dp)
-            .drawBehind {
-                val msPath = msPath ?: return@drawBehind
-                drawPath(
-                    path = msPath,
-                    color = Color.Red,
-                    style = Stroke(width = 2.dp.toPx()),
-                )
-            },
+        modifier =
+            modifier
+                .padding(horizontal = 5.dp)
+                .drawBehind {
+                    val msPath = msPath ?: return@drawBehind
+                    drawPath(
+                        path = msPath,
+                        color = Color.Red,
+                        style = Stroke(width = 2.dp.toPx()),
+                    )
+                },
         text = "$text @ ${customMs ?: currentTimeMillis()}",
         style = textStyle,
         textAlign = TextAlign.Center,
         onTextLayout = { layout ->
-            msPath = layout.getPathForRange(
-                start = layout.layoutInput.text.lastIndexOf('@') + 2,
-                end = layout.layoutInput.text.length,
-            )
+            msPath =
+                layout.getPathForRange(
+                    start = layout.layoutInput.text.lastIndexOf('@') + 2,
+                    end = layout.layoutInput.text.length,
+                )
         },
     )
 }
