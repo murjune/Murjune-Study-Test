@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.currentTime
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
@@ -42,6 +43,29 @@ class ZipOperatorTest {
         // then
         advanceUntilIdle()
         val expected = listOf(5, 7, 9)
+        res shouldBe expected
+    }
+
+    @Test
+    fun `Zip 연산자는 두 Flow의 값을 항상 쌍으로 묶어서 방출한다`() = runTest {
+        // given
+        val flow1 = flowOf(1, 2, 3)
+        val flow2 = flowOf("a", "b", "c", "d")
+        val res = mutableListOf<String>()
+        // when
+        //
+        //  1      2       3
+        //  a      b       c      d(한쪽 대기)
+        flow1.zip(flow2) { a, b ->
+            "$a$b"
+        }.onEach {
+            res.add(it)
+        }.launchIn(this)
+        // then
+        advanceUntilIdle()
+        runCurrent()
+        // zip은 각 flow에서 하나씩만 소비하므로 짧은 쪽(flow1)에 맞춰 3개만 방출
+        val expected = listOf("1a", "2b", "3c")
         res shouldBe expected
     }
 
@@ -80,4 +104,33 @@ class ZipOperatorTest {
         val expected = listOf(5, 7)
         res shouldBe expected
     }
+
+    @Test
+    fun `‼️ 만약 짝이 맞지 않으면 남은 값은 무시된다 2`() = runTest {
+        // given
+        val flow1 = flowOf(1, 2, 3, 4,5).onEach {
+            if (it == 3) {
+                delay(50L)
+            } else {
+                delay(10)
+            }
+        }
+        val flow2 = flowOf("a", "b", "c", "d").onEach { delay(15) }
+        val res = mutableListOf<String>()
+        // when
+        // 10ms  20ms  30ms  40ms  50ms  60ms  70ms 80ms 90md
+        //  1    2                               3   4    5(한쪽 대기)
+        //    a        b      c       d
+        flow1.zip(flow2) { a, b ->
+            "$a$b"
+        }.onEach {
+            res.add(it)
+        }.launchIn(this)
+        // then
+        advanceUntilIdle()
+        // flow1이 2개만 있으므로 2개만 방출
+        val expected = listOf("1a", "2b", "3c", "4d")
+        res shouldBe expected
+    }
+
 }

@@ -82,7 +82,8 @@ class MergeOperatorTest {
             .launchIn(this)
         // then
         advanceUntilIdle()
-        val expected = listOf(UiEvent.NavigateToDetail, UiEvent.Toast, UiEvent.NavigateToHome)
+        val expected = listOf(UiEvent.NavigateToHome, UiEvent.NavigateToDetail, UiEvent.Toast)
+        res shouldBe expected
     }
 
     @Test

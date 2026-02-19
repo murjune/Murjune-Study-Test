@@ -1,57 +1,28 @@
 package com.murjune.practice.flow.operator
 
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
-
-@OptIn(ExperimentalCoroutinesApi::class)
 class CombineOperatorTest {
-
-    @Test
-    fun `onStart 연산자는 collect 를 시작할 때 호출된다`() = runTest {
-        // given
-        val mutableStateFlow = MutableStateFlow(1)
-        var callOnStartTimes = 0L
-        val flow = mutableStateFlow
-            .onStart {
-                callOnStartTimes = currentTime
-            }
-
-        delay(100)
-        // 100ms -collecrtor 1 - onStart 호출
-        flow.launchIn(backgroundScope)
-        advanceUntilIdle()
-        runCurrent()
-        callOnStartTimes shouldBe 100L
-
-        delay(100)
-        // 200ms - collecrtor 2 - onStart 호출
-        flow.launchIn(backgroundScope)
-        advanceUntilIdle()
-        runCurrent()
-        callOnStartTimes shouldBe 200L
-
-        delay(100)
-        // 200ms - collecrtor 3 - onStart 호출
-        flow.launchIn(backgroundScope)
-        advanceUntilIdle()
-        runCurrent()
-        callOnStartTimes shouldBe 300
-    }
 
     @Test
     fun `Combine 연산자는 Upstream Flow 들이 값을 방출할 때마다 값을 방출한다`() = runTest {
@@ -125,5 +96,65 @@ class CombineOperatorTest {
         // then
         advanceUntilIdle()
         res shouldBe listOf(1, 2, 3)
+    }
+
+    @Test
+    fun `✅ drop 연산`() = runTest {
+        // given
+        val mf = MutableStateFlow(1)
+        val result = mutableListOf<Int>()
+        val result2 = mutableListOf<Int>()
+
+        val st = mf
+            .drop(1)
+            .stateIn(
+                backgroundScope,
+                started = SharingStarted.WhileSubscribed(1000),
+                0
+            )
+
+        val job = st.onEach {
+            result.add(it)
+        }.launchIn(backgroundScope)
+
+        runCurrent()
+        job.cancel()
+        advanceTimeBy(2000)
+
+        st.onEach {
+            result2.add(it)
+        }.launchIn(backgroundScope)
+
+        runCurrent()
+
+        mf.value = 3
+
+        runCurrent()
+
+        result.shouldContainExactly(0)
+        result2.shouldContainExactly(0, 3)
+    }
+
+    @Test
+    fun `대2기 중인 element 가 있을 때, 새로운 element 가 방출되면 새로운 element 를 방출한다 - conflate`() = runTest {
+        // given
+        val flow1 = flowOf(1, 2, 3).onEach { delay(7) }
+        val flow2 = flowOf("a", "b", "c").onEach { delay(15) }
+        val res = mutableListOf<String>()
+        // when
+        // 7ms   14ms   21ms   28ms   35ms   42ms   49ms
+        //  1(🔥유실) 2       3
+        //             a            b              c
+        combine(flow1, flow2) { a, b ->
+            delay(100)
+            println(currentTime)
+            "$a$b"
+        }.onEach {
+            res.add(it)
+        }.launchIn(this)
+        // then
+        advanceUntilIdle()
+        val expected = listOf("2a", "3c")
+        res shouldBe expected
     }
 }
