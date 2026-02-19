@@ -221,6 +221,101 @@ AndroidManifest에 intent-filter 설정 필요:
 
 ---
 
+### 6. launchSingleTop과 같은 destination + 다른 인자
+
+**Q: `Route(id=1)` → `Route(id=2)` 하면 별도 백스택? `launchSingleTop`이면?**
+
+`composable<Route>`는 **Route 타입 하나**를 destination으로 등록한다.
+`Route(id=1)`과 `Route(id=2)`는 **같은 destination, 다른 arguments**일 뿐이다.
+
+```mermaid
+graph TD
+    subgraph "launchSingleTop 없음"
+        A1[Home] --> B1["Route(id=1)"]
+        B1 --> C1["Route(id=2)"]
+        C1 -.->|popBackStack| B1
+    end
+    subgraph "launchSingleTop = true"
+        A2[Home] --> B2["Route(id=1→2)"]
+        B2 -.->|popBackStack| A2
+    end
+```
+
+| 시나리오 | 백스택 결과 |
+|---------|-----------|
+| `navigate(Item(1))` → `navigate(Item(2))` | Home → Item(1) → Item(2) **별도 엔트리** |
+| `navigate(Item(1))` → `navigate(Item(2)) { launchSingleTop=true }` | Home → Item(2) **인자만 갱신** |
+| `navigate(Item(1))` → `navigate(Item(1))` (singleTop 없음) | Home → Item(1) → Item(1) **같은 인자도 중복** |
+
+**핵심:**
+- `launchSingleTop`은 **인자값을 비교하지 않는다** — destination 타입만 본다
+- top이 같은 destination이면 새 엔트리를 만들지 않고, 기존 엔트리의 arguments를 교체한다
+- top이 다른 destination이면 `launchSingleTop`이어도 정상적으로 새 엔트리가 쌓인다
+
+**테스트 파일:** `LaunchSingleTopTest.kt`
+
+---
+
+### 7. SavedStateHandle과 Navigation
+
+**Q: SavedStateHandle은 언제 들어와? 테스트로 어떻게 검증?**
+
+각 `NavBackStackEntry`마다 독립적인 `SavedStateHandle`이 존재한다.
+
+```mermaid
+graph TD
+    subgraph "BackStack"
+        E1["Entry: Home<br/>savedStateHandle { }"]
+        E2["Entry: Profile<br/>savedStateHandle { userId='user-42', age=28 }"]
+    end
+    E1 --> E2
+    style E2 fill:#e1f5fe
+```
+
+**1) Route 인자 자동 주입**
+
+`@Serializable` route의 프로퍼티 이름이 SavedStateHandle의 key가 된다.
+
+```kotlin
+// navigate(ProfileRoute(userId = "user-42", age = 28))
+backStackEntry.savedStateHandle.get<String>("userId")  // → "user-42"
+backStackEntry.savedStateHandle.get<Int>("age")         // → 28
+```
+
+**2) 이전 화면에 결과 전달 (Result 패턴)**
+
+```mermaid
+sequenceDiagram
+    participant H as Home (currentEntry)
+    participant E as EditScreen (currentEntry)
+
+    H->>E: navigate(EditScreen)
+    Note over E: 작업 완료
+    E->>H: previousBackStackEntry.savedStateHandle.set("result", "완료!")
+    E->>H: popBackStack()
+    Note over H: savedStateHandle.get("result") → "완료!"
+```
+
+```kotlin
+// EditScreen에서 결과 전달
+navController.previousBackStackEntry?.savedStateHandle?.set("edit_result", "수정 완료!")
+navController.popBackStack()
+
+// Home에서 결과 수신
+val result = backStackEntry.savedStateHandle.get<String>("edit_result")
+```
+
+> 출처: [공식 문서 - Returning a result](https://developer.android.com/guide/navigation/navigation-programmatic#returning_a_result)
+
+**3) 각 엔트리는 독립적**
+- Home의 savedStateHandle에 넣은 값은 EditScreen에서 보이지 않는다
+- `currentBackStackEntry`는 navigate 전후로 다른 엔트리를 가리킨다
+- `previousBackStackEntry`로 이전 화면의 엔트리에 접근 가능
+
+**테스트 파일:** `SavedStateHandleTest.kt`
+
+---
+
 ## 학습 순서
 
 ### 1단계: 기본 컴포넌트 (`basic/`)

@@ -60,9 +60,7 @@ class NavHostBasicTest {
         }
 
         // when
-        composeTestRule.runOnUiThread {
-            navController.navigate(TestDetail(id = "1"))
-        }
+        navController.navigate(TestDetail(id = "1"))
 
         // then
         composeTestRule.onNodeWithText("Detail Screen").assertIsDisplayed()
@@ -81,15 +79,11 @@ class NavHostBasicTest {
             }
         }
 
-        composeTestRule.runOnUiThread {
-            navController.navigate(TestDetail(id = "1"))
-        }
+        navController.navigate(TestDetail(id = "1"))
         composeTestRule.onNodeWithText("Detail Screen").assertIsDisplayed()
 
         // when
-        composeTestRule.runOnUiThread {
-            navController.popBackStack()
-        }
+        navController.popBackStack()
 
         // then
         composeTestRule.onNodeWithText("Home Screen").assertIsDisplayed()
@@ -109,10 +103,7 @@ class NavHostBasicTest {
         }
 
         // when
-        var result = true
-        composeTestRule.runOnUiThread {
-            result = navController.popBackStack()
-        }
+        val result = navController.popBackStack()
 
         // then
         assert(!result) { "startDestination에서 popBackStack은 false를 반환해야 한다" }

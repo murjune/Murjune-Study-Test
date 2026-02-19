@@ -78,9 +78,7 @@ class TypeSafeNavigationTest {
         }
 
         // when
-        composeTestRule.runOnUiThread {
-            navController.navigate(UserProfile(userId = "user-123", userName = "murjune"))
-        }
+        navController.navigate(UserProfile(userId = "user-123", userName = "murjune"))
 
         // then
         composeTestRule.onNodeWithText("User: murjune").assertIsDisplayed()
@@ -112,9 +110,7 @@ class TypeSafeNavigationTest {
         }
 
         // when
-        composeTestRule.runOnUiThread {
-            navController.navigate(MultiArgRoute(name = "murjune", age = 28, isPremium = true))
-        }
+        navController.navigate(MultiArgRoute(name = "murjune", age = 28, isPremium = true))
 
         // then
         composeTestRule.onNodeWithText("murjune, 28, true").assertIsDisplayed()

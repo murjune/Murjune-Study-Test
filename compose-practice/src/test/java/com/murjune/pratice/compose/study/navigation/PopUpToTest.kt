@@ -50,20 +50,14 @@ class PopUpToTest {
             }
         }
 
-        composeTestRule.runOnUiThread {
-            navController.navigate(Login)
-        }
-        composeTestRule.runOnUiThread {
-            navController.navigate(Verify)
-        }
+        navController.navigate(Login)
+        navController.navigate(Verify)
         composeTestRule.onNodeWithText("Verify Screen").assertIsDisplayed()
 
         // when - Dashboard로 이동하면서 Home까지 백스택 정리 (Home은 유지)
-        composeTestRule.runOnUiThread {
-            navController.navigate(Dashboard) {
-                popUpTo<Home> {
-                    inclusive = false
-                }
+        navController.navigate(Dashboard) {
+            popUpTo<Home> {
+                inclusive = false
             }
         }
 
@@ -71,9 +65,7 @@ class PopUpToTest {
         composeTestRule.onNodeWithText("Dashboard Screen").assertIsDisplayed()
 
         // popBackStack하면 Home으로 돌아간다 (Login, Verify는 제거됨)
-        composeTestRule.runOnUiThread {
-            navController.popBackStack()
-        }
+        navController.popBackStack()
         composeTestRule.onNodeWithText("Home Screen").assertIsDisplayed()
     }
 
@@ -91,27 +83,20 @@ class PopUpToTest {
             }
         }
 
-        composeTestRule.runOnUiThread {
-            navController.navigate(Verify)
-        }
+        navController.navigate(Verify)
         composeTestRule.onNodeWithText("Verify Screen").assertIsDisplayed()
 
         // when - Home으로 이동하면서 Login까지 inclusive로 제거
-        composeTestRule.runOnUiThread {
-            navController.navigate(Home) {
-                popUpTo<Login> {
-                    inclusive = true
-                }
+        navController.navigate(Home) {
+            popUpTo<Login> {
+                inclusive = true
             }
         }
 
         // then - Home만 백스택에 남음 (popBackStack하면 false)
         composeTestRule.onNodeWithText("Home Screen").assertIsDisplayed()
 
-        var popResult = true
-        composeTestRule.runOnUiThread {
-            popResult = navController.popBackStack()
-        }
+        val popResult = navController.popBackStack()
         popResult shouldBe false
     }
 
@@ -128,22 +113,16 @@ class PopUpToTest {
             }
         }
 
-        composeTestRule.runOnUiThread {
-            navController.navigate(Dashboard)
-        }
+        navController.navigate(Dashboard)
         composeTestRule.onNodeWithText("Dashboard Screen").assertIsDisplayed()
 
         // when - 같은 화면을 launchSingleTop으로 두 번 navigate
-        composeTestRule.runOnUiThread {
-            navController.navigate(Dashboard) {
-                launchSingleTop = true
-            }
+        navController.navigate(Dashboard) {
+            launchSingleTop = true
         }
 
         // then - popBackStack 한 번이면 Home으로 돌아간다 (중복 없음)
-        composeTestRule.runOnUiThread {
-            navController.popBackStack()
-        }
+        navController.popBackStack()
         composeTestRule.onNodeWithText("Home Screen").assertIsDisplayed()
     }
 
@@ -162,27 +141,20 @@ class PopUpToTest {
         }
 
         // 로그인 플로우 진행
-        composeTestRule.runOnUiThread {
-            navController.navigate(Verify)
-        }
+        navController.navigate(Verify)
         composeTestRule.onNodeWithText("Verify Screen").assertIsDisplayed()
 
         // when - 인증 완료 후 Home으로 이동, 로그인 관련 화면 모두 제거
-        composeTestRule.runOnUiThread {
-            navController.navigate(Home) {
-                popUpTo<Login> {
-                    inclusive = true
-                }
+        navController.navigate(Home) {
+            popUpTo<Login> {
+                inclusive = true
             }
         }
 
         // then - Home이 표시되고, 뒤로가기 시 앱 종료 (로그인 화면으로 돌아가지 않음)
         composeTestRule.onNodeWithText("Home Screen").assertIsDisplayed()
 
-        var popResult = true
-        composeTestRule.runOnUiThread {
-            popResult = navController.popBackStack()
-        }
+        val popResult = navController.popBackStack()
         popResult shouldBe false
     }
 }

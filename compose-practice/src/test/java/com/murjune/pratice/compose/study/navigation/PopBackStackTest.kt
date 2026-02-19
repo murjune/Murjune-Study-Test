@@ -46,12 +46,8 @@ class PopBackStackTest {
     }
 
     private fun navigateToABC(navController: TestNavHostController) {
-        composeTestRule.runOnUiThread {
-            navController.navigate(ScreenB)
-        }
-        composeTestRule.runOnUiThread {
-            navController.navigate(ScreenC)
-        }
+        navController.navigate(ScreenB)
+        navController.navigate(ScreenC)
         composeTestRule.onNodeWithText("Screen C").assertIsDisplayed()
     }
 
@@ -62,9 +58,7 @@ class PopBackStackTest {
         navigateToABC(navController)
 
         // when
-        composeTestRule.runOnUiThread {
-            navController.popBackStack()
-        }
+        navController.popBackStack()
 
         // then - B가 표시된다
         composeTestRule.onNodeWithText("Screen B").assertIsDisplayed()
@@ -77,9 +71,7 @@ class PopBackStackTest {
         navigateToABC(navController)
 
         // when - A까지 pop (inclusive=false이므로 A는 유지)
-        composeTestRule.runOnUiThread {
-            navController.popBackStack<ScreenA>(inclusive = false)
-        }
+        navController.popBackStack<ScreenA>(inclusive = false)
 
         // then - A가 표시된다
         composeTestRule.onNodeWithText("Screen A").assertIsDisplayed()
@@ -92,9 +84,7 @@ class PopBackStackTest {
         navigateToABC(navController)
 
         // when - B까지 pop (inclusive=true이므로 B도 제거)
-        composeTestRule.runOnUiThread {
-            navController.popBackStack<ScreenB>(inclusive = true)
-        }
+        navController.popBackStack<ScreenB>(inclusive = true)
 
         // then - A가 표시된다
         composeTestRule.onNodeWithText("Screen A").assertIsDisplayed()
@@ -107,9 +97,7 @@ class PopBackStackTest {
         navigateToABC(navController)
 
         // when - B까지 pop (inclusive=false이므로 B는 유지)
-        composeTestRule.runOnUiThread {
-            navController.popBackStack<ScreenB>(inclusive = false)
-        }
+        navController.popBackStack<ScreenB>(inclusive = false)
 
         // then - B가 표시된다
         composeTestRule.onNodeWithText("Screen B").assertIsDisplayed()
