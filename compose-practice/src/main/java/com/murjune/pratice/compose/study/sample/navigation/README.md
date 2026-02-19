@@ -316,6 +316,119 @@ val result = backStackEntry.savedStateHandle.get<String>("edit_result")
 
 ---
 
+### 8. saveState / restoreState (하단 탭 전환 패턴)
+
+**Q: 탭 전환 시 각 탭의 백스택을 어떻게 보존하나?**
+
+`saveState`와 `restoreState`는 **하단 탭 내비게이션**에서 각 탭의 독립적인 백스택을 유지하는 핵심 옵션이다.
+
+```mermaid
+stateDiagram-v2
+    state "Home 탭" as home {
+        [*] --> HomeTab
+        HomeTab --> HomeDetail
+    }
+    state "Search 탭 (저장됨)" as search {
+        [*] --> SearchTab
+        SearchTab --> SearchResult
+    }
+    home --> search: navigateToTab(Search)\nsaveState=true
+    search --> home: navigateToTab(Home)\nrestoreState=true
+```
+
+```kotlin
+// 하단 탭 전환 패턴 — NowInAndroid 스타일
+navController.navigate(selectedTab) {
+    popUpTo<StartDestination> {
+        saveState = true      // 현재 탭의 백스택을 저장
+    }
+    launchSingleTop = true    // 같은 탭 중복 방지
+    restoreState = true       // 이전 탭의 백스택을 복원
+}
+```
+
+| 옵션 | 기본값 | 역할 |
+|------|--------|------|
+| `saveState` | `false` | popUpTo로 제거되는 백스택을 메모리에 저장 |
+| `restoreState` | `false` | 이전에 저장된 백스택을 복원 |
+| `launchSingleTop` | `false` | 같은 destination 중복 생성 방지 |
+
+**saveState 없으면?**
+- 탭 전환 후 돌아왔을 때 탭 루트부터 다시 시작
+- 사용자가 탐색했던 내부 화면(Detail 등)이 소실됨
+
+> 출처: [공식 문서 - Back stack state](https://developer.android.com/guide/navigation/backstack#save-state)
+
+**테스트 파일:** `SaveRestoreStateTest.kt`
+
+---
+
+### 9. SavedStateHandle 최신 API (getStateFlow, getMutableStateFlow, ViewModel 연동)
+
+**Q: SavedStateHandle에서 Flow로 반환하거나 ViewModel이랑 연동하는 방법은?**
+
+```mermaid
+graph LR
+    subgraph "NavBackStackEntry"
+        SSH[SavedStateHandle]
+    end
+    subgraph "ViewModel"
+        VMSSH[SavedStateHandle]
+        TR["toRoute&lt;T&gt;()"]
+        SF["getStateFlow()"]
+        MSF["getMutableStateFlow()"]
+    end
+    SSH -->|"자동 주입"| VMSSH
+    VMSSH --> TR
+    VMSSH --> SF
+    VMSSH --> MSF
+```
+
+**1) getStateFlow — 읽기 전용 StateFlow**
+
+```kotlin
+// key에 대한 StateFlow를 반환 (값 변경 시 자동 갱신)
+val userIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("userId", "")
+```
+
+**2) getMutableStateFlow — 읽기/쓰기 MutableStateFlow**
+
+```kotlin
+// 직접 값을 수정할 수 있는 MutableStateFlow
+val counter = savedStateHandle.getMutableStateFlow("counter", 0)
+counter.value = counter.value + 1  // → SavedStateHandle에도 자동 반영
+```
+
+**3) ViewModel에서 toRoute\<T\>()로 Route 인자 추출**
+
+```kotlin
+class UserViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
+    // Route 인자를 한 번에 추출
+    private val route = savedStateHandle.toRoute<UserRoute>()
+    val userId: String = route.userId
+
+    // StateFlow로 관찰
+    val userIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("userId", "")
+
+    // MutableStateFlow로 편집 가능한 상태
+    val editableName = savedStateHandle.getMutableStateFlow("editableName", route.userName)
+}
+```
+
+**4) 유틸리티 메서드**
+
+| 메서드 | 설명 |
+|--------|------|
+| `keys()` | 저장된 모든 key 목록 |
+| `contains(key)` | key 존재 여부 확인 |
+| `remove(key)` | key 삭제 후 값 반환 |
+| `get<T>(key)` | 값 조회 |
+| `set(key, value)` / `[key] = value` | 값 저장 |
+
+**테스트 파일:** `SavedStateHandleAdvancedTest.kt`
+
+---
+
 ## 학습 순서
 
 ### 1단계: 기본 컴포넌트 (`basic/`)
