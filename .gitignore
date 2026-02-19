@@ -44,3 +44,9 @@ bin/
 .idea/
 
 local.properties
+
+### OMC ###
+.omc/
+
+### Firebase ###
+firebase-debug.log
