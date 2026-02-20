@@ -139,6 +139,12 @@ Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌
 - 다이어그램은 설명을 보조하는 용도로, 코드 예제를 대체하지 않음
 - 복잡한 개념일수록 다이어그램 우선 제시 후 코드로 보충
 
+**SVG 이미지 변환 (Android Studio 호환):**
+- Phase 1 README 작성 완료 후, `/mermaid` 스킬 또는 변환 스크립트로 Mermaid → SVG 자동 변환
+- 실행: `python3 .claude/scripts/mermaid-to-svg.py <README_PATH>`
+- 원본 Mermaid 소스는 `<details>` 접힘 블록에 보존
+- 커밋 전 반드시 SVG 변환 수행하여 Android Studio에서도 다이어그램을 볼 수 있게 한다
+
 ---
 
 ### Phase 2: SAMPLE (베스트 프랙티스)
