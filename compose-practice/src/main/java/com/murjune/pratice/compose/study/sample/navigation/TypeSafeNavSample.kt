@@ -8,10 +8,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,31 +44,52 @@ private data class ProfileRoute(
     val age: Int,
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TypeSafeNavSample(modifier: Modifier = Modifier) {
+fun TypeSafeNavSample(
+    onBackClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val navController = rememberNavController()
 
-    NavHost(
-        navController = navController,
-        startDestination = TypeSafeHome,
+    Scaffold(
         modifier = modifier.fillMaxSize(),
-    ) {
-        composable<TypeSafeHome> {
-            TypeSafeHomeScreen(
-                onNavigateToProfile = { name, age ->
-                    navController.navigate(ProfileRoute(name = name, age = age))
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "Type-Safe Navigation") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "뒤로가기",
+                        )
+                    }
                 },
             )
-        }
-        composable<ProfileRoute> { backStackEntry ->
-            val route = backStackEntry.toRoute<ProfileRoute>()
-            ProfileScreen(
-                name = route.name,
-                age = route.age,
-                onBack = {
-                    navController.popBackStack()
-                },
-            )
+        },
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = TypeSafeHome,
+            modifier = Modifier.padding(innerPadding).fillMaxSize(),
+        ) {
+            composable<TypeSafeHome> {
+                TypeSafeHomeScreen(
+                    onNavigateToProfile = { name, age ->
+                        navController.navigate(ProfileRoute(name = name, age = age))
+                    },
+                )
+            }
+            composable<ProfileRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<ProfileRoute>()
+                ProfileScreen(
+                    name = route.name,
+                    age = route.age,
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                )
+            }
         }
     }
 }

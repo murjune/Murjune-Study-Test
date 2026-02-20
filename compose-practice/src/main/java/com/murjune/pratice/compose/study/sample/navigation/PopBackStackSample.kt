@@ -7,11 +7,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -36,49 +43,70 @@ private object ScreenB
 @Serializable
 private object ScreenC
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PopBackStackSample(modifier: Modifier = Modifier) {
+fun PopBackStackSample(
+    onBackClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val navController = rememberNavController()
 
-    Column(modifier = modifier.fillMaxSize()) {
-        NavHost(
-            navController = navController,
-            startDestination = ScreenA,
-            modifier = Modifier.weight(1f),
-        ) {
-            composable<ScreenA> {
-                ScreenContent(
-                    screenName = "Screen A",
-                    description = "첫 번째 화면입니다.\nScreen B로 이동할 수 있습니다.",
-                    buttons =
-                        listOf(
-                            "Screen B로 이동" to { navController.navigate(ScreenB) },
-                        ),
-                )
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "PopBackStack") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "뒤로가기",
+                        )
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            NavHost(
+                navController = navController,
+                startDestination = ScreenA,
+                modifier = Modifier.weight(1f),
+            ) {
+                composable<ScreenA> {
+                    ScreenContent(
+                        screenName = "Screen A",
+                        description = "첫 번째 화면입니다.\nScreen B로 이동할 수 있습니다.",
+                        buttons =
+                            listOf(
+                                "Screen B로 이동" to { navController.navigate(ScreenB) },
+                            ),
+                    )
+                }
+                composable<ScreenB> {
+                    ScreenContent(
+                        screenName = "Screen B",
+                        description = "두 번째 화면입니다.\nScreen C로 이동하거나 뒤로 갈 수 있습니다.",
+                        buttons =
+                            listOf(
+                                "Screen C로 이동" to { navController.navigate(ScreenC) },
+                                "popBackStack()" to { navController.popBackStack() },
+                            ),
+                    )
+                }
+                composable<ScreenC> {
+                    ScreenContent(
+                        screenName = "Screen C",
+                        description = "세 번째 화면입니다.\npopBackStack()으로 이전 화면으로 돌아갑니다.",
+                        buttons =
+                            listOf(
+                                "popBackStack()" to { navController.popBackStack() },
+                            ),
+                    )
+                }
             }
-            composable<ScreenB> {
-                ScreenContent(
-                    screenName = "Screen B",
-                    description = "두 번째 화면입니다.\nScreen C로 이동하거나 뒤로 갈 수 있습니다.",
-                    buttons =
-                        listOf(
-                            "Screen C로 이동" to { navController.navigate(ScreenC) },
-                            "popBackStack()" to { navController.popBackStack() },
-                        ),
-                )
-            }
-            composable<ScreenC> {
-                ScreenContent(
-                    screenName = "Screen C",
-                    description = "세 번째 화면입니다.\npopBackStack()으로 이전 화면으로 돌아갑니다.",
-                    buttons =
-                        listOf(
-                            "popBackStack()" to { navController.popBackStack() },
-                        ),
-                )
-            }
+            BackStackDisplay(navController = navController)
         }
-        BackStackDisplay(navController = navController)
     }
 }
 

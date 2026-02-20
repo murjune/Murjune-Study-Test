@@ -6,9 +6,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,32 +38,53 @@ private data class BasicDetail(
     val itemId: Int,
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavHostBasicSample(modifier: Modifier = Modifier) {
+fun NavHostBasicSample(
+    onBackClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val navController = rememberNavController()
 
-    Column(modifier = modifier.fillMaxSize()) {
-        BackStackDepthHeader(navController = navController)
-        NavHost(
-            navController = navController,
-            startDestination = BasicHome,
-            modifier = Modifier.weight(1f),
-        ) {
-            composable<BasicHome> {
-                BasicHomeScreen(
-                    onNavigateToDetail = {
-                        navController.navigate(BasicDetail(itemId = 42))
-                    },
-                )
-            }
-            composable<BasicDetail> { backStackEntry ->
-                val route = backStackEntry.toRoute<BasicDetail>()
-                BasicDetailScreen(
-                    itemId = route.itemId,
-                    onBack = {
-                        navController.popBackStack()
-                    },
-                )
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "NavHost 기본") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "뒤로가기",
+                        )
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            BackStackDepthHeader(navController = navController)
+            NavHost(
+                navController = navController,
+                startDestination = BasicHome,
+                modifier = Modifier.weight(1f),
+            ) {
+                composable<BasicHome> {
+                    BasicHomeScreen(
+                        onNavigateToDetail = {
+                            navController.navigate(BasicDetail(itemId = 42))
+                        },
+                    )
+                }
+                composable<BasicDetail> { backStackEntry ->
+                    val route = backStackEntry.toRoute<BasicDetail>()
+                    BasicDetailScreen(
+                        itemId = route.itemId,
+                        onBack = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
             }
         }
     }
