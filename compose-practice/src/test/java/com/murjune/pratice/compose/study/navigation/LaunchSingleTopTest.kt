@@ -106,16 +106,12 @@ class LaunchSingleTopTest {
     fun `launchSingleTop시_기존_엔트리의_인자가_새_인자로_갱신된다`() {
         // given - Home → ItemDetail(1)
         val navController = setupNavHost()
-        composeTestRule.runOnIdle {
-            navController.navigate(ItemDetail(id = 1))
-        }
+        navController.navigate(ItemDetail(id = 1))
         composeTestRule.onNodeWithText("Item 1").assertIsDisplayed()
 
         // when - launchSingleTop으로 id=2로 이동
-        composeTestRule.runOnIdle {
-            navController.navigate(ItemDetail(id = 2)) {
-                launchSingleTop = true
-            }
+        navController.navigate(ItemDetail(id = 2)) {
+            launchSingleTop = true
         }
 
         // then - 화면에 표시되는 인자가 id=2로 갱신된다
@@ -178,7 +174,7 @@ class LaunchSingleTopTest {
         // popBackStack 두 번 해야 Home으로 돌아감
         navController.popBackStack()
         composeTestRule.onNodeWithText("Item 1").assertIsDisplayed()
-        composeTestRule.runOnIdle { navController.popBackStack() }
+        navController.popBackStack()
         composeTestRule.onNodeWithText("Home").assertIsDisplayed()
     }
 }
