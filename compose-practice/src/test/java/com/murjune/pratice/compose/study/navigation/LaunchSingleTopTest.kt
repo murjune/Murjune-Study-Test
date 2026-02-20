@@ -16,14 +16,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
-
 /**
  * 같은 destination 타입에 다른 인자를 넘겼을 때 백스택 동작과
  * launchSingleTop의 영향을 검증하는 테스트
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class LaunchSingleTopTest {
     @get:Rule
     val composeTestRule = createComposeRule()

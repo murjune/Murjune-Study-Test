@@ -16,8 +16,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
-
 /**
  * SavedStateHandle이 Navigation에서 어떻게 동작하는지 검증하는 테스트
  *
@@ -27,7 +25,6 @@ import org.robolectric.annotation.Config
  * 3) Configuration Change / Process Death에서도 살아남는다
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class SavedStateHandleTest {
     @get:Rule
     val composeTestRule = createComposeRule()

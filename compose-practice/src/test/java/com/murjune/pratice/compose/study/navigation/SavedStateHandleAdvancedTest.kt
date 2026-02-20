@@ -24,8 +24,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
-
 /**
  * SavedStateHandle 최신 API를 검증하는 테스트
  *
@@ -36,7 +34,6 @@ import org.robolectric.annotation.Config
  * 4) savedStateHandle.toRoute<T>() — Route 객체로 직접 변환
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class SavedStateHandleAdvancedTest {
     @get:Rule
     val composeTestRule = createComposeRule()

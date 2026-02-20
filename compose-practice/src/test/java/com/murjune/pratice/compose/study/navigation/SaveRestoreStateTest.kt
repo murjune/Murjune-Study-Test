@@ -15,8 +15,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
-
 /**
  * saveState / restoreState 동작을 검증하는 테스트
  *
@@ -26,7 +24,6 @@ import org.robolectric.annotation.Config
  * - 다시 돌아오면 이전 백스택을 복원 (restoreState)
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class SaveRestoreStateTest {
     @get:Rule
     val composeTestRule = createComposeRule()
