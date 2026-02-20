@@ -46,19 +46,19 @@ fun StudyNavHost(navController: NavHostController = rememberNavController()) {
             )
         }
         composable<NavHostBasicRoute> {
-            NavHostBasicSample()
+            NavHostBasicSample(onBackClick = { navController.popBackStack() })
         }
         composable<TypeSafeNavRoute> {
-            TypeSafeNavSample()
+            TypeSafeNavSample(onBackClick = { navController.popBackStack() })
         }
         composable<PopBackStackRoute> {
-            PopBackStackSample()
+            PopBackStackSample(onBackClick = { navController.popBackStack() })
         }
         composable<PopUpToRoute> {
-            PopUpToSample()
+            PopUpToSample(onBackClick = { navController.popBackStack() })
         }
         composable<DeepLinkRoute> {
-            DeepLinkSample()
+            DeepLinkSample(onBackClick = { navController.popBackStack() })
         }
     }
 }
