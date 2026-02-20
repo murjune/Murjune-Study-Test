@@ -429,29 +429,147 @@ class UserViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
 
 ---
 
+### 10. Nested Navigation Graph (중첩 탐색 그래프)
+
+**Q: 서브 플로우(로그인, 온보딩 등)를 어떻게 캡슐화하나?**
+
+`navigation<GraphRoute>(startDestination = ...)` DSL로 중첩 그래프를 생성한다.
+
+```mermaid
+graph TD
+    subgraph "Top-level Graph"
+        Home
+        Dashboard
+    end
+    subgraph "AuthGraph (중첩)"
+        Login
+        Signup
+        VerifyEmail
+    end
+    Home -->|"navigate(AuthGraph)"| Login
+    Login --> Signup --> VerifyEmail
+    VerifyEmail -->|"navigate(Dashboard)\npopUpTo AuthGraph inclusive"| Dashboard
+```
+
+```kotlin
+NavHost(navController, startDestination = Home) {
+    composable<Home> { HomeScreen() }
+
+    // Auth 중첩 그래프
+    navigation<AuthGraph>(startDestination = Login) {
+        composable<Login> { LoginScreen() }
+        composable<Signup> { SignupScreen() }
+        composable<VerifyEmail> { VerifyEmailScreen() }
+    }
+
+    composable<Dashboard> { DashboardScreen() }
+}
+
+// 외부에서 그래프로 navigate → startDestination(Login)이 표시됨
+navController.navigate(AuthGraph)
+
+// 그래프 전체 정리
+navController.navigate(Dashboard) {
+    popUpTo<AuthGraph> { inclusive = true }
+}
+```
+
+**핵심:**
+- `navigate(AuthGraph)` → 중첩 그래프의 `startDestination`이 표시됨
+- 중첩 그래프 진입 시 백스택에 **그래프 엔트리 + startDestination** 2개가 추가됨
+- `popUpTo<AuthGraph> { inclusive = true }` → 그래프 내부 화면 전부 정리
+- 외부에서 내부 destination으로 직접 navigate도 가능 (Route는 전역)
+
+> 출처: [Nested Navigation Graphs 공식 문서](https://developer.android.com/guide/navigation/design/nested-graphs)
+
+**테스트 파일:** `NestedNavGraphTest.kt`
+
+---
+
+### 11. DeepLink Intent 처리 흐름 (Activity vs Navigation)
+
+**Q: Activity와 Navigation에서 동시에 DeepLink를 처리하면 어떻게 되나?**
+
+```mermaid
+sequenceDiagram
+    participant E as 외부 (브라우저/알림)
+    participant S as Android System
+    participant A as Activity
+    participant NC as NavController
+
+    E->>S: Intent (ACTION_VIEW)
+    S->>A: onCreate() / onNewIntent()
+    A->>NC: handleDeepLink(intent) 자동 호출
+    NC->>NC: NavGraph에서 URI 매칭
+    NC->>NC: 매칭된 destination으로 이동
+```
+
+**핵심 동작:**
+
+| launch mode | 처리 방식 |
+|-------------|----------|
+| `standard` (기본) | `NavController.handleDeepLink(intent)` **자동** 호출 |
+| `singleTop` | `onNewIntent()`에서 **수동** `handleDeepLink()` 호출 필요 |
+
+```kotlin
+// singleTop일 때 수동 처리
+override fun onNewIntent(intent: Intent?) {
+    super.onNewIntent(intent)
+    navController.handleDeepLink(intent)
+}
+```
+
+**중복 처리 없음**: Activity의 `onCreate()`가 Intent를 처리하고 Navigation이 또 처리하는 게 아니라, **Navigation이 전담**한다. `handleDeepLink()`가 NavGraph에서 URI를 매칭하고 해당 destination으로 이동.
+
+**`handleDeepLink()` 반환값:**
+- `true` — URI 매칭 성공, destination으로 이동
+- `false` — 매칭 실패, 아무 동작 안 함
+
+> 출처: [Deep Link 공식 문서](https://developer.android.com/guide/navigation/design/deep-link)
+
+**테스트 파일:** `DeepLinkHandlingTest.kt`
+
+---
+
 ## 학습 순서
 
-### 1단계: 기본 컴포넌트 (`basic/`)
+### 1단계: 기본 컴포넌트
 
 NavHost, NavController, composable의 역할과 동작 방식을 학습합니다.
 
-**테스트 파일:** `NavHostTest.kt`, `TypeSafeNavigationTest.kt`
+**테스트 파일:** `NavHostBasicTest.kt`, `TypeSafeNavigationTest.kt`
 
 ---
 
-### 2단계: 백스택 동작 (`backstack/`)
+### 2단계: 백스택 동작
 
-`popBackStack()`과 `navigateUp()`의 차이, `popUpTo`의 활용을 학습합니다.
+`popBackStack()`, `popUpTo`, `launchSingleTop`, `saveState/restoreState`를 학습합니다.
 
-**테스트 파일:** `PopBackStackTest.kt`, `PopUpToTest.kt`
+**테스트 파일:** `PopBackStackTest.kt`, `PopUpToTest.kt`, `LaunchSingleTopTest.kt`, `SaveRestoreStateTest.kt`
 
 ---
 
-### 3단계: DeepLink (`deeplink/`)
+### 3단계: 상태 관리
 
-외부에서 앱의 특정 화면으로 진입하는 DeepLink를 학습합니다.
+SavedStateHandle, ViewModel 연동, Result 패턴을 학습합니다.
 
-**테스트 파일:** `DeepLinkTest.kt`
+**테스트 파일:** `SavedStateHandleTest.kt`, `SavedStateHandleAdvancedTest.kt`
+
+---
+
+### 4단계: 구조화
+
+Nested Navigation Graph로 서브 플로우를 캡슐화합니다.
+
+**테스트 파일:** `NestedNavGraphTest.kt`
+
+---
+
+### 5단계: DeepLink
+
+외부 URI 진입, handleDeepLink, Activity 연동을 학습합니다.
+
+**테스트 파일:** `DeepLinkHandlingTest.kt`
 
 ---
 
@@ -462,9 +580,9 @@ NavHost, NavController, composable의 역할과 동작 방식을 학습합니다
 ./gradlew :compose-practice:test
 
 # 특정 테스트 클래스 실행
-./gradlew :compose-practice:test --tests "*.NavHostTest"
-./gradlew :compose-practice:test --tests "*.PopBackStackTest"
-./gradlew :compose-practice:test --tests "*.DeepLinkTest"
+./gradlew :compose-practice:test --tests "*.NavHostBasicTest"
+./gradlew :compose-practice:test --tests "*.NestedNavGraphTest"
+./gradlew :compose-practice:test --tests "*.DeepLinkHandlingTest"
 ```
 
 ---
