@@ -219,6 +219,60 @@ AndroidManifest에 intent-filter 설정 필요:
 > 출처: [Navigation Compose 공식 문서 - Deep Links](https://developer.android.com/develop/ui/compose/navigation),
 > [JetNews JetnewsNavGraph.kt](https://github.com/android/compose-samples/blob/main/JetNews/app/src/main/java/com/example/jetnews/ui/JetnewsNavGraph.kt)
 
+**Deep Link 자동 처리 내부 동작 (소스 코드 기준):**
+
+별도 코드 없이 manifest의 intent-filter + composable의 navDeepLink만 등록하면 자동으로 동작한다.
+그 이유는 `NavController.setGraph()` 시점에 Activity의 intent를 자동으로 확인하기 때문이다.
+
+```mermaid
+sequenceDiagram
+    participant E as 외부 (브라우저)
+    participant S as Android 시스템
+    participant A as MainActivity
+    participant NC as NavController
+    participant NCI as NavControllerImpl
+
+    E->>S: https://study.example.com/profile/user_42
+    S->>A: intent-filter 매칭 → Activity 실행
+    Note over A: intent.data = URI
+
+    A->>NC: setContent { NavHost(...) }
+    NC->>NCI: setGraph(graph)
+    NCI->>NCI: backQueue.isEmpty()? → Yes (앱 처음 시작)
+    NCI->>NC: checkDeepLinkHandled()
+    NC->>NC: handleDeepLink(activity!!.intent)
+    Note over NC: intent에서 URI 추출 → navDeepLink 매칭
+    NC->>NC: navigate(Profile(userId="user_42"))
+    Note over NCI: deep link 처리 완료 → startDestination 스킵
+```
+
+```kotlin
+// NavControllerImpl.kt:970-975 — setGraph() 마지막 부분
+if (_graph != null && backQueue.isEmpty()) {
+    if (!navController.checkDeepLinkHandled()) {
+        // deep link 없으면 → startDestination으로 이동
+        navigate(_graph!!, startDestinationArgs, null, null)
+    }
+    // deep link 있으면 → 이미 handleDeepLink에서 처리 완료
+}
+
+// NavController.android.kt:480-481
+internal actual fun checkDeepLinkHandled(): Boolean {
+    return !deepLinkHandled          // 아직 처리 안 했고
+        && activity != null          // Activity가 있으면
+        && handleDeepLink(activity!!.intent)  // Activity의 intent로 deep link 처리
+}
+```
+
+| 실행 방식 | checkDeepLinkHandled() 결과 | 이동 대상 |
+|-----------|---------------------------|-----------|
+| 런처에서 앱 클릭 | `false` (URI 없음) | startDestination |
+| 브라우저에서 deep link | `true` (URI 매칭) | 매칭된 destination |
+| adb shell am start -d URI | `true` (URI 매칭) | 매칭된 destination |
+
+> 출처: [NavControllerImpl.kt](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-runtime/src/commonMain/kotlin/androidx/navigation/internal/NavControllerImpl.kt),
+> [NavController.android.kt](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-runtime/src/androidMain/kotlin/androidx/navigation/NavController.android.kt)
+
 ---
 
 ### 6. launchSingleTop과 같은 destination + 다른 인자
