@@ -230,7 +230,7 @@ class BackStackEntryLifecycleTest {
         // when - Home까지 popUpTo (Detail, Settings 둘 다 제거)
         composeTestRule.runOnIdle {
             navController.navigate(Home) {
-                popUpTo<Home> { inclusive = false }
+                popUpTo<Home> {  }
             }
         }
         composeTestRule.waitForIdle()

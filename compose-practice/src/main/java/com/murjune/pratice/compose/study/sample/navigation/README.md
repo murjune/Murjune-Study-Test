@@ -522,6 +522,79 @@ TopAppBar(
 
 ---
 
+### 12. NavBackStackEntry = LifecycleOwner + ViewModelStoreOwner
+
+**Q: NavBackStackEntry가 정확히 뭘 구현하나? Configuration Change 시 어떻게 되나?**
+
+`NavBackStackEntry`는 4가지 Owner를 겸하는 핵심 클래스이다:
+
+```kotlin
+// NavBackStackEntry 실제 시그니처
+public class NavBackStackEntry : LifecycleOwner,
+                                  ViewModelStoreOwner,
+                                  HasDefaultViewModelProviderFactory,
+                                  SavedStateRegistryOwner
+```
+
+```mermaid
+graph TD
+    NBE["NavBackStackEntry"]
+    NBE -->|LifecycleOwner| LC["Lifecycle<br/>CREATED → STARTED → RESUMED → DESTROYED"]
+    NBE -->|ViewModelStoreOwner| VM["ViewModelStore<br/>엔트리 스코프 ViewModel"]
+    NBE -->|SavedStateRegistryOwner| SSR["SavedStateRegistry<br/>상태 저장/복원"]
+    NBE -->|HasDefaultViewModelProviderFactory| VMF["ViewModelProvider.Factory"]
+    style NBE fill:#e1f5fe
+```
+
+**Configuration Change 발생 시:**
+
+| 항목 | Configuration Change 후 |
+|------|------------------------|
+| NavBackStackEntry 객체 | **새 인스턴스** (`===` 동등성 깨짐) |
+| 백스택 순서/구조 | **보존** |
+| arguments (Route 인자) | **보존** |
+| savedStateHandle | **보존** (Bundle로 저장/복원) |
+| Lifecycle 객체 | **새 인스턴스** |
+| Lifecycle 상태 | **복원** (top이면 RESUMED 등) |
+| ViewModel | **보존** (Activity retain 메커니즘) |
+
+```mermaid
+sequenceDiagram
+    participant A as Activity
+    participant NC as NavController
+    participant E as NavBackStackEntry
+
+    Note over A: Configuration Change!
+    A->>A: onSaveInstanceState()
+    Note over NC: 백스택 구조 + arguments 저장
+
+    A->>A: 재생성
+    A->>NC: rememberNavController() → 새 NavController
+    NC->>E: 새 NavBackStackEntry 객체 생성
+    Note over E: savedStateHandle 복원
+    Note over E: ViewModel은 retain되어 그대로
+    Note over E: Lifecycle: CREATED → STARTED → RESUMED
+```
+
+**핵심:**
+- `rememberNavController()`가 내부적으로 `rememberSaveable`로 NavController 상태를 복원
+- 객체는 바뀌지만 사용자 경험은 동일
+- ViewModel은 Activity의 `ViewModelStore` retain 메커니즘으로 살아남음
+- `hiltViewModel()` / `viewModel()`은 NavBackStackEntry를 ViewModelStoreOwner로 사용
+
+```kotlin
+composable<Profile> { backStackEntry ->
+    // backStackEntry 자체가 LifecycleOwner + ViewModelStoreOwner
+    val viewModel = hiltViewModel<ProfileViewModel>()  // backStackEntry 스코프
+
+    // 엔트리가 DESTROYED되면 → ViewModel.onCleared() 호출
+}
+```
+
+**테스트 파일:** `BackStackEntryLifecycleTest.kt`
+
+---
+
 ## 학습 순서
 
 ### 1단계: 기본 컴포넌트 (`basic/`)
