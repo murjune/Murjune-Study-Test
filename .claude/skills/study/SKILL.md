@@ -178,18 +178,25 @@ Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌
 
 **목표:** 학습 내용을 직접 구현해본다.
 
-1. 구현 문제 제시 (Codelab 스타일):
-   - 문제 설명
-   - 요구사항 명세
-   - 힌트 (선택적)
+1. **챌린지 요구사항 파일 작성 (필수):**
+   - `challenge/CHALLENGE.md` 파일을 샘플 디렉토리 하위에 생성
+   - 위치: `src/main/.../sample/<topic>/challenge/CHALLENGE.md`
+   - 포함 내용:
+     - 시나리오 설명 (다이어그램 포함)
+     - 요구사항 명세 (Route, 동작, 특수 조건)
+     - 구현할 파일 목록과 위치
+     - 테스트 목록 (최소 5개)
+     - 힌트 (접힘 블록으로)
 
-2. PSM으로 정답 worktree 생성 (백그라운드):
-   ```
-   /psm feature <project> answer/<topic-name>
-   ```
-   사용자가 푸는 동안 백그라운드에서 정답 코드 + 테스트 작성
+2. 구현 문제를 사용자에게 대화로도 제시 (Codelab 스타일)
 
-3. `AskUserQuestion`: 구현 완료 여부 확인
+3. **정답 코드는 PSM worktree에서 작성 (main 브랜치에 넣지 않음):**
+   - PSM으로 별도 worktree 생성: `/psm feature <project> answer/<topic-name>`
+   - 정답 worktree에서 테스트 케이스 작성 → 전부 통과 → 자체 코드리뷰 → 리팩토링까지 진행
+   - 사용자가 answer를 제출하기 전까지는 절대 main에 머지하지 않음
+   - 사용자의 구현 코드와 완전히 분리
+
+4. `AskUserQuestion`: 구현 완료 여부 확인
    - "다 구현했어" → Phase 4로
    - "막혔어" → 힌트 제공 후 대기
 

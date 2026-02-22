@@ -8,13 +8,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.murjune.pratice.compose.study.sample.navigation.DeepLinkSample
 import com.murjune.pratice.compose.study.sample.navigation.LaunchSingleTopSample
+import com.murjune.pratice.compose.study.sample.navigation.NavHostBasicSample
 import com.murjune.pratice.compose.study.sample.navigation.NavigateUpSample
 import com.murjune.pratice.compose.study.sample.navigation.NestedNavGraphSample
-import com.murjune.pratice.compose.study.sample.navigation.SaveRestoreStateSample
-import com.murjune.pratice.compose.study.sample.navigation.SavedStateHandleSample
-import com.murjune.pratice.compose.study.sample.navigation.NavHostBasicSample
 import com.murjune.pratice.compose.study.sample.navigation.PopBackStackSample
 import com.murjune.pratice.compose.study.sample.navigation.PopUpToSample
+import com.murjune.pratice.compose.study.sample.navigation.SaveRestoreStateSample
+import com.murjune.pratice.compose.study.sample.navigation.SavedStateHandleSample
 import com.murjune.pratice.compose.study.sample.navigation.TypeSafeNavSample
 import com.murjune.pratice.compose.study.screen.StudyMainScreen
 import com.murjune.pratice.compose.study.screen.TopicScreen

@@ -965,4 +965,7 @@ NavDisplay(
 
 ## 다음 학습
 
+- [ ] PendingIntent + Notification 딥링크 이동
+  - TaskStackBuilder로 스택 채우면서 이동 (뒤로가기 시 상위 화면 순서대로)
+  - FLAG_ACTIVITY_NEW_TASK로 스택 없이 바로 화면 이동
 - [ ] Navigation 3 (stable 출시) — NavKey, NavDisplay, NavBackStack, sceneStrategy 실습
