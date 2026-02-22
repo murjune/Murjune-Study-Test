@@ -1,5 +1,4 @@
 package com.murjune.pratice.compose.study.sample.navigation
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer

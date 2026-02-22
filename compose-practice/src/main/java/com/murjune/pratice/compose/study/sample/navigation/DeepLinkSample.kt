@@ -1,5 +1,8 @@
 package com.murjune.pratice.compose.study.sample.navigation
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
@@ -25,6 +28,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -110,7 +114,9 @@ private fun DeepLinkHomeScreen(
     onDeepLinkClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val deepLinkUri = "$DEEP_LINK_BASE_PATH/user_42"
+    val adbCommand = "adb shell am start -a android.intent.action.VIEW -d \"$deepLinkUri\""
 
     Column(
         modifier =
@@ -180,18 +186,25 @@ private fun DeepLinkHomeScreen(
                 CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                 ),
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val clipboard =
+                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(
+                            ClipData.newPlainText("adb command", adbCommand),
+                        )
+                    },
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "adb 테스트 명령어",
+                    text = "adb 테스트 명령어 (탭하여 복사)",
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text =
-                        "adb shell am start -a android.intent.action.VIEW " +
-                            "-d \"$deepLinkUri\"",
+                    text = adbCommand,
                     style = MaterialTheme.typography.bodySmall,
                     fontFamily = FontFamily.Monospace,
                 )
