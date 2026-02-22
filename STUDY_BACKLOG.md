@@ -11,7 +11,7 @@
 
 | 모듈 | 주제 | 상태 | 링크 |
 |------|------|------|------|
-| compose-practice | Navigation 2 (NavHost, Type-Safe, BackStack, DeepLink) | 진행 중 🔄 (Phase 1) | [README](compose-practice/src/main/java/com/murjune/pratice/compose/study/sample/navigation/README.md) |
+| compose-practice | Navigation 2 (NavHost, Type-Safe, BackStack, DeepLink) | 진행 중 🔄 (Phase 3) | [README](compose-practice/src/main/java/com/murjune/pratice/compose/study/sample/navigation/README.md) |
 
 ---
 

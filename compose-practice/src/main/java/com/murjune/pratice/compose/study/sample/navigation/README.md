@@ -749,6 +749,220 @@ NavHost, NavController, composable의 역할과 동작 방식을 학습합니다
 
 ---
 
+## Phase 2: 베스트 프랙티스 (NowInAndroid / JetNews)
+
+### 패턴 1: Navigation Action 캡슐화 (JetNews — Nav 2)
+
+하단 탭/Drawer 전환 시 `popUpTo + saveState + launchSingleTop + restoreState` 조합을 매번 반복하면 실수가 생긴다.
+JetNews는 `JetnewsNavigationActions` 클래스로 한 곳에 모아서 관리한다.
+
+```kotlin
+// JetnewsNavigation.kt
+class JetnewsNavigationActions(navController: NavHostController) {
+    val navigateToHome: () -> Unit = {
+        navController.navigate(JetnewsDestinations.HOME_ROUTE) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true      // 현재 화면의 백스택 저장
+            }
+            launchSingleTop = true    // 같은 탭 중복 방지
+            restoreState = true       // 이전 탭의 백스택 복원
+        }
+    }
+}
+```
+
+**핵심:**
+- `findStartDestination().id` — 그래프의 시작 destination까지 pop → 백스택 누적 방지
+- 이 4가지 옵션 조합이 Nav 2 하단 탭 전환의 **정석 패턴**
+- JetNews는 `currentBackStackEntryAsState()`로 현재 route를 관찰하여 Drawer 선택 상태 동기화
+
+```kotlin
+// JetnewsApp.kt
+val navController = rememberNavController()
+val navigationActions = remember(navController) {
+    JetnewsNavigationActions(navController)
+}
+val navBackStackEntry by navController.currentBackStackEntryAsState()
+val currentRoute = navBackStackEntry?.destination?.route ?: HOME_ROUTE
+```
+
+> 출처: [JetNews JetnewsNavigation.kt](https://github.com/android/compose-samples/blob/main/JetNews/app/src/main/java/com/example/jetnews/ui/JetnewsNavigation.kt),
+> [JetNews JetnewsApp.kt](https://github.com/android/compose-samples/blob/main/JetNews/app/src/main/java/com/example/jetnews/ui/JetnewsApp.kt)
+
+---
+
+### 패턴 2: 멀티모듈 Navigation 캡슐화 진화 (NowInAndroid Nav 2 → Nav 3)
+
+#### Navigation 2 시절
+
+```kotlin
+// feature 모듈: NavGraphBuilder 확장으로 destination 캡슐화
+fun NavGraphBuilder.topicScreen(onBackClick: () -> Unit) {
+    composable<TopicRoute> { entry ->
+        TopicScreen(topicId = entry.toRoute<TopicRoute>().id, onBackClick = onBackClick)
+    }
+}
+
+// feature 모듈: NavController 확장으로 navigate 캡슐화
+fun NavController.navigateToTopic(id: String) {
+    navigate(TopicRoute(id = id))
+}
+```
+
+#### Navigation 3 현재 — api/impl 모듈 분리
+
+```kotlin
+// feature/topic/api — NavKey + navigate 확장함수만 노출
+@Serializable
+data class TopicNavKey(val id: String) : NavKey
+
+fun Navigator.navigateToTopic(topicId: String) {
+    navigate(TopicNavKey(topicId))
+}
+
+// feature/topic/impl — 화면 구현은 숨김
+fun EntryProviderScope<NavKey>.topicEntry(navigator: Navigator) {
+    entry<TopicNavKey> { key ->
+        TopicScreen(
+            onBackClick = { navigator.goBack() },
+            onTopicClick = navigator::navigateToTopic,
+            viewModel = hiltViewModel<TopicViewModel, Factory>(key = key.id) { ... },
+        )
+    }
+}
+```
+
+**api/impl 분리의 이유:**
+- `api`: NavKey + navigate 확장함수만 → 다른 feature가 의존해도 구현 세부사항 노출 없음
+- `impl`: 실제 화면 + ViewModel → 변경해도 의존 모듈 재빌드 불필요 (빌드 시간 최적화)
+- Navigation 2의 `NavGraphBuilder.topicScreen()`도 같은 의도였지만, Nav 3에서 더 명확하게 분리
+
+> 출처: [NowInAndroid feature/topic/api](https://github.com/android/nowinandroid/blob/main/feature/topic/api/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/api/navigation/TopicNavKey.kt),
+> [NowInAndroid feature/topic/impl](https://github.com/android/nowinandroid/blob/main/feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/navigation/TopicEntryProvider.kt)
+
+---
+
+### 패턴 3: 백스택 직접 소유 — Navigator 패턴 (NowInAndroid Nav 3)
+
+Navigation 2에서는 NavController가 백스택을 완전히 관리했지만, Navigation 3에서는 개발자가 직접 소유한다.
+
+```kotlin
+// NavigationState.kt — 백스택을 SnapshotStateList로 직접 관리
+class NavigationState(
+    val startKey: NavKey,
+    val topLevelStack: NavBackStack<NavKey>,              // 탭 전환 순서
+    val subStacks: Map<NavKey, NavBackStack<NavKey>>,     // 각 탭별 내부 스택
+) {
+    val currentTopLevelKey: NavKey by derivedStateOf { topLevelStack.last() }
+    val currentKey: NavKey by derivedStateOf { currentSubStack.last() }
+}
+
+// Navigator.kt — 탐색 로직을 순수 함수로 구현
+class Navigator(val state: NavigationState) {
+    fun navigate(key: NavKey) {
+        when (key) {
+            state.currentTopLevelKey -> clearSubStack()   // 같은 탭 → 루트로
+            in state.topLevelKeys -> goToTopLevel(key)    // 다른 탭 → 탭 전환
+            else -> goToKey(key)                           // 일반 화면 → 추가
+        }
+    }
+
+    fun goBack() {
+        when (state.currentKey) {
+            state.startKey -> error("start route에서 뒤로 갈 수 없음")
+            state.currentTopLevelKey -> state.topLevelStack.removeLastOrNull()
+            else -> state.currentSubStack.removeLastOrNull()
+        }
+    }
+}
+```
+
+**Nav 2 하단 탭이 복잡했던 근본 원인:**
+
+```mermaid
+graph LR
+    subgraph "Navigation 2 — 단일 백스택"
+        S1["[Home, Detail, Search, Result]"]
+        S1 -->|"popUpTo + saveState"| S2["저장소에 보관"]
+        S2 -->|"restoreState"| S3["복원"]
+    end
+    subgraph "Navigation 3 — 탭별 독립 스택"
+        T1["Home탭: [Home, Detail]"]
+        T2["Search탭: [Search, Result]"]
+        T1 ---|"물리적 분리"| T2
+    end
+```
+
+Navigation 2는 하나의 백스택에서 여러 탭 상태를 관리 → "저장/복원" 메커니즘 필요
+Navigation 3은 각 탭마다 독립 스택 → saveState/restoreState 자체가 불필요
+
+> 출처: [NowInAndroid NavigationState.kt](https://github.com/android/nowinandroid/blob/main/core/navigation/src/main/kotlin/com/google/samples/apps/nowinandroid/core/navigation/NavigationState.kt),
+> [NowInAndroid Navigator.kt](https://github.com/android/nowinandroid/blob/main/core/navigation/src/main/kotlin/com/google/samples/apps/nowinandroid/core/navigation/Navigator.kt)
+
+---
+
+### 패턴 4: NavHost vs NavDisplay — 화면 조립 방식
+
+```kotlin
+// Navigation 2 (JetNews)
+NavHost(navController = navController, startDestination = HOME_ROUTE) {
+    composable(HOME_ROUTE, deepLinks = listOf(navDeepLink { ... })) {
+        HomeRoute(...)
+    }
+    composable(INTERESTS_ROUTE) { InterestsRoute(...) }
+}
+
+// Navigation 3 (NowInAndroid)
+val entryProvider = entryProvider {
+    forYouEntry(navigator)       // feature 모듈 확장함수
+    bookmarksEntry(navigator)
+    topicEntry(navigator)
+}
+
+NavDisplay(
+    entries = appState.navigationState.toEntries(entryProvider),
+    sceneStrategy = listDetailStrategy,   // Adaptive Layout (태블릿 대응)
+    onBack = { navigator.goBack() },
+)
+```
+
+**NavDisplay의 장점:**
+- `sceneStrategy`로 List-Detail adaptive layout 자동 지원 (태블릿/폴더블)
+- 백스택이 `SnapshotStateList`라서 Compose 상태 시스템과 자연스럽게 통합
+- `entryProvider`가 각 feature 모듈의 확장함수 → 모듈 독립성 강화
+
+> 출처: [NowInAndroid NiaApp.kt](https://github.com/android/nowinandroid/blob/main/app/src/main/kotlin/com/google/samples/apps/nowinandroid/ui/NiaApp.kt)
+
+---
+
+### 종합 비교: Navigation 2 vs Navigation 3
+
+| 관점 | Navigation 2 (JetNews) | Navigation 3 (NowInAndroid) |
+|------|------------------------|----------------------------|
+| 백스택 소유 | NavController (프레임워크) | 개발자 (SnapshotStateList) |
+| Route 정의 | `@Serializable` Route 또는 문자열 | `@Serializable NavKey` |
+| 화면 등록 | `NavHost { composable<T> { } }` | `entryProvider { entry<T> { } }` |
+| 화면 표시 | `NavHost` | `NavDisplay` |
+| 탭 전환 | `popUpTo + saveState + restoreState` | `topLevelStack` 리스트 조작 |
+| 모듈 캡슐화 | `NavGraphBuilder` 확장함수 | api/impl 모듈 분리 |
+| 테스트 | `TestNavHostController` 필요 | 순수 Kotlin 클래스 테스트 |
+| Adaptive Layout | 별도 구현 필요 | `sceneStrategy`로 내장 지원 |
+| DeepLink | `navDeepLink` 지원 | 아직 미지원 (진행 중) |
+
+---
+
+## 참고 링크
+
+- [Navigation Compose 공식 문서](https://developer.android.com/develop/ui/compose/navigation)
+- [Type-Safe Navigation 공식 문서](https://developer.android.com/guide/navigation/design/type-safety)
+- [Encapsulate Navigation 공식 문서](https://developer.android.com/guide/navigation/design/encapsulate)
+- [Navigation Testing 공식 문서](https://developer.android.com/guide/navigation/testing)
+- [NowInAndroid Navigation 구현](https://github.com/android/nowinandroid/tree/main/app/src/main/kotlin/com/google/samples/apps/nowinandroid/navigation)
+- [JetNews Navigation](https://github.com/android/compose-samples/blob/main/JetNews/app/src/main/java/com/example/jetnews/ui/JetnewsNavGraph.kt)
+- [NowInAndroid Issue #1817 - navigateUp vs popBackStack](https://github.com/android/nowinandroid/issues/1817)
+
+---
+
 ## 다음 학습
 
-- [ ] Navigation 3 (현재 알파) — Scene, NavBackStack API 변화 학습
+- [ ] Navigation 3 (stable 출시) — NavKey, NavDisplay, NavBackStack, sceneStrategy 실습
