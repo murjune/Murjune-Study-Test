@@ -17,6 +17,7 @@ Jetpack Compose Navigation의 핵심 개념을 검증하는 학습 테스트 모
 | `SaveRestoreStateTest` | SaveRestoreStateSample | 하단 탭 전환 패턴, saveState/restoreState, 독립 백스택 보존 |
 | `NestedNavGraphTest` | NestedNavGraphSample | navigation\<GraphRoute\>, 중첩 그래프 캡슐화, popUpTo로 그래프 전체 정리 |
 | `DeepLinkHandlingTest` | DeepLinkSample | navDeepLink, handleDeepLink(), Intent 딥링크 처리 흐름 |
+| `BackStackEntryLifecycleTest` | — (공통) | 엔트리별 독립 Lifecycle, RESUMED/DESTROYED 전이, popUpTo 일괄 제거 |
 
 ## 테스트 환경
 

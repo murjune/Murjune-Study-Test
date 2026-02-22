@@ -429,6 +429,99 @@ class UserViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
 
 ---
 
+### 10. BackStackEntry와 Lifecycle
+
+**Q: 각 BackStackEntry는 destination마다 저장되나? Lifecycle은 어떻게 관리되나?**
+
+`navigate()` 호출 때마다 새로운 `NavBackStackEntry`가 생성되어 백스택에 쌓인다.
+각 엔트리는 **독립적인 LifecycleOwner**이다.
+
+```mermaid
+stateDiagram-v2
+    state "navigate(Detail)" as nav
+    state "Home Entry" as home {
+        RESUMED1: RESUMED
+        STARTED1: STARTED
+    }
+    state "Detail Entry" as detail {
+        CREATED2: CREATED
+        RESUMED2: RESUMED
+        DESTROYED2: DESTROYED
+    }
+
+    RESUMED1 --> STARTED1: navigate(Detail)
+    CREATED2 --> RESUMED2: navigate(Detail)
+    RESUMED2 --> DESTROYED2: popBackStack()
+    STARTED1 --> RESUMED1: popBackStack()
+```
+
+**각 NavBackStackEntry가 가지는 것:**
+
+| 속성 | 설명 |
+|------|------|
+| `lifecycle` | 엔트리별 독립 Lifecycle (CREATED → STARTED → RESUMED → DESTROYED) |
+| `savedStateHandle` | 엔트리별 독립 상태 저장소 (Route 인자 + 커스텀 키) |
+| `arguments` | Route 인자 (Bundle) |
+| `destination` | 어떤 NavDestination인지 |
+| `viewModelStoreOwner` | 엔트리별 ViewModel 스코프 |
+
+**Lifecycle 상태 규칙:**
+
+```
+navigate(A)     → A: CREATED → STARTED → RESUMED
+navigate(B)     → A: RESUMED → STARTED  (DESTROYED가 아님!)
+                  B: CREATED → STARTED → RESUMED
+
+popBackStack()  → B: RESUMED → DESTROYED
+                  A: STARTED → RESUMED
+```
+
+- **top만 RESUMED** — 백스택 최상단 엔트리만 RESUMED 상태
+- **pop되면 DESTROYED** — 백스택에서 제거되면 해당 엔트리의 ViewModel도 clear됨
+- **같은 destination도 별도 엔트리** — `Detail(1)`과 `Detail(2)`는 각각 독립적인 Lifecycle/SavedStateHandle
+
+**popUpTo로 여러 엔트리 한번에 제거:**
+
+```kotlin
+// Home → Detail → Settings 상태에서
+navController.navigate(Home) {
+    popUpTo<Home> { inclusive = false }
+}
+// → Detail, Settings 모두 DESTROYED
+```
+
+**테스트 파일:** `BackStackEntryLifecycleTest.kt`
+
+---
+
+### 11. navigateUp vs popBackStack — AppBar 뒤로가기
+
+**Q: TopAppBar 뒤로가기에는 뭘 써야 하나?**
+
+| | `popBackStack()` | `navigateUp()` |
+|--|--|--|
+| 의미 | 스택 연산 (top 제거) | Semantic "Up" Navigation |
+| Deep link 진입 시 | 백스택 비면 아무것도 안 함 | 호출 앱으로 복귀 |
+| Parent NavController | 무시 | parent에 위임 |
+| 반환값 | `Boolean` (성공 여부) | `Boolean` (성공 여부) |
+
+**결론:** AppBar 뒤로가기 = `navigateUp()`, 프로그래밍적 뒤로가기 = `popBackStack()`
+
+```kotlin
+// AppBar 뒤로가기 — navigateUp() 권장
+TopAppBar(
+    navigationIcon = {
+        IconButton(onClick = { navController.navigateUp() }) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, "뒤로가기")
+        }
+    }
+)
+```
+
+> 출처: [NowInAndroid Issue #1817](https://github.com/android/nowinandroid/issues/1817)
+
+---
+
 ## 학습 순서
 
 ### 1단계: 기본 컴포넌트 (`basic/`)
