@@ -505,6 +505,50 @@ navController.navigate(Home) {
 | Parent NavController | 무시 | parent에 위임 |
 | 반환값 | `Boolean` (성공 여부) | `Boolean` (성공 여부) |
 
+**navigateUp() 소스 코드 (NavController):**
+
+```kotlin
+public actual open fun navigateUp(): Boolean {
+    if (destinationCountOnBackStack == 1) {
+        // 백스택에 현재 화면 1개만 남음 → 뒤로 갈 곳이 없음
+        val extras = activity?.intent?.extras
+        if (extras?.getIntArray(KEY_DEEP_LINK_IDS) != null) {
+            return tryRelaunchUpToExplicitStack()   // deep link → 부모 계층 재실행
+        } else {
+            return tryRelaunchUpToGeneratedStack()  // 일반 → NavGraph에서 parent 탐색
+        }
+    } else {
+        return popBackStack()  // 백스택 2개 이상 → popBackStack()과 동일
+    }
+}
+```
+
+**백스택 2개 이상이면 popBackStack()과 완전히 동일하다.** 차이는 백스택 1개일 때만 발생:
+
+| 상황 | `popBackStack()` | `navigateUp()` |
+|------|-----------------|----------------|
+| 백스택 2개+ | pop | pop (**동일**) |
+| 백스택 1개 + deep link | `false` (멈춤) | **부모 계층 재실행** |
+| 백스택 1개 + 일반 | `false` | `false` (보통 동일) |
+
+**외부 앱에서 Deep Link로 진입한 경우 (Up vs Back 차이):**
+
+```mermaid
+graph TD
+    subgraph "Chrome에서 myapp://settings 클릭"
+        S["Settings 화면<br/>백스택: [Settings] 1개"]
+    end
+    S -->|"시스템 Back 버튼"| C["Chrome으로 복귀<br/>(시간 순서: 이전에 있던 곳)"]
+    S -->|"navigateUp()"| H["앱 Home으로 이동<br/>(계층 순서: 앱 내 상위 화면)"]
+    S -->|"popBackStack()"| E["false 반환, 멈춤<br/>(백스택 비어서 아무것도 안 함)"]
+```
+
+| | Back (시스템 뒤로가기) | Up (AppBar 뒤로가기) |
+|--|--|--|
+| 개념 | **시간 순서** — 이전에 있던 곳 | **계층 순서** — 앱 내 상위 화면 |
+| 외부 앱에서 진입 시 | 외부 앱으로 복귀 | **내 앱의 부모 화면** |
+| 구현 | 시스템이 처리 | `navigateUp()` |
+
 **결론:** AppBar 뒤로가기 = `navigateUp()`, 프로그래밍적 뒤로가기 = `popBackStack()`
 
 ```kotlin
@@ -518,7 +562,8 @@ TopAppBar(
 )
 ```
 
-> 출처: [NowInAndroid Issue #1817](https://github.com/android/nowinandroid/issues/1817)
+> 출처: [NowInAndroid Issue #1817](https://github.com/android/nowinandroid/issues/1817),
+> [NavController.navigateUp() 소스](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-runtime/src/androidMain/kotlin/androidx/navigation/NavController.android.kt)
 
 ---
 
