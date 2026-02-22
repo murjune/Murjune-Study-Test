@@ -25,7 +25,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -81,6 +80,10 @@ fun DeepLinkSample(
                     onNavigateToProfile = {
                         navController.navigate(DeepLinkProfile(userId = "user_123"))
                     },
+                    onDeepLinkClick = { uri ->
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+                        navController.handleDeepLink(intent)
+                    },
                 )
             }
             composable<DeepLinkProfile>(
@@ -104,9 +107,9 @@ fun DeepLinkSample(
 @Composable
 private fun DeepLinkHomeScreen(
     onNavigateToProfile: () -> Unit,
+    onDeepLinkClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
     val deepLinkUri = "$DEEP_LINK_BASE_PATH/user_42"
 
     Column(
@@ -166,8 +169,7 @@ private fun DeepLinkHomeScreen(
                         ),
                     modifier =
                         Modifier.clickable {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLinkUri))
-                            context.startActivity(intent)
+                            onDeepLinkClick(deepLinkUri)
                         },
                 )
             }
