@@ -270,8 +270,11 @@ internal actual fun checkDeepLinkHandled(): Boolean {
 | 브라우저에서 deep link | `true` (URI 매칭) | 매칭된 destination |
 | adb shell am start -d URI | `true` (URI 매칭) | 매칭된 destination |
 
+**setGraph() 호출 시점:** `NavHost` composable이 처음 composition될 때 `navController.graph = graph` (NavHost.kt:501)로 세팅되며, 이 setter 내부에서 `setGraph()` → `checkDeepLinkHandled()` 순으로 호출된다.
+
 > 출처: [NavControllerImpl.kt](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-runtime/src/commonMain/kotlin/androidx/navigation/internal/NavControllerImpl.kt),
-> [NavController.android.kt](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-runtime/src/androidMain/kotlin/androidx/navigation/NavController.android.kt)
+> [NavController.android.kt](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-runtime/src/androidMain/kotlin/androidx/navigation/NavController.android.kt),
+> [NavHost.kt](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-compose/src/commonMain/kotlin/androidx/navigation/compose/NavHost.kt)
 
 ---
 
