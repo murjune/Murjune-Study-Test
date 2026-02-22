@@ -12,11 +12,6 @@ Jetpack Compose Navigation 2를 학습테스트 방식으로 탐구합니다.
 
 ### 1. NavHost와 NavController의 역할
 
-![diagram-01](images/diagram-01.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 graph TD
     A[NavController] -->|"navigate(), popBackStack()"| B[NavHost]
@@ -24,8 +19,6 @@ graph TD
     B -->|"현재 destination UI 표시"| D[composable B]
     A -->|"백스택 상태 관리"| F[BackStack]
 ```
-
-</details>
 
 - **NavController** — `navigate()`, `popBackStack()` 등 탐색 동작을 제어하는 중앙 API
 - **NavHost** — 탐색 그래프 컨테이너. 어떤 화면이 존재하는지 정의하고, 현재 destination의 UI를 표시
@@ -53,11 +46,6 @@ NavHost(navController = navController, startDestination = Home) {
 
 Navigation 2.8.0부터 도입. 문자열 기반 라우트의 런타임 오류를 컴파일 타임에 방지한다.
 
-![diagram-02](images/diagram-02.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 graph LR
     subgraph "이전: 문자열 기반"
@@ -67,8 +55,6 @@ graph LR
         A2["navigate(Profile('123'))"] -->|컴파일 타임 검증| B2["composable Profile"]
     end
 ```
-
-</details>
 
 ```kotlin
 // 라우트 정의
@@ -107,11 +93,6 @@ class ProfileViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
 
 **popUpTo + inclusive 시각화:**
 
-![diagram-03](images/diagram-03.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 stateDiagram-v2
     state "popUpTo(Login) inclusive=true" as scenario
@@ -127,8 +108,6 @@ stateDiagram-v2
     }
     before --> after: navigate(Main) popUpTo(Login) inclusive=true
 ```
-
-</details>
 
 ```kotlin
 // 로그인 완료 후: Login 포함 전부 제거 → Main으로
@@ -153,11 +132,6 @@ navController.navigate(Home) {
 
 NowInAndroid가 Navigation 2 시절 사용한 핵심 아키텍처 패턴.
 
-![diagram-04](images/diagram-04.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 graph TD
     subgraph "app 모듈"
@@ -176,8 +150,6 @@ graph TD
     TN --> TR
     HN --> HR
 ```
-
-</details>
 
 > 출처: [Encapsulate Navigation 공식 문서](https://developer.android.com/guide/navigation/design/encapsulate)
 
@@ -210,11 +182,6 @@ NavHost(navController, startDestination = HomeRoute) {
 
 외부 URI로 앱의 특정 화면에 직접 진입하는 기능.
 
-![diagram-05](images/diagram-05.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 sequenceDiagram
     participant B as 브라우저/알림
@@ -227,8 +194,6 @@ sequenceDiagram
     A->>N: deepLink 매칭
     N->>N: Profile(id="123") composable 표시
 ```
-
-</details>
 
 ```kotlin
 composable<Profile>(
@@ -263,11 +228,6 @@ AndroidManifest에 intent-filter 설정 필요:
 `composable<Route>`는 **Route 타입 하나**를 destination으로 등록한다.
 `Route(id=1)`과 `Route(id=2)`는 **같은 destination, 다른 arguments**일 뿐이다.
 
-![diagram-06](images/diagram-06.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 graph TD
     subgraph "launchSingleTop 없음"
@@ -280,8 +240,6 @@ graph TD
         B2 -.->|popBackStack| A2
     end
 ```
-
-</details>
 
 | 시나리오 | 백스택 결과 |
 |---------|-----------|
@@ -304,11 +262,6 @@ graph TD
 
 각 `NavBackStackEntry`마다 독립적인 `SavedStateHandle`이 존재한다.
 
-![diagram-07](images/diagram-07.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 graph TD
     subgraph "BackStack"
@@ -318,8 +271,6 @@ graph TD
     E1 --> E2
     style E2 fill:#e1f5fe
 ```
-
-</details>
 
 **1) Route 인자 자동 주입**
 
@@ -333,11 +284,6 @@ backStackEntry.savedStateHandle.get<Int>("age")         // → 28
 
 **2) 이전 화면에 결과 전달 (Result 패턴)**
 
-![diagram-08](images/diagram-08.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 sequenceDiagram
     participant H as Home (currentEntry)
@@ -349,8 +295,6 @@ sequenceDiagram
     E->>H: popBackStack()
     Note over H: savedStateHandle.get("result") → "완료!"
 ```
-
-</details>
 
 ```kotlin
 // EditScreen에서 결과 전달
@@ -378,11 +322,6 @@ val result = backStackEntry.savedStateHandle.get<String>("edit_result")
 
 `saveState`와 `restoreState`는 **하단 탭 내비게이션**에서 각 탭의 독립적인 백스택을 유지하는 핵심 옵션이다.
 
-![diagram-09](images/diagram-09.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 stateDiagram-v2
     state "Home 탭" as home {
@@ -393,11 +332,9 @@ stateDiagram-v2
         [*] --> SearchTab
         SearchTab --> SearchResult
     }
-    home --> search: navigateToTab(Search)\nsaveState=true
-    search --> home: navigateToTab(Home)\nrestoreState=true
+    home --> search: navigateToTab(Search)  saveState=true
+    search --> home: navigateToTab(Home) restoreState=true
 ```
-
-</details>
 
 ```kotlin
 // 하단 탭 전환 패턴 — NowInAndroid 스타일
@@ -430,11 +367,6 @@ navController.navigate(selectedTab) {
 
 **Q: SavedStateHandle에서 Flow로 반환하거나 ViewModel이랑 연동하는 방법은?**
 
-![diagram-10](images/diagram-10.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
 ```mermaid
 graph LR
     subgraph "NavBackStackEntry"
@@ -451,8 +383,6 @@ graph LR
     VMSSH --> SF
     VMSSH --> MSF
 ```
-
-</details>
 
 **1) getStateFlow — 읽기 전용 StateFlow**
 
@@ -499,161 +429,29 @@ class UserViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
 
 ---
 
-### 10. Nested Navigation Graph (중첩 탐색 그래프)
-
-**Q: 서브 플로우(로그인, 온보딩 등)를 어떻게 캡슐화하나?**
-
-`navigation<GraphRoute>(startDestination = ...)` DSL로 중첩 그래프를 생성한다.
-
-![diagram-11](images/diagram-11.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
-```mermaid
-graph TD
-    subgraph "Top-level Graph"
-        Home
-        Dashboard
-    end
-    subgraph "AuthGraph (중첩)"
-        Login
-        Signup
-        VerifyEmail
-    end
-    Home -->|"navigate(AuthGraph)"| Login
-    Login --> Signup --> VerifyEmail
-    VerifyEmail -->|"navigate(Dashboard)\npopUpTo AuthGraph inclusive"| Dashboard
-```
-
-</details>
-
-```kotlin
-NavHost(navController, startDestination = Home) {
-    composable<Home> { HomeScreen() }
-
-    // Auth 중첩 그래프
-    navigation<AuthGraph>(startDestination = Login) {
-        composable<Login> { LoginScreen() }
-        composable<Signup> { SignupScreen() }
-        composable<VerifyEmail> { VerifyEmailScreen() }
-    }
-
-    composable<Dashboard> { DashboardScreen() }
-}
-
-// 외부에서 그래프로 navigate → startDestination(Login)이 표시됨
-navController.navigate(AuthGraph)
-
-// 그래프 전체 정리
-navController.navigate(Dashboard) {
-    popUpTo<AuthGraph> { inclusive = true }
-}
-```
-
-**핵심:**
-- `navigate(AuthGraph)` → 중첩 그래프의 `startDestination`이 표시됨
-- 중첩 그래프 진입 시 백스택에 **그래프 엔트리 + startDestination** 2개가 추가됨
-- `popUpTo<AuthGraph> { inclusive = true }` → 그래프 내부 화면 전부 정리
-- 외부에서 내부 destination으로 직접 navigate도 가능 (Route는 전역)
-
-> 출처: [Nested Navigation Graphs 공식 문서](https://developer.android.com/guide/navigation/design/nested-graphs)
-
-**테스트 파일:** `NestedNavGraphTest.kt`
-
----
-
-### 11. DeepLink Intent 처리 흐름 (Activity vs Navigation)
-
-**Q: Activity와 Navigation에서 동시에 DeepLink를 처리하면 어떻게 되나?**
-
-![diagram-12](images/diagram-12.svg)
-
-<details>
-<summary>Mermaid 소스</summary>
-
-```mermaid
-sequenceDiagram
-    participant E as 외부 (브라우저/알림)
-    participant S as Android System
-    participant A as Activity
-    participant NC as NavController
-
-    E->>S: Intent (ACTION_VIEW)
-    S->>A: onCreate() / onNewIntent()
-    A->>NC: handleDeepLink(intent) 자동 호출
-    NC->>NC: NavGraph에서 URI 매칭
-    NC->>NC: 매칭된 destination으로 이동
-```
-
-</details>
-
-**핵심 동작:**
-
-| launch mode | 처리 방식 |
-|-------------|----------|
-| `standard` (기본) | `NavController.handleDeepLink(intent)` **자동** 호출 |
-| `singleTop` | `onNewIntent()`에서 **수동** `handleDeepLink()` 호출 필요 |
-
-```kotlin
-// singleTop일 때 수동 처리
-override fun onNewIntent(intent: Intent?) {
-    super.onNewIntent(intent)
-    navController.handleDeepLink(intent)
-}
-```
-
-**중복 처리 없음**: Activity의 `onCreate()`가 Intent를 처리하고 Navigation이 또 처리하는 게 아니라, **Navigation이 전담**한다. `handleDeepLink()`가 NavGraph에서 URI를 매칭하고 해당 destination으로 이동.
-
-**`handleDeepLink()` 반환값:**
-- `true` — URI 매칭 성공, destination으로 이동
-- `false` — 매칭 실패, 아무 동작 안 함
-
-> 출처: [Deep Link 공식 문서](https://developer.android.com/guide/navigation/design/deep-link)
-
-**테스트 파일:** `DeepLinkHandlingTest.kt`
-
----
-
 ## 학습 순서
 
-### 1단계: 기본 컴포넌트
+### 1단계: 기본 컴포넌트 (`basic/`)
 
 NavHost, NavController, composable의 역할과 동작 방식을 학습합니다.
 
-**테스트 파일:** `NavHostBasicTest.kt`, `TypeSafeNavigationTest.kt`
+**테스트 파일:** `NavHostTest.kt`, `TypeSafeNavigationTest.kt`
 
 ---
 
-### 2단계: 백스택 동작
+### 2단계: 백스택 동작 (`backstack/`)
 
-`popBackStack()`, `popUpTo`, `launchSingleTop`, `saveState/restoreState`를 학습합니다.
+`popBackStack()`과 `navigateUp()`의 차이, `popUpTo`의 활용을 학습합니다.
 
-**테스트 파일:** `PopBackStackTest.kt`, `PopUpToTest.kt`, `LaunchSingleTopTest.kt`, `SaveRestoreStateTest.kt`
-
----
-
-### 3단계: 상태 관리
-
-SavedStateHandle, ViewModel 연동, Result 패턴을 학습합니다.
-
-**테스트 파일:** `SavedStateHandleTest.kt`, `SavedStateHandleAdvancedTest.kt`
+**테스트 파일:** `PopBackStackTest.kt`, `PopUpToTest.kt`
 
 ---
 
-### 4단계: 구조화
+### 3단계: DeepLink (`deeplink/`)
 
-Nested Navigation Graph로 서브 플로우를 캡슐화합니다.
+외부에서 앱의 특정 화면으로 진입하는 DeepLink를 학습합니다.
 
-**테스트 파일:** `NestedNavGraphTest.kt`
-
----
-
-### 5단계: DeepLink
-
-외부 URI 진입, handleDeepLink, Activity 연동을 학습합니다.
-
-**테스트 파일:** `DeepLinkHandlingTest.kt`
+**테스트 파일:** `DeepLinkTest.kt`
 
 ---
 
@@ -664,9 +462,9 @@ Nested Navigation Graph로 서브 플로우를 캡슐화합니다.
 ./gradlew :compose-practice:test
 
 # 특정 테스트 클래스 실행
-./gradlew :compose-practice:test --tests "*.NavHostBasicTest"
-./gradlew :compose-practice:test --tests "*.NestedNavGraphTest"
-./gradlew :compose-practice:test --tests "*.DeepLinkHandlingTest"
+./gradlew :compose-practice:test --tests "*.NavHostTest"
+./gradlew :compose-practice:test --tests "*.PopBackStackTest"
+./gradlew :compose-practice:test --tests "*.DeepLinkTest"
 ```
 
 ---

@@ -16,6 +16,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+
 /**
  * 같은 destination 타입에 다른 인자를 넘겼을 때 백스택 동작과
  * launchSingleTop의 영향을 검증하는 테스트
@@ -49,8 +50,7 @@ class LaunchSingleTopTest {
         return navController
     }
 
-    private fun TestNavHostController.backStackSize(): Int =
-        currentBackStack.value.size
+    private fun TestNavHostController.backStackSize(): Int = currentBackStack.value.size
 
     private fun TestNavHostController.backStackRoutes(): List<String> =
         currentBackStack.value.mapNotNull { it.destination.route?.substringAfterLast(".") }

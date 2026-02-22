@@ -7,6 +7,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.murjune.pratice.compose.study.sample.navigation.DeepLinkSample
+import com.murjune.pratice.compose.study.sample.navigation.LaunchSingleTopSample
+import com.murjune.pratice.compose.study.sample.navigation.NavigateUpSample
+import com.murjune.pratice.compose.study.sample.navigation.NestedNavGraphSample
+import com.murjune.pratice.compose.study.sample.navigation.SaveRestoreStateSample
+import com.murjune.pratice.compose.study.sample.navigation.SavedStateHandleSample
 import com.murjune.pratice.compose.study.sample.navigation.NavHostBasicSample
 import com.murjune.pratice.compose.study.sample.navigation.PopBackStackSample
 import com.murjune.pratice.compose.study.sample.navigation.PopUpToSample
@@ -59,6 +64,21 @@ fun StudyNavHost(navController: NavHostController = rememberNavController()) {
         }
         composable<DeepLinkRoute> {
             DeepLinkSample(onBackClick = { navController.popBackStack() })
+        }
+        composable<LaunchSingleTopRoute> {
+            LaunchSingleTopSample(onBackClick = { navController.popBackStack() })
+        }
+        composable<SavedStateHandleRoute> {
+            SavedStateHandleSample(onBackClick = { navController.popBackStack() })
+        }
+        composable<SaveRestoreStateRoute> {
+            SaveRestoreStateSample(onBackClick = { navController.popBackStack() })
+        }
+        composable<NestedNavGraphRoute> {
+            NestedNavGraphSample(onBackClick = { navController.popBackStack() })
+        }
+        composable<NavigateUpRoute> {
+            NavigateUpSample(onBackClick = { navController.popBackStack() })
         }
     }
 }

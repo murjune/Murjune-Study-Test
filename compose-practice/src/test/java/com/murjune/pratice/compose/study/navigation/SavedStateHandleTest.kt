@@ -16,6 +16,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+
 /**
  * SavedStateHandle이 Navigation에서 어떻게 동작하는지 검증하는 테스트
  *
@@ -92,8 +93,9 @@ class SavedStateHandleTest {
             NavHost(navController = navController, startDestination = ResultHome) {
                 composable<ResultHome> { backStackEntry ->
                     // 돌아왔을 때 SavedStateHandle에서 결과 읽기
-                    receivedResult = backStackEntry.savedStateHandle
-                        .get<String>("edit_result")
+                    receivedResult =
+                        backStackEntry.savedStateHandle
+                            .get<String>("edit_result")
                     Text("Home - result: ${receivedResult ?: "없음"}")
                 }
                 composable<EditScreen> {
@@ -107,7 +109,8 @@ class SavedStateHandleTest {
         composeTestRule.onNodeWithText("Edit Screen").assertIsDisplayed()
 
         // when - EditScreen에서 이전 화면(Home)의 SavedStateHandle에 결과 저장 후 pop
-        navController.previousBackStackEntry?.savedStateHandle
+        navController.previousBackStackEntry
+            ?.savedStateHandle
             ?.set("edit_result", "수정 완료!")
         navController.popBackStack()
 

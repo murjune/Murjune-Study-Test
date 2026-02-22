@@ -25,3 +25,18 @@ object PopUpToRoute
 
 @Serializable
 object DeepLinkRoute
+
+@Serializable
+object LaunchSingleTopRoute
+
+@Serializable
+object SavedStateHandleRoute
+
+@Serializable
+object SaveRestoreStateRoute
+
+@Serializable
+object NestedNavGraphRoute
+
+@Serializable
+object NavigateUpRoute

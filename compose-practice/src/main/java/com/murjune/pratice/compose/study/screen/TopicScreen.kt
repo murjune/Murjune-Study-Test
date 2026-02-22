@@ -51,6 +51,26 @@ private fun getSamplesForTopic(topicId: String): List<SampleItem> =
                     title = "DeepLink",
                     route = com.murjune.pratice.compose.study.navigation.DeepLinkRoute,
                 ),
+                SampleItem(
+                    title = "LaunchSingleTop",
+                    route = com.murjune.pratice.compose.study.navigation.LaunchSingleTopRoute,
+                ),
+                SampleItem(
+                    title = "SavedStateHandle",
+                    route = com.murjune.pratice.compose.study.navigation.SavedStateHandleRoute,
+                ),
+                SampleItem(
+                    title = "SaveRestore State",
+                    route = com.murjune.pratice.compose.study.navigation.SaveRestoreStateRoute,
+                ),
+                SampleItem(
+                    title = "Nested NavGraph",
+                    route = com.murjune.pratice.compose.study.navigation.NestedNavGraphRoute,
+                ),
+                SampleItem(
+                    title = "NavigateUp",
+                    route = com.murjune.pratice.compose.study.navigation.NavigateUpRoute,
+                ),
             )
         else -> emptyList()
     }

@@ -60,17 +60,19 @@ class DeepLinkHandlingTest {
             NavHost(navController = navController, startDestination = DLHome) {
                 composable<DLHome> { Text("Home") }
                 composable<DLProfile>(
-                    deepLinks = listOf(
-                        navDeepLink<DLProfile>(basePath = profileBasePath),
-                    ),
+                    deepLinks =
+                        listOf(
+                            navDeepLink<DLProfile>(basePath = profileBasePath),
+                        ),
                 ) { backStackEntry ->
                     val route = backStackEntry.toRoute<DLProfile>()
                     Text("Profile: ${route.userId}")
                 }
                 composable<DLPost>(
-                    deepLinks = listOf(
-                        navDeepLink<DLPost>(basePath = postBasePath),
-                    ),
+                    deepLinks =
+                        listOf(
+                            navDeepLink<DLPost>(basePath = postBasePath),
+                        ),
                 ) { backStackEntry ->
                     val route = backStackEntry.toRoute<DLPost>()
                     Text("Post: ${route.postId}")
@@ -112,8 +114,9 @@ class DeepLinkHandlingTest {
         composeTestRule.onNodeWithText("Profile: user-99").assertIsDisplayed()
 
         // then - 백스택에 어떤 엔트리가 있는지 확인
-        val routes = navController.currentBackStack.value
-            .mapNotNull { it.destination.route?.substringAfterLast(".") }
+        val routes =
+            navController.currentBackStack.value
+                .mapNotNull { it.destination.route?.substringAfterLast(".") }
         // handleDeepLink는 기존 백스택 위에 딥링크 destination을 추가한다
         // 백스택: [NavGraph root, Home, Profile]
         routes.any { it.contains("DLProfile") } shouldBe true

@@ -24,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+
 /**
  * SavedStateHandle 최신 API를 검증하는 테스트
  *
@@ -48,7 +49,9 @@ class SavedStateHandleAdvancedTest {
     )
 
     // ViewModel에서 SavedStateHandle 활용
-    class UserViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
+    class UserViewModel(
+        savedStateHandle: SavedStateHandle,
+    ) : ViewModel() {
         // Route 인자를 toRoute로 한 번에 추출
         private val route = savedStateHandle.toRoute<UserRoute>()
         val userId: String = route.userId
@@ -78,8 +81,9 @@ class SavedStateHandleAdvancedTest {
                 composable<AdvancedHome> { Text("Home") }
                 composable<UserRoute> { backStackEntry ->
                     // getStateFlow로 관찰
-                    val userIdFlow = backStackEntry.savedStateHandle
-                        .getStateFlow("userId", "default")
+                    val userIdFlow =
+                        backStackEntry.savedStateHandle
+                            .getStateFlow("userId", "default")
                     val userId by userIdFlow.collectAsState()
                     observedUserId = userId
                     Text("Flow userId: $userId")
@@ -110,8 +114,9 @@ class SavedStateHandleAdvancedTest {
             NavHost(navController = navController, startDestination = AdvancedHome) {
                 composable<AdvancedHome> { Text("Home") }
                 composable<UserRoute> { backStackEntry ->
-                    val mutableFlow = backStackEntry.savedStateHandle
-                        .getMutableStateFlow("counter", 0)
+                    val mutableFlow =
+                        backStackEntry.savedStateHandle
+                            .getMutableStateFlow("counter", 0)
                     val count by mutableFlow.collectAsState()
                     Text("Count: $count")
                     androidx.compose.material3.Button(
