@@ -10,6 +10,7 @@ import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.naviga
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.HomeScreen
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.ProductDetailScreen
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.ReviewScreen
+import com.murjune.pratice.compose.study.sample.navigation.challenge.setting.navigation.navigateToSetting
 
 fun NavController.navigateToHome(
     navOptions: NavOptions? = null,
@@ -31,6 +32,9 @@ fun NavGraphBuilder.homeSection(navController: NavController) {
             HomeScreen(
                 onProductClick = { productId ->
                     navController.navigateToProductDetail(productId)
+                },
+                onSettingClick = {
+                    navController.navigateToSetting()
                 },
             )
         }
