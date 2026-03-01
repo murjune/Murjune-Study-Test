@@ -7,8 +7,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -56,21 +54,7 @@ data class ShoppingAppState(
             } ?: previousDestination.value
         }
 
-    /**
-     * 현재 화면(Destination)이 어느 “탭(상위 목적지)”인지 판단
-     * */
-    val currentTopLevelDestination: TopLevelDestination?
-        @Composable get() {
-            return TopLevelDestination.entries.firstOrNull { topLevelDestination ->
-                currentDestination
-                    ?.hierarchy
-                    ?.any { it.hasRoute(topLevelDestination.route) } == true
-            }
-        }
-
-    /* 현재 화면이 어느 탭에 속하는지에 따라 하단 바를 보여줄지 말지 결정 */
-    val shouldShowBottomBar: Boolean
-        @Composable get() = currentTopLevelDestination != null
+    val topLevelDestinations: List<TopLevelDestination> = TopLevelDestination.entries
 
     fun navigateToTopLevelDestination(topLevelDestination: TopLevelDestination) {
         val topLevelNavOptions = navOptions {

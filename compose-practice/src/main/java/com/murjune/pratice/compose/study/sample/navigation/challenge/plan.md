@@ -1,23 +1,28 @@
 # Navigation 챌린지 체크리스트
 
 ## Step 0: TopLevel Preparation
-
+- [x] `TopLevelDestination` enum 구현 (Home, Cart, My + 아이콘, 문자열 리소스)
+- [x] `NavigationChallengeStates` 상태 홀더 구현 (currentDestination 안전 패턴)
+- [x] strings.xml에 하단 탭 문자열 추가
+- [x] Home/Cart/My Route sealed interface 분리 (home/cart/my 패키지)
 
 ## Step 1: Route 정의 (`ShoppingRoutes.kt`)
-- [ ] `@Serializable` object `Home`, `Cart`, `My` 선언
+- [x] `@Serializable` sealed interface `HomeRoute`, `CartRoute`, `MyRoute` 선언
 - [ ] `@Serializable` data class `ProductDetail(productId: Int)` 선언
 - [ ] `@Serializable` data class `Review(productId: Int)` 선언
 - [ ] `@Serializable` object `OrderHistory` 선언
 - [ ] `@Serializable` data class `OrderDetail(orderId: String)` 선언
 - [ ] `@Serializable` object/data object `Setting` 선언
 
-## Step 2: 기본 NavHost 구성 (`ShoppingNavHost.kt`)
-- [ ] `Scaffold` + `NavHost` 기본 구조 작성
-- [ ] `BottomNavigationBar` 에 Home, Cart, My, Setting 탭 추가
+## Step 2: 기본 NavHost 구성 (`ShoppingApp.kt`)
+- [x] `Scaffold` + `NavHost` 기본 구조 작성
+- [x] `NavigationBar` + `NavigationBarItem`으로 Home, Cart, My 탭 추가
+- [x] `isRouteInHierarchy()` 확장함수로 탭 선택 상태 + BottomBar 표시 판별
 - [ ] 각 탭 화면에 간단한 UI (Text) 배치
+- [ ] Setting 탭 추가
 
 ## Step 3: 탭 전환 로직
-- [ ] `navigateToTab()` 확장함수 구현 (popUpTo + saveState + restoreState + launchSingleTop)
+- [x] `navigateToTopLevelDestination()` 구현 (popUpTo + saveState + restoreState + launchSingleTop)
 - [ ] 탭 전환 시 내부 백스택 보존 확인
 
 ## Step 4: 하위 화면 네비게이션
