@@ -201,9 +201,60 @@ val showBottomBar = when {
 
 ---
 
+### 8. 중첩 NavHost로 BottomBar 덜컹거림 해결 (보너스 챌린지)
+
+현재 구조에서는 하위 화면 진입 시 BottomBar가 사라지면서 Scaffold의 `innerPadding`이 변동되어 UI가 덜컹거린다.
+이를 **중첩 NavHost** 패턴으로 해결하세요.
+
+**현재 구조 (단일 NavHost):**
+```
+ShoppingApp
+  └── Scaffold(bottomBar = 조건부)
+       └── NavHost  ← BottomBar 유무에 따라 innerPadding 변동 → 덜컹
+            ├── homeSection
+            ├── cartSection
+            ├── mySection
+            └── settingSection
+```
+
+**목표 구조 (중첩 NavHost):**
+```
+ShoppingApp
+  └── 루트 NavHost (rootNavController, BottomBar 없음)
+       ├── "main" → MainTabScreen
+       │     └── Scaffold(bottomBar = 항상 표시)
+       │          └── 탭 NavHost (tabNavController)
+       │               ├── homeSection
+       │               ├── cartSection
+       │               └── mySection
+       ├── settingRoute → SettingScreen (전체화면)
+       └── productDetail → ProductDetailScreen (전체화면)
+```
+
+**핵심 포인트:**
+- NavController가 2개 (rootNavController, tabNavController)
+- 탭 내부 이동은 `tabNavController`, 전체화면 이동은 `rootNavController` 사용
+- 탭 NavHost에서는 BottomBar가 항상 존재 → `innerPadding` 변동 없음 → 덜컹 없음
+- Fragment 시대의 Activity(BottomNav) + Fragment 전환과 동일한 개념
+
+**외부 프로젝트 참고:**
+
+| 프로젝트 | 방식 |
+|---------|------|
+| NowInAndroid | BottomBar를 아예 숨기지 않음 (항상 표시) |
+| Socialite | `NavigationSuiteType.None`으로 숨김 처리 |
+| Tivi | BottomBar를 숨기지 않음 + HazeScaffold |
+| Reply | NavigationSuiteScaffoldLayout (항상 표시) |
+
+대부분의 Google 공식 샘플은 **BottomBar를 숨기지 않는 구조**를 사용한다.
+숨겨야 하는 경우 **중첩 NavHost** 또는 **NavigationSuiteType.None**이 권장된다.
+
+---
+
 ## 참고
 
 - Phase 1 README: 핵심 개념 정리
 - Phase 2 README: JetNews/NowInAndroid 베스트 프랙티스
 - `SaveRestoreStateSample.kt` — 하단 탭 전환 샘플 코드
 - `PopUpToSample.kt` — popUpTo 패턴 샘플 코드
+- [Should you show BottomBar conditionally in Jetpack Compose?](https://www.valueof.io/blog/should-show-bottombar-conditionally-in-jetpack-compose) — 조건부 BottomBar 패턴 (우리 구조와 동일한 접근)
