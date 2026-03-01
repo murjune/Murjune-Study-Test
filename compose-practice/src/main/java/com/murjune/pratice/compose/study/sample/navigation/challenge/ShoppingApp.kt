@@ -35,28 +35,24 @@ fun ShoppingApp(
         modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            AnimatedVisibility(
-                visible = shouldShowBottomNav,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
-            ) {
-                NavigationBar {
-                    appState.topLevelDestinations.forEach { destination ->
-                        val isSelected = currentDestination.isRouteInHierarchy(destination.route)
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = {
-                                appState.navigateToTopLevelDestination(destination)
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = if (isSelected) destination.selectedIcon else destination.unselectedIcon,
-                                    contentDescription = stringResource(destination.iconTextId),
-                                )
-                            },
-                            label = { Text(stringResource(destination.titleTextId)) },
-                        )
-                    }
+            if (shouldShowBottomNav.not()) return@Scaffold
+
+            NavigationBar {
+                appState.topLevelDestinations.forEach { destination ->
+                    val isSelected = currentDestination.isRouteInHierarchy(destination.route)
+                    NavigationBarItem(
+                        selected = isSelected,
+                        onClick = {
+                            appState.navigateToTopLevelDestination(destination)
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = if (isSelected) destination.selectedIcon else destination.unselectedIcon,
+                                contentDescription = stringResource(destination.iconTextId),
+                            )
+                        },
+                        label = { Text(stringResource(destination.titleTextId)) },
+                    )
                 }
             }
         },
