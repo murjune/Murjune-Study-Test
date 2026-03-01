@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.murjune.pratice.compose.study.sample.navigation.DeepLinkSample
@@ -16,6 +17,7 @@ import com.murjune.pratice.compose.study.sample.navigation.PopUpToSample
 import com.murjune.pratice.compose.study.sample.navigation.SaveRestoreStateSample
 import com.murjune.pratice.compose.study.sample.navigation.SavedStateHandleSample
 import com.murjune.pratice.compose.study.sample.navigation.TypeSafeNavSample
+import com.murjune.pratice.compose.study.sample.navigation.challenge.ShoppingNavHost
 import com.murjune.pratice.compose.study.screen.StudyMainScreen
 import com.murjune.pratice.compose.study.screen.TopicScreen
 
@@ -50,35 +52,42 @@ fun StudyNavHost(navController: NavHostController = rememberNavController()) {
                 },
             )
         }
-        composable<NavHostBasicRoute> {
-            NavHostBasicSample(onBackClick = { navController.navigateUp() })
-        }
-        composable<TypeSafeNavRoute> {
-            TypeSafeNavSample(onBackClick = { navController.navigateUp() })
-        }
-        composable<PopBackStackRoute> {
-            PopBackStackSample(onBackClick = { navController.navigateUp() })
-        }
-        composable<PopUpToRoute> {
-            PopUpToSample(onBackClick = { navController.navigateUp() })
-        }
-        composable<DeepLinkRoute> {
-            DeepLinkSample(onBackClick = { navController.navigateUp() })
-        }
-        composable<LaunchSingleTopRoute> {
-            LaunchSingleTopSample(onBackClick = { navController.navigateUp() })
-        }
-        composable<SavedStateHandleRoute> {
-            SavedStateHandleSample(onBackClick = { navController.navigateUp() })
-        }
-        composable<SaveRestoreStateRoute> {
-            SaveRestoreStateSample(onBackClick = { navController.navigateUp() })
-        }
-        composable<NestedNavGraphRoute> {
-            NestedNavGraphSample(onBackClick = { navController.navigateUp() })
-        }
-        composable<NavigateUpRoute> {
-            NavigateUpSample(onBackClick = { navController.navigateUp() })
+        navigation<NavigationGraphRoute>(
+            startDestination = NavHostBasicRoute,
+        ) {
+            composable<ShoppingChallengeRoute> {
+                ShoppingNavHost(onBackClick = { navController.navigateUp() })
+            }
+            composable<NavHostBasicRoute> {
+                NavHostBasicSample(onBackClick = { navController.navigateUp() })
+            }
+            composable<TypeSafeNavRoute> {
+                TypeSafeNavSample(onBackClick = { navController.navigateUp() })
+            }
+            composable<PopBackStackRoute> {
+                PopBackStackSample(onBackClick = { navController.navigateUp() })
+            }
+            composable<PopUpToRoute> {
+                PopUpToSample(onBackClick = { navController.navigateUp() })
+            }
+            composable<DeepLinkRoute> {
+                DeepLinkSample(onBackClick = { navController.navigateUp() })
+            }
+            composable<LaunchSingleTopRoute> {
+                LaunchSingleTopSample(onBackClick = { navController.navigateUp() })
+            }
+            composable<SavedStateHandleRoute> {
+                SavedStateHandleSample(onBackClick = { navController.navigateUp() })
+            }
+            composable<SaveRestoreStateRoute> {
+                SaveRestoreStateSample(onBackClick = { navController.navigateUp() })
+            }
+            composable<NestedNavGraphRoute> {
+                NestedNavGraphSample(onBackClick = { navController.navigateUp() })
+            }
+            composable<NavigateUpRoute> {
+                NavigateUpSample(onBackClick = { navController.navigateUp() })
+            }
         }
     }
 }

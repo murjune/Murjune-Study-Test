@@ -32,6 +32,10 @@ private fun getSamplesForTopic(topicId: String): List<SampleItem> =
         "navigation" ->
             listOf(
                 SampleItem(
+                    title = "Challenge: 쇼핑몰 앱",
+                    route = com.murjune.pratice.compose.study.navigation.ShoppingChallengeRoute,
+                ),
+                SampleItem(
                     title = "NavHost 기본",
                     route = com.murjune.pratice.compose.study.navigation.NavHostBasicRoute,
                 ),
