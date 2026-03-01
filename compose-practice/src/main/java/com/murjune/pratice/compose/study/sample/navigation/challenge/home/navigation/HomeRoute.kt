@@ -3,4 +3,13 @@ package com.murjune.pratice.compose.study.sample.navigation.challenge.home.navig
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed interface HomeRoute
+data object HomeRoute
+
+@Serializable
+data object HomeScreen
+
+@Serializable
+data class ProductDetail(val productId: Int)
+
+@Serializable
+data class Review(val productId: Int)

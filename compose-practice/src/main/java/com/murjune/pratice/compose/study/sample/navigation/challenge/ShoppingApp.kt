@@ -2,12 +2,16 @@ package com.murjune.pratice.compose.study.sample.navigation.challenge
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -15,7 +19,12 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
+import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.cartSection
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.HomeRoute
+import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.homeSection
+import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigation.mySection
+import com.murjune.pratice.compose.study.sample.navigation.challenge.setting.navigation.navigateToSetting
+import com.murjune.pratice.compose.study.sample.navigation.challenge.setting.navigation.settingSection
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,6 +38,18 @@ fun ShoppingApp(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        topBar = {
+            if (shouldShowBottomNav) {
+                TopAppBar(
+                    title = { Text("Shopping") },
+                    actions = {
+                        IconButton(onClick = { appState.navController.navigateToSetting() }) {
+                            Icon(Icons.Filled.Settings, contentDescription = "설정")
+                        }
+                    },
+                )
+            }
+        },
         bottomBar = {
             if (shouldShowBottomNav.not()) return@Scaffold
 
@@ -57,7 +78,10 @@ fun ShoppingApp(
             startDestination = HomeRoute,
             modifier = Modifier.padding(innerPadding),
         ) {
-
+            homeSection(appState.navController)
+            cartSection(appState.navController)
+            mySection(appState.navController)
+            settingSection(appState.navController)
         }
     }
 }

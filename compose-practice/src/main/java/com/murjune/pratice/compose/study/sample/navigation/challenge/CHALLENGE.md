@@ -180,6 +180,27 @@ val showBottomBar = when {
 
 ---
 
+### 7. 탭 재클릭 동작 (보너스 챌린지)
+
+같은 탭을 한 번 더 클릭했을 때의 동작을 구현하세요.
+
+**동작:**
+- 하위 화면에 있는 경우 → 탭의 startDestination(최상단 depth)으로 이동
+- 이미 최상단인 경우 → 스크롤 초기화(`animateScrollToItem(0)`) + 리로드 트리거
+
+**공통화 포인트:**
+- `ShoppingAppState`에서 "이미 최상단인지" 판별하는 로직
+- 스크롤 초기화 / 리로드 이벤트를 `SharedFlow`로 발행
+- 각 Screen에서 해당 Flow를 수집하여 처리
+
+```
+[Home 탭 클릭] (이미 Home 탭)
+  ├── 하위 화면(ProductDetail 등)에 있음 → Home 화면으로 복귀
+  └── Home 화면에 있음 → 스크롤 최상단 + 리로드
+```
+
+---
+
 ## 참고
 
 - Phase 1 README: 핵심 개념 정리

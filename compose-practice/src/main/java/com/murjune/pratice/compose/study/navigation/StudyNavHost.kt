@@ -17,7 +17,8 @@ import com.murjune.pratice.compose.study.sample.navigation.PopUpToSample
 import com.murjune.pratice.compose.study.sample.navigation.SaveRestoreStateSample
 import com.murjune.pratice.compose.study.sample.navigation.SavedStateHandleSample
 import com.murjune.pratice.compose.study.sample.navigation.TypeSafeNavSample
-import com.murjune.pratice.compose.study.sample.navigation.challenge.ShoppingNavHost
+import com.murjune.pratice.compose.study.sample.navigation.challenge.ShoppingApp
+import com.murjune.pratice.compose.study.sample.navigation.challenge.rememberShoppingAppState
 import com.murjune.pratice.compose.study.screen.StudyMainScreen
 import com.murjune.pratice.compose.study.screen.TopicScreen
 
@@ -56,7 +57,7 @@ fun StudyNavHost(navController: NavHostController = rememberNavController()) {
             startDestination = NavHostBasicRoute,
         ) {
             composable<ShoppingChallengeRoute> {
-                ShoppingNavHost(onBackClick = { navController.navigateUp() })
+                ShoppingApp(appState = rememberShoppingAppState())
             }
             composable<NavHostBasicRoute> {
                 NavHostBasicSample(onBackClick = { navController.navigateUp() })

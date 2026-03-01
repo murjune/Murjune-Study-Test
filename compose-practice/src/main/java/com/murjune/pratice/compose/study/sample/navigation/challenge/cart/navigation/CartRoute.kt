@@ -3,4 +3,7 @@ package com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navig
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed interface CartRoute
+data object CartRoute
+
+@Serializable
+data object CartScreen

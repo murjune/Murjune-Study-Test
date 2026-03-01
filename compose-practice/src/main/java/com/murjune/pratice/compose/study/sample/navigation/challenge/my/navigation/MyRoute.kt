@@ -3,4 +3,13 @@ package com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigat
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed interface MyRoute
+data object MyRoute
+
+@Serializable
+data object MyScreen
+
+@Serializable
+data object OrderHistory
+
+@Serializable
+data class OrderDetail(val orderId: Int)

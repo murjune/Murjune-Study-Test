@@ -12,6 +12,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
+import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.navigateToCart
+import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.navigateToHome
+import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigation.navigateToMy
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -65,10 +68,10 @@ data class ShoppingAppState(
             restoreState = true // 이전에 saveState = true 로 저장된 상태가 있다면 복원한다.
         }
 
-        //        when (topLevelDestination) {
-        //            TopLevelDestination.Home -> navController.navigateToHome(topLevelNavOptions)
-        //            TopLevelDestination.Cart -> navController.navigateToCart(topLevelNavOptions)
-        //            TopLevelDestination.My -> navController.navigateToMy(topLevelNavOptions)
-        //        }
+        when (topLevelDestination) {
+            TopLevelDestination.Home -> navController.navigateToHome(topLevelNavOptions)
+            TopLevelDestination.Cart -> navController.navigateToCart(topLevelNavOptions)
+            TopLevelDestination.My -> navController.navigateToMy(topLevelNavOptions)
+        }
     }
 }
