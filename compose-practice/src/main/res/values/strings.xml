@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">compose-practice</string>
+
+    <!--    navigation challenge-->
+    <string name="navigation_challenge_bottom_nav_home">홈</string>
+    <string name="navigation_challenge_bottom_nav_cart">장바구니</string>
+    <string name="navigation_challenge_bottom_nav_my">My</string>
 </resources>

@@ -40,3 +40,9 @@ object NestedNavGraphRoute
 
 @Serializable
 object NavigateUpRoute
+
+@Serializable
+object NavigationGraphRoute
+
+@Serializable
+object ShoppingChallengeRoute
