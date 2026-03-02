@@ -2,13 +2,13 @@ package com.murjune.pratice.compose.study.sample.navigation.challenge
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptions
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
@@ -17,58 +17,28 @@ import com.murjune.pratice.compose.study.sample.navigation.challenge.home.naviga
 import com.murjune.pratice.compose.study.sample.navigation.challenge.more.navigation.navigateToMore
 import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigation.navigateToMyNavGraph
 import com.murjune.pratice.compose.study.sample.navigation.challenge.navigation.BottomNavDestination
-import kotlinx.coroutines.CoroutineScope
+import kotlin.reflect.KClass
 
 @Composable
-fun rememberShoppingAppState(
+fun rememberAppBarNavigator(
     navController: NavHostController = rememberNavController(),
-    coroutineScope: CoroutineScope = rememberCoroutineScope(),
-): ShoppingAppState {
-    return remember(
-        navController,
-        coroutineScope,
-    ) {
-        ShoppingAppState(
-            navController = navController,
-            coroutineScope = coroutineScope,
-        )
+): AppBarNavigator {
+    return remember(navController) {
+        AppBarNavigator(navController = navController)
     }
 }
 
 @Stable
-data class ShoppingAppState(
+data class AppBarNavigator(
     val navController: NavHostController,
-    val coroutineScope: CoroutineScope,
 ) {
-    private val previousDestination = mutableStateOf<NavDestination?>(null)
-
-    /**
-     * 현재 네비게이션 스택의 "현재 화면"을 가져오는 property
-     * NavController의 currentBackStackEntryFlow를 수집하여 현재 백스택 항목을 관찰합니다.
-     * */
-    val currentDestination: NavDestination?
-        @Composable get() {
-            // Collect the currentBackStackEntryFlow as a state
-            val currentEntry by navController.currentBackStackEntryAsState()
-
-            // Fallback to previousDestination if currentEntry is null
-            return currentEntry?.destination.also { destination ->
-                if (destination != null) {
-                    previousDestination.value = destination
-                }
-            } ?: previousDestination.value
-        }
+    val currentDestination
+        @Composable get() = navController.currentBackStackEntryAsState().value?.destination
 
     val bottomNavDestinations: List<BottomNavDestination> = BottomNavDestination.entries
 
     fun navigateToBottomNavDestination(destination: BottomNavDestination) {
-        val navOptions = navOptions {
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
-            }
-            launchSingleTop = true
-            restoreState = true
-        }
+        val navOptions = bottomNavigationNavOptions(destination) ?: return
 
         when (destination) {
             BottomNavDestination.Home -> navController.navigateToHomeNavGraph(navOptions)
@@ -77,4 +47,29 @@ data class ShoppingAppState(
             BottomNavDestination.More -> navController.navigateToMore()
         }
     }
+
+    private fun bottomNavigationNavOptions(destination: BottomNavDestination): NavOptions? {
+        val isCurrentDestination = navController.currentDestination
+            ?.hasRoute(destination.route)
+            ?: false
+
+        if (isCurrentDestination) {
+            return null
+        }
+
+        val isCurrentTab = isRouteInHierarchy(navController.currentDestination, destination.baseRoute)
+
+        return navOptions {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = !isCurrentTab
+            }
+            launchSingleTop = true
+            restoreState = !isCurrentTab
+        }
+    }
+
+    fun isRouteInHierarchy(currentDestination: NavDestination?, baseRoute: KClass<*>): Boolean =
+        currentDestination?.hierarchy?.any {
+            it.hasRoute(baseRoute)
+        } ?: false
 }

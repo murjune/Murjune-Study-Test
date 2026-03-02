@@ -21,7 +21,6 @@ import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigati
 import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigation.navigateToOrderHistory
 import com.murjune.pratice.compose.study.sample.navigation.challenge.navigation.BottomNavDestination
 import com.murjune.pratice.compose.study.sample.navigation.challenge.navigation.ShoppingBottomNavigationBar
-import com.murjune.pratice.compose.study.sample.navigation.challenge.navigation.isRouteInHierarchy
 import com.murjune.pratice.compose.study.sample.navigation.challenge.setting.navigation.navigateToSetting
 import com.murjune.pratice.compose.study.sample.navigation.challenge.setting.navigation.settingSection
 
@@ -31,12 +30,15 @@ import com.murjune.pratice.compose.study.sample.navigation.challenge.setting.nav
  */
 @Composable
 fun ShoppingApp(
-    appState: ShoppingAppState,
+    appBarNavigator: AppBarNavigator,
     modifier: Modifier = Modifier,
 ) {
-    val currentDestination = appState.currentDestination
-    val shouldShowBottomNav = appState.bottomNavDestinations.any { destination ->
-        destination.isSelectable && currentDestination.isRouteInHierarchy(destination.baseRoute)
+    val currentDestination = appBarNavigator.currentDestination
+    val shouldShowBottomNav = appBarNavigator.bottomNavDestinations.any { destination ->
+        destination.isSelectable && appBarNavigator.isRouteInHierarchy(
+            currentDestination = currentDestination,
+            baseRoute = destination.baseRoute
+        )
     }
 
     Scaffold(
@@ -44,17 +46,17 @@ fun ShoppingApp(
         bottomBar = {
             if (shouldShowBottomNav) {
                 ShoppingBottomNavigationBar(
-                    destinations = appState.bottomNavDestinations,
+                    destinations = appBarNavigator.bottomNavDestinations,
                     currentDestination = currentDestination,
                     onNavigate = { destination ->
-                        appState.navigateToBottomNavDestination(destination)
+                        appBarNavigator.navigateToBottomNavDestination(destination)
                     },
                 )
             }
         }
     ) {
         ShoppingNavHost(
-            appState = appState,
+            appBarNavigator = appBarNavigator,
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -65,26 +67,29 @@ fun ShoppingApp(
  */
 @Composable
 fun ShoppingAppCustomBottomNav(
-    appState: ShoppingAppState,
+    appBarNavigator: AppBarNavigator,
     modifier: Modifier = Modifier,
 ) {
-    val currentDestination = appState.currentDestination
-    val shouldShowBottomNav = appState.bottomNavDestinations.any { destination ->
-        destination.isSelectable && currentDestination.isRouteInHierarchy(destination.baseRoute)
+    val currentDestination = appBarNavigator.currentDestination
+    val shouldShowBottomNav = appBarNavigator.bottomNavDestinations.any { destination ->
+        destination.isSelectable && appBarNavigator.isRouteInHierarchy(
+            currentDestination = currentDestination,
+            baseRoute = destination.baseRoute
+        )
     }
 
     Box(modifier = modifier.fillMaxSize()) {
         ShoppingNavHost(
-            appState = appState,
+            appBarNavigator = appBarNavigator,
             modifier = Modifier.fillMaxSize(),
         )
 
         if (shouldShowBottomNav) {
             ShoppingBottomNavigationBar(
-                destinations = appState.bottomNavDestinations,
+                destinations = appBarNavigator.bottomNavDestinations,
                 currentDestination = currentDestination,
                 onNavigate = { destination ->
-                    appState.navigateToBottomNavDestination(destination)
+                    appBarNavigator.navigateToBottomNavDestination(destination)
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -96,15 +101,15 @@ fun ShoppingAppCustomBottomNav(
 
 @Composable
 private fun ShoppingNavHost(
-    appState: ShoppingAppState,
+    appBarNavigator: AppBarNavigator,
     modifier: Modifier = Modifier,
 ) {
     NavHost(
-        navController = appState.navController,
+        navController = appBarNavigator.navController,
         startDestination = HomeNavGraph,
         modifier = modifier,
     ) {
-        val navController = appState.navController
+        val navController = appBarNavigator.navController
         homeSection(
             onProductClick = { productId ->
                 navController.navigateToProductDetail(productId)
@@ -124,7 +129,7 @@ private fun ShoppingNavHost(
         )
         cartSection(
             onBack = {
-                appState.navigateToBottomNavDestination(BottomNavDestination.Home)
+                appBarNavigator.navigateToBottomNavDestination(BottomNavDestination.Home)
             },
         )
         mySection(
@@ -135,7 +140,7 @@ private fun ShoppingNavHost(
                 navController.navigateToOrderDetail(orderId)
             },
             onNavigateToHomeNavGraph = {
-                appState.navigateToBottomNavDestination(BottomNavDestination.Home)
+                appBarNavigator.navigateToBottomNavDestination(BottomNavDestination.Home)
             },
             onBack = { navController.navigateUp() },
         )

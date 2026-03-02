@@ -31,7 +31,7 @@ fun ShoppingBottomNavigationBar(
     NavigationBar(modifier = modifier) {
         destinations.forEach { destination ->
             val isSelected = destination.isSelectable &&
-                currentDestination.isRouteInHierarchy(destination.baseRoute)
+                currentDestination?.hierarchy?.any { it.hasRoute(destination.baseRoute) } == true
             NavigationBarItem(
                 selected = isSelected,
                 onClick = { onNavigate(destination) },
@@ -46,9 +46,3 @@ fun ShoppingBottomNavigationBar(
         }
     }
 }
-
-@Composable
-fun NavDestination?.isRouteInHierarchy(route: KClass<*>): Boolean =
-    this?.hierarchy?.any {
-        it.hasRoute(route)
-    } ?: false
