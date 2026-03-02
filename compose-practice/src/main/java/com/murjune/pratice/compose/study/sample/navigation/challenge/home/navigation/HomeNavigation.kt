@@ -34,7 +34,7 @@ fun NavGraphBuilder.homeSection(
     onReviewClick: (productId: Int) -> Unit,
     onSettingClick: () -> Unit,
     onAddToCart: () -> Unit,
-    onBackClick: () -> Unit,
+    onBack: () -> Unit,
 ) {
     navigation<HomeNavGraph>(startDestination = HomeRoute.HomeScreen::class) {
         composable<HomeRoute.HomeScreen> {
@@ -48,7 +48,7 @@ fun NavGraphBuilder.homeSection(
             val productDetail = backStackEntry.toRoute<HomeRoute.ProductDetail>()
             ProductDetailScreen(
                 productId = productDetail.productId,
-                onBackClick = onBackClick,
+                onBack = onBack,
                 onReviewClick = onReviewClick,
                 onAddToCart = onAddToCart,
             )
@@ -57,7 +57,7 @@ fun NavGraphBuilder.homeSection(
             val review = backStackEntry.toRoute<HomeRoute.Review>()
             ReviewScreen(
                 productId = review.productId,
-                onBackClick = onBackClick,
+                onBack = onBack,
             )
         }
     }

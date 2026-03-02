@@ -52,7 +52,7 @@ private object NavUpScreenC
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigateUpSample(
-    onBackClick: () -> Unit = {},
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -64,7 +64,7 @@ fun NavigateUpSample(
             TopAppBar(
                 title = { Text(text = "NavigateUp vs PopBackStack") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로가기",

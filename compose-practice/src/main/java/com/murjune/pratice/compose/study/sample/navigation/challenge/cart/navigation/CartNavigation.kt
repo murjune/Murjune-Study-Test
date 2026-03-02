@@ -19,11 +19,11 @@ fun NavController.navigateToCart(
 ) = navigate(CartRoute.CartScreen, navOptions)
 
 fun NavGraphBuilder.cartSection(
-    onNavigateToHomeNavGraph: () -> Unit,
+    onBack: () -> Unit,
 ) {
     navigation<CartNavGraph>(startDestination = CartRoute.CartScreen::class) {
         composable<CartRoute.CartScreen> {
-            BackHandler { onNavigateToHomeNavGraph() }
+            BackHandler { onBack() }
             CartScreen(modifier = Modifier.bottomNavPadding())
         }
     }

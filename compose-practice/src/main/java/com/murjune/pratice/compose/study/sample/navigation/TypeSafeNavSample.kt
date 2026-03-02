@@ -47,7 +47,7 @@ private data class ProfileRoute(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TypeSafeNavSample(
-    onBackClick: () -> Unit = {},
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -58,7 +58,7 @@ fun TypeSafeNavSample(
             TopAppBar(
                 title = { Text(text = "Type-Safe Navigation") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로가기",

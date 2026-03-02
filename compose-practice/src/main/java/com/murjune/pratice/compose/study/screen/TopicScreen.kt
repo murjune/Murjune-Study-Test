@@ -85,7 +85,7 @@ fun TopicScreen(
     topicId: String,
     topicTitle: String,
     onSampleClick: (route: Any) -> Unit,
-    onBackClick: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val samples = getSamplesForTopic(topicId)
@@ -96,7 +96,7 @@ fun TopicScreen(
             TopAppBar(
                 title = { Text(text = topicTitle) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -157,7 +157,7 @@ private fun TopicScreenPreview() {
             topicId = "navigation",
             topicTitle = "Navigation",
             onSampleClick = {},
-            onBackClick = {},
+            onBack = {},
         )
     }
 }

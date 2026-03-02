@@ -31,7 +31,7 @@ private val reviews = listOf(
 @Composable
 fun ReviewScreen(
     productId: Int,
-    onBackClick: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -40,7 +40,7 @@ fun ReviewScreen(
             TopAppBar(
                 title = { Text("리뷰 (상품 $productId)") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },

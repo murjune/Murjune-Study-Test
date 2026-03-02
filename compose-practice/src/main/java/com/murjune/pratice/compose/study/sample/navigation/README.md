@@ -155,10 +155,10 @@ graph TD
 
 ```kotlin
 // feature 모듈: NavGraphBuilder 확장으로 destination 캡슐화
-fun NavGraphBuilder.topicScreen(onBackClick: () -> Unit) {
+fun NavGraphBuilder.topicScreen(onBack: () -> Unit) {
     composable<TopicRoute> { backStackEntry ->
         val route = backStackEntry.toRoute<TopicRoute>()
-        TopicScreen(topicId = route.id, onBackClick = onBackClick)
+        TopicScreen(topicId = route.id, onBack = onBack)
     }
 }
 
@@ -170,7 +170,7 @@ fun NavController.navigateToTopic(id: String) {
 // app 모듈: 그래프 조립
 NavHost(navController, startDestination = HomeRoute) {
     homeScreen(onTopicClick = { id -> navController.navigateToTopic(id) })
-    topicScreen(onBackClick = { navController.popBackStack() })
+    topicScreen(onBack = { navController.popBackStack() })
 }
 ```
 
@@ -797,9 +797,9 @@ val currentRoute = navBackStackEntry?.destination?.route ?: HOME_ROUTE
 
 ```kotlin
 // feature 모듈: NavGraphBuilder 확장으로 destination 캡슐화
-fun NavGraphBuilder.topicScreen(onBackClick: () -> Unit) {
+fun NavGraphBuilder.topicScreen(onBack: () -> Unit) {
     composable<TopicRoute> { entry ->
-        TopicScreen(topicId = entry.toRoute<TopicRoute>().id, onBackClick = onBackClick)
+        TopicScreen(topicId = entry.toRoute<TopicRoute>().id, onBack = onBack)
     }
 }
 
@@ -824,7 +824,7 @@ fun Navigator.navigateToTopic(topicId: String) {
 fun EntryProviderScope<NavKey>.topicEntry(navigator: Navigator) {
     entry<TopicNavKey> { key ->
         TopicScreen(
-            onBackClick = { navigator.goBack() },
+            onBack = { navigator.goBack() },
             onTopicClick = navigator::navigateToTopic,
             viewModel = hiltViewModel<TopicViewModel, Factory>(key = key.id) { ... },
         )

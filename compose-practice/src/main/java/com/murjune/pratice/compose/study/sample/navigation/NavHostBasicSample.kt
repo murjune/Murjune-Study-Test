@@ -41,7 +41,7 @@ private data class BasicDetail(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavHostBasicSample(
-    onBackClick: () -> Unit = {},
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -52,7 +52,7 @@ fun NavHostBasicSample(
             TopAppBar(
                 title = { Text(text = "NavHost 기본") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로가기",

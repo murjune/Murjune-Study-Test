@@ -34,7 +34,7 @@ fun NavGraphBuilder.mySection(
     onOrderHistoryClick: () -> Unit,
     onOrderDetailClick: (orderId: Int) -> Unit,
     onNavigateToHomeNavGraph: () -> Unit,
-    onBackClick: () -> Unit,
+    onBack: () -> Unit,
 ) {
     navigation<MyNavGraph>(startDestination = MyRoute.MyScreen::class) {
         composable<MyRoute.MyScreen> {
@@ -46,7 +46,7 @@ fun NavGraphBuilder.mySection(
         }
         composable<MyRoute.OrderHistory> {
             OrderHistoryScreen(
-                onBackClick = onBackClick,
+                onBack = onBack,
                 onOrderDetailClick = onOrderDetailClick,
             )
         }
@@ -54,7 +54,7 @@ fun NavGraphBuilder.mySection(
             val orderDetail = backStackEntry.toRoute<MyRoute.OrderDetail>()
             OrderDetailScreen(
                 orderId = orderDetail.orderId,
-                onBackClick = onBackClick,
+                onBack = onBack,
             )
         }
     }

@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun OrderDetailScreen(
     orderId: Int,
-    onBackClick: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -31,7 +31,7 @@ fun OrderDetailScreen(
             TopAppBar(
                 title = { Text("주문 상세") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },

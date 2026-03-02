@@ -11,11 +11,11 @@ fun NavController.navigateToMore(
 ) = navigate(MoreRoute, navOptions)
 
 fun NavGraphBuilder.moreScreen(
-    onBackClick: () -> Unit,
+    onBack: () -> Unit,
 ) {
     composable<MoreRoute> {
         MoreScreen(
-            onBackClick = onBackClick,
+            onBack = onBack,
         )
     }
 }

@@ -47,7 +47,7 @@ private object PopUpToHome
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PopUpToSample(
-    onBackClick: () -> Unit = {},
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -58,7 +58,7 @@ fun PopUpToSample(
             TopAppBar(
                 title = { Text(text = "PopUpTo") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로가기",

@@ -56,7 +56,7 @@ private object Dashboard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NestedNavGraphSample(
-    onBackClick: () -> Unit = {},
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -67,7 +67,7 @@ fun NestedNavGraphSample(
             TopAppBar(
                 title = { Text(text = "중첩 네비게이션 그래프") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로가기",
@@ -100,7 +100,7 @@ fun NestedNavGraphSample(
                     composable<Signup> {
                         SignupScreen(
                             onNextClick = { navController.navigate(VerifyEmail) },
-                            onBackClick = { navController.popBackStack() },
+                            onBack = { navController.popBackStack() },
                         )
                     }
 
@@ -228,7 +228,7 @@ private fun LoginScreen(
 @Composable
 private fun SignupScreen(
     onNextClick: () -> Unit,
-    onBackClick: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -257,7 +257,7 @@ private fun SignupScreen(
             Text(text = "다음")
         }
         Button(
-            onClick = onBackClick,
+            onClick = onBack,
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         ) {
             Text(text = "뒤로")

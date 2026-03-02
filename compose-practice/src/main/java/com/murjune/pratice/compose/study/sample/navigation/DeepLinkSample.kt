@@ -53,7 +53,7 @@ private data class DeepLinkProfile(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeepLinkSample(
-    onBackClick: () -> Unit = {},
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -64,7 +64,7 @@ fun DeepLinkSample(
             TopAppBar(
                 title = { Text(text = "DeepLink") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로가기",

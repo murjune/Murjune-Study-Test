@@ -46,7 +46,7 @@ private data class SingleTopDetail(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LaunchSingleTopSample(
-    onBackClick: () -> Unit = {},
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -57,7 +57,7 @@ fun LaunchSingleTopSample(
             TopAppBar(
                 title = { Text(text = "LaunchSingleTop") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로가기",

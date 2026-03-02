@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ProductDetailScreen(
     productId: Int,
-    onBackClick: () -> Unit,
+    onBack: () -> Unit,
     onReviewClick: (productId: Int) -> Unit,
     onAddToCart: () -> Unit,
     modifier: Modifier = Modifier,
@@ -38,7 +38,7 @@ fun ProductDetailScreen(
             TopAppBar(
                 title = { Text("상품 상세") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },

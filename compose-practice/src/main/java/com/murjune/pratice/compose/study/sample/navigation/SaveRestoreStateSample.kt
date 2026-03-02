@@ -55,7 +55,7 @@ private object TabProfile
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaveRestoreStateSample(
-    onBackClick: () -> Unit = {},
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -68,7 +68,7 @@ fun SaveRestoreStateSample(
             TopAppBar(
                 title = { Text(text = "Save/Restore State") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로가기",

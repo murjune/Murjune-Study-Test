@@ -30,7 +30,7 @@ private val orders = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderHistoryScreen(
-    onBackClick: () -> Unit,
+    onBack: () -> Unit,
     onOrderDetailClick: (orderId: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -40,7 +40,7 @@ fun OrderHistoryScreen(
             TopAppBar(
                 title = { Text("주문 내역") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },

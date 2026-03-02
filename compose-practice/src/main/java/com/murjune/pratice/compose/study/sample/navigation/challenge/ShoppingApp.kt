@@ -120,10 +120,10 @@ private fun ShoppingNavHost(
                     popUpTo(HomeNavGraph) {}
                 })
             },
-            onBackClick = { navController.navigateUp() },
+            onBack = { navController.navigateUp() },
         )
         cartSection(
-            onNavigateToHomeNavGraph = {
+            onBack = {
                 appState.navigateToBottomNavDestination(BottomNavDestination.Home)
             },
         )
@@ -137,13 +137,13 @@ private fun ShoppingNavHost(
             onNavigateToHomeNavGraph = {
                 appState.navigateToBottomNavDestination(BottomNavDestination.Home)
             },
-            onBackClick = { navController.navigateUp() },
+            onBack = { navController.navigateUp() },
         )
         settingSection(
-            onBackClick = { navController.navigateUp() },
+            onBack = { navController.navigateUp() },
         )
         moreScreen(
-            onBackClick = { navController.navigateUp() },
+            onBack = { navController.navigateUp() },
         )
     }
 }
