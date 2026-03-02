@@ -15,7 +15,7 @@ import com.murjune.pratice.compose.study.sample.navigation.challenge.my.OrderHis
 
 fun NavController.navigateToMy(
     navOptions: NavOptions? = null,
-) = navigate(MyBaseRoute, navOptions)
+) = navigate(MyRoute.MyScreen, navOptions)
 
 fun NavController.navigateToOrderHistory(
     navOptions: NavOptions? = null,

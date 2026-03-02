@@ -13,7 +13,7 @@ import com.murjune.pratice.compose.study.sample.navigation.challenge.home.Review
 
 fun NavController.navigateToHome(
     navOptions: NavOptions? = null,
-) = navigate(HomeBaseRoute, navOptions)
+) = navigate(HomeRoute.HomeScreen, navOptions)
 
 fun NavController.navigateToProductDetail(
     productId: Int,

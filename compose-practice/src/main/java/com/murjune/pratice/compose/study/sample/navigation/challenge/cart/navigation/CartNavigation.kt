@@ -13,11 +13,11 @@ import com.murjune.pratice.compose.study.sample.navigation.challenge.home.naviga
 
 fun NavController.navigateToCart(
     navOptions: NavOptions? = null,
-) = navigate(CartBaseRoute, navOptions)
+) = navigate(CartRoute.CartScreen, navOptions)
 
 fun NavController.navigateToCartFromProduct() {
-    navigate(CartBaseRoute) {
-        popUpTo<HomeBaseRoute> { inclusive = false }
+    navigate(CartRoute.CartScreen) {
+        popUpTo<CartRoute.CartScreen> { inclusive = false }
     }
 }
 
