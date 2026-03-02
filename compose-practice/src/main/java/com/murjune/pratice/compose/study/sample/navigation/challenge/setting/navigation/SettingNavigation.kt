@@ -10,10 +10,12 @@ fun NavController.navigateToSetting(
     navOptions: NavOptions? = null,
 ) = navigate(SettingRoute, navOptions)
 
-fun NavGraphBuilder.settingSection(navController: NavController) {
+fun NavGraphBuilder.settingSection(
+    onBackClick: () -> Unit,
+) {
     composable<SettingRoute> {
         SettingScreen(
-            onBackClick = { navController.navigateUp() },
+            onBackClick = onBackClick,
         )
     }
 }

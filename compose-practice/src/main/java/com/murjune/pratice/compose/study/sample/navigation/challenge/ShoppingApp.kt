@@ -17,9 +17,15 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.cartSection
-import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.HomeRoute
+import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.navigateToCartFromProduct
+import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.HomeBaseRoute
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.homeSection
+import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.navigateToProductDetail
+import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.navigateToReview
 import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigation.mySection
+import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigation.navigateToOrderDetail
+import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigation.navigateToOrderHistory
+import com.murjune.pratice.compose.study.sample.navigation.challenge.setting.navigation.navigateToSetting
 import com.murjune.pratice.compose.study.sample.navigation.challenge.setting.navigation.settingSection
 import kotlin.reflect.KClass
 
@@ -60,12 +66,37 @@ fun ShoppingApp(
         Box(modifier = Modifier.padding(innerPadding)) {
             NavHost(
                 navController = appState.navController,
-                startDestination = HomeRoute,
+                startDestination = HomeBaseRoute,
             ) {
-                homeSection(appState.navController)
-                cartSection(appState.navController)
-                mySection(appState.navController)
-                settingSection(appState.navController)
+                val navController = appState.navController
+                homeSection(
+                    onProductClick = { productId ->
+                        navController.navigateToProductDetail(productId)
+                    },
+                    onReviewClick = { productId ->
+                        navController.navigateToReview(productId)
+                    },
+                    onSettingClick = {
+                        navController.navigateToSetting()
+                    },
+                    onAddToCart = {
+                        navController.navigateToCartFromProduct()
+                    },
+                    onBackClick = { navController.navigateUp() },
+                )
+                cartSection()
+                mySection(
+                    onOrderHistoryClick = {
+                        navController.navigateToOrderHistory()
+                    },
+                    onOrderDetailClick = { orderId ->
+                        navController.navigateToOrderDetail(orderId)
+                    },
+                    onBackClick = { navController.navigateUp() },
+                )
+                settingSection(
+                    onBackClick = { navController.navigateUp() },
+                )
             }
         }
     }

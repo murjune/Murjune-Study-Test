@@ -12,39 +12,39 @@ import com.murjune.pratice.compose.study.sample.navigation.challenge.my.OrderHis
 
 fun NavController.navigateToMy(
     navOptions: NavOptions? = null,
-) = navigate(MyRoute, navOptions)
+) = navigate(MyBaseRoute, navOptions)
 
 fun NavController.navigateToOrderHistory(
     navOptions: NavOptions? = null,
-) = navigate(OrderHistory, navOptions)
+) = navigate(MyRoute.OrderHistory, navOptions)
 
 fun NavController.navigateToOrderDetail(
     orderId: Int,
     navOptions: NavOptions? = null,
-) = navigate(OrderDetail(orderId), navOptions)
+) = navigate(MyRoute.OrderDetail(orderId), navOptions)
 
-fun NavGraphBuilder.mySection(navController: NavController) {
-    navigation<MyRoute>(startDestination = MyScreen::class) {
-        composable<MyScreen> {
+fun NavGraphBuilder.mySection(
+    onOrderHistoryClick: () -> Unit,
+    onOrderDetailClick: (orderId: Int) -> Unit,
+    onBackClick: () -> Unit,
+) {
+    navigation<MyBaseRoute>(startDestination = MyRoute.MyScreen::class) {
+        composable<MyRoute.MyScreen> {
             MyScreen(
-                onOrderHistoryClick = {
-                    navController.navigateToOrderHistory()
-                },
+                onOrderHistoryClick = onOrderHistoryClick,
             )
         }
-        composable<OrderHistory> {
+        composable<MyRoute.OrderHistory> {
             OrderHistoryScreen(
-                onBackClick = { navController.navigateUp() },
-                onOrderDetailClick = { orderId ->
-                    navController.navigateToOrderDetail(orderId)
-                },
+                onBackClick = onBackClick,
+                onOrderDetailClick = onOrderDetailClick,
             )
         }
-        composable<OrderDetail> { backStackEntry ->
-            val orderDetail = backStackEntry.toRoute<OrderDetail>()
+        composable<MyRoute.OrderDetail> { backStackEntry ->
+            val orderDetail = backStackEntry.toRoute<MyRoute.OrderDetail>()
             OrderDetailScreen(
                 orderId = orderDetail.orderId,
-                onBackClick = { navController.navigateUp() },
+                onBackClick = onBackClick,
             )
         }
     }

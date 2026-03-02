@@ -3,7 +3,9 @@ package com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navig
 import kotlinx.serialization.Serializable
 
 @Serializable
-data object CartRoute
+data object CartBaseRoute
 
-@Serializable
-data object CartScreen
+sealed class CartRoute {
+    @Serializable
+    data object CartScreen : CartRoute()
+}

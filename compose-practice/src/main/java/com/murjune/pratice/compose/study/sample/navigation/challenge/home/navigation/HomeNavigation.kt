@@ -6,56 +6,52 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
-import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.navigateToCartFromProduct
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.HomeScreen
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.ProductDetailScreen
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.ReviewScreen
-import com.murjune.pratice.compose.study.sample.navigation.challenge.setting.navigation.navigateToSetting
 
 fun NavController.navigateToHome(
     navOptions: NavOptions? = null,
-) = navigate(HomeRoute, navOptions)
+) = navigate(HomeBaseRoute, navOptions)
 
 fun NavController.navigateToProductDetail(
     productId: Int,
     navOptions: NavOptions? = null,
-) = navigate(ProductDetail(productId), navOptions)
+) = navigate(HomeRoute.ProductDetail(productId), navOptions)
 
 fun NavController.navigateToReview(
     productId: Int,
     navOptions: NavOptions? = null,
-) = navigate(Review(productId), navOptions)
+) = navigate(HomeRoute.Review(productId), navOptions)
 
-fun NavGraphBuilder.homeSection(navController: NavController) {
-    navigation<HomeRoute>(startDestination = HomeScreen::class) {
-        composable<HomeScreen> {
+fun NavGraphBuilder.homeSection(
+    onProductClick: (productId: Int) -> Unit,
+    onReviewClick: (productId: Int) -> Unit,
+    onSettingClick: () -> Unit,
+    onAddToCart: () -> Unit,
+    onBackClick: () -> Unit,
+) {
+    navigation<HomeBaseRoute>(startDestination = HomeRoute.HomeScreen::class) {
+        composable<HomeRoute.HomeScreen> {
             HomeScreen(
-                onProductClick = { productId ->
-                    navController.navigateToProductDetail(productId)
-                },
-                onSettingClick = {
-                    navController.navigateToSetting()
-                },
+                onProductClick = onProductClick,
+                onSettingClick = onSettingClick,
             )
         }
-        composable<ProductDetail> { backStackEntry ->
-            val productDetail = backStackEntry.toRoute<ProductDetail>()
+        composable<HomeRoute.ProductDetail> { backStackEntry ->
+            val productDetail = backStackEntry.toRoute<HomeRoute.ProductDetail>()
             ProductDetailScreen(
                 productId = productDetail.productId,
-                onBackClick = { navController.navigateUp() },
-                onReviewClick = { productId ->
-                    navController.navigateToReview(productId)
-                },
-                onAddToCart = {
-                    navController.navigateToCartFromProduct()
-                },
+                onBackClick = onBackClick,
+                onReviewClick = onReviewClick,
+                onAddToCart = onAddToCart,
             )
         }
-        composable<Review> { backStackEntry ->
-            val review = backStackEntry.toRoute<Review>()
+        composable<HomeRoute.Review> { backStackEntry ->
+            val review = backStackEntry.toRoute<HomeRoute.Review>()
             ReviewScreen(
                 productId = review.productId,
-                onBackClick = { navController.navigateUp() },
+                onBackClick = onBackClick,
             )
         }
     }

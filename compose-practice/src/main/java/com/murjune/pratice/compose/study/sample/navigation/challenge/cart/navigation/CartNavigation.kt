@@ -6,21 +6,21 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.CartScreen
-import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.HomeRoute
+import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.HomeBaseRoute
 
 fun NavController.navigateToCart(
     navOptions: NavOptions? = null,
-) = navigate(CartRoute, navOptions)
+) = navigate(CartBaseRoute, navOptions)
 
 fun NavController.navigateToCartFromProduct() {
-    navigate(CartRoute) {
-        popUpTo<HomeRoute> { inclusive = false }
+    navigate(CartBaseRoute) {
+        popUpTo<HomeBaseRoute> { inclusive = false }
     }
 }
 
-fun NavGraphBuilder.cartSection(navController: NavController) {
-    navigation<CartRoute>(startDestination = CartScreen::class) {
-        composable<CartScreen> {
+fun NavGraphBuilder.cartSection() {
+    navigation<CartBaseRoute>(startDestination = CartRoute.CartScreen::class) {
+        composable<CartRoute.CartScreen> {
             CartScreen()
         }
     }
