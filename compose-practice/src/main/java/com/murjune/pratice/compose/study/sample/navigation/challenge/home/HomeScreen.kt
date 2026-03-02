@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -27,6 +28,13 @@ private val products = listOf(
     3 to "AirPods Pro",
     4 to "iPad Air",
     5 to "Apple Watch",
+    6 to "Apple TV",
+    7 to "HomePod",
+    8 to "AirTag",
+    9 to "Magic Keyboard",
+    10 to "Magic Mouse",
+    11 to "Magic Trackpad",
+    12 to "Apple Pencil",
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +43,7 @@ fun HomeScreen(
     onProductClick: (productId: Int) -> Unit,
     onSettingClick: () -> Unit,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
     Scaffold(
         modifier = modifier,
@@ -53,6 +62,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
+            contentPadding = contentPadding,
         ) {
             items(products) { (id, name) ->
                 Card(

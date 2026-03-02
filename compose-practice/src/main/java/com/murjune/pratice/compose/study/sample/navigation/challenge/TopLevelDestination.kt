@@ -21,7 +21,6 @@ enum class TopLevelDestination(
     @StringRes val iconTextId: Int,
     @StringRes val titleTextId: Int,
     val route: KClass<*>,
-    val baseRoute: KClass<*> = route,
 ) {
     Home(
         selectedIcon = Icons.Filled.Home,

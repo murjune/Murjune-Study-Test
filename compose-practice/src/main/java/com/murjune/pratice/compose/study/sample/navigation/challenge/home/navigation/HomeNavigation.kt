@@ -6,6 +6,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import com.murjune.pratice.compose.study.sample.navigation.challenge.BottomNavContentPadding
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.HomeScreen
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.ProductDetailScreen
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.ReviewScreen
@@ -36,6 +37,7 @@ fun NavGraphBuilder.homeSection(
             HomeScreen(
                 onProductClick = onProductClick,
                 onSettingClick = onSettingClick,
+                contentPadding = BottomNavContentPadding,
             )
         }
         composable<HomeRoute.ProductDetail> { backStackEntry ->

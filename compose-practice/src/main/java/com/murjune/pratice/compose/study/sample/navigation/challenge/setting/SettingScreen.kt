@@ -39,10 +39,8 @@ fun SettingScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(top = 40.dp)
-            ,
-            contentAlignment = Alignment.TopCenter,
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "설정",
