@@ -8,8 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
+import androidx.navigation.navOptions
 import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.cartSection
-import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.navigateToCartFromProduct
+import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.navigateToCart
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.HomeNavGraph
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.homeSection
 import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.navigateToProductDetail
@@ -115,12 +116,14 @@ private fun ShoppingNavHost(
                 navController.navigateToSetting()
             },
             onAddToCart = {
-                navController.navigateToCartFromProduct()
+                navController.navigateToCart(navOptions = navOptions {
+                    popUpTo(HomeNavGraph) {}
+                })
             },
             onBackClick = { navController.navigateUp() },
         )
         cartSection(
-            onNavigateToHome = {
+            onNavigateToHomeNavGraph = {
                 appState.navigateToBottomNavDestination(BottomNavDestination.Home)
             },
         )
@@ -131,7 +134,7 @@ private fun ShoppingNavHost(
             onOrderDetailClick = { orderId ->
                 navController.navigateToOrderDetail(orderId)
             },
-            onNavigateToHome = {
+            onNavigateToHomeNavGraph = {
                 appState.navigateToBottomNavDestination(BottomNavDestination.Home)
             },
             onBackClick = { navController.navigateUp() },

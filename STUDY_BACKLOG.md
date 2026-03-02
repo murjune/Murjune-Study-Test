@@ -25,6 +25,7 @@
 | Shared Element Transition | 높음 | 🆕 1.10 stable. SharedTransitionLayout, sharedElement modifier, skipToLookaheadPosition, initialVelocity 지원 |
 | Predictive Back Gesture + Compose | 높음 | 🆕 Android 14+ in-app predictive back. OnBackPressedCallback, Progress API로 커스텀 애니메이션 |
 | Pausable Composition & Lazy Prefetch 성능 | 중 | 🆕 2025.12 BOM 기본 활성화. 런타임이 composition 일시중지/재개, 스크롤 성능 View 수준 달성 |
+| derivedStateOf (불필요한 리컴포지션 방지, remember + derivedStateOf 패턴) | 높음 | Navigation 3 학습 전에 선행 |
 | SideEffect (LaunchedEffect, SideEffect, DisposableEffect) | 높음 | |
 | `inline` vs `noinline` 람다 최적화 | 중 | |
 | Paging3 + LazyColumn | 중 | |

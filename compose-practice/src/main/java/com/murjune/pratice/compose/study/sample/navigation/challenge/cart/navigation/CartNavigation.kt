@@ -18,18 +18,12 @@ fun NavController.navigateToCart(
     navOptions: NavOptions? = null,
 ) = navigate(CartRoute.CartScreen, navOptions)
 
-fun NavController.navigateToCartFromProduct() {
-    navigate(CartRoute.CartScreen) {
-        popUpTo<CartNavGraph> { inclusive = false }
-    }
-}
-
 fun NavGraphBuilder.cartSection(
-    onNavigateToHome: () -> Unit,
+    onNavigateToHomeNavGraph: () -> Unit,
 ) {
     navigation<CartNavGraph>(startDestination = CartRoute.CartScreen::class) {
         composable<CartRoute.CartScreen> {
-            BackHandler { onNavigateToHome() }
+            BackHandler { onNavigateToHomeNavGraph() }
             CartScreen(modifier = Modifier.bottomNavPadding())
         }
     }

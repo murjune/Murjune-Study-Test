@@ -33,12 +33,12 @@ fun NavController.navigateToOrderDetail(
 fun NavGraphBuilder.mySection(
     onOrderHistoryClick: () -> Unit,
     onOrderDetailClick: (orderId: Int) -> Unit,
-    onNavigateToHome: () -> Unit,
+    onNavigateToHomeNavGraph: () -> Unit,
     onBackClick: () -> Unit,
 ) {
     navigation<MyNavGraph>(startDestination = MyRoute.MyScreen::class) {
         composable<MyRoute.MyScreen> {
-            BackHandler { onNavigateToHome() }
+            BackHandler { onNavigateToHomeNavGraph() }
             MyScreen(
                 onOrderHistoryClick = onOrderHistoryClick,
                 modifier = Modifier.bottomNavPadding(),
