@@ -251,6 +251,56 @@ ShoppingApp
 
 ---
 
+### 9. currentDestination null flickering 방지 (보너스 챌린지)
+
+화면 전환 중 `currentBackStackEntry`가 일시적으로 null이 되면서 BottomBar가 깜빡이는 문제를 해결하세요.
+
+**문제:**
+```
+1. Home 탭에 있음 → currentDestination = HomeScreen
+2. Cart 탭 클릭 → Navigation 전환 시작
+3. 전환 도중 currentBackStackEntry가 순간 null
+4. currentDestination = null → shouldShowBottomBar = false
+5. BottomBar가 순간 사라짐 → 깜빡임
+6. Cart 도착 → BottomBar 다시 표시
+```
+
+**현재 코드 (ShoppingAppState):**
+```kotlin
+val currentDestination: NavDestination?
+    @Composable get() {
+        val currentEntry by navController.currentBackStackEntryAsState()
+        return currentEntry?.destination
+    }
+```
+
+**목표 코드 (NowInAndroid 방식):**
+```kotlin
+private val previousDestination = mutableStateOf<NavDestination?>(null)
+
+val currentDestination: NavDestination?
+    @Composable get() {
+        val currentEntry = navController.currentBackStackEntryFlow
+            .collectAsState(initial = null)
+
+        return currentEntry.value?.destination.also { destination ->
+            if (destination != null) {
+                previousDestination.value = destination
+            }
+        } ?: previousDestination.value
+    }
+```
+
+**핵심 포인트:**
+- `previousDestination`에 마지막 유효 값을 캐싱
+- null 구간에서 이전 destination을 fallback으로 사용 → 깜빡임 방지
+- `currentBackStackEntryAsState()` → `currentBackStackEntryFlow.collectAsState()`로 변경
+
+**참고 커밋:**
+- [NowInAndroid `827d3d6`](https://github.com/android/nowinandroid/commit/827d3d66e2e765f9e257c8031a29fe84fc2256e0) — `incorporate safe fallback destination to null destination UI flickering`
+
+---
+
 ## 참고
 
 - Phase 1 README: 핵심 개념 정리
