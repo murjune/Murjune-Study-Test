@@ -8,10 +8,14 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
-import com.murjune.pratice.compose.study.sample.navigation.challenge.bottomNavPadding
+import com.murjune.pratice.compose.study.sample.navigation.challenge.navigation.bottomNavPadding
 import com.murjune.pratice.compose.study.sample.navigation.challenge.my.MyScreen
 import com.murjune.pratice.compose.study.sample.navigation.challenge.my.OrderDetailScreen
 import com.murjune.pratice.compose.study.sample.navigation.challenge.my.OrderHistoryScreen
+
+fun NavController.navigateToMyNavGraph(
+    navOptions: NavOptions? = null,
+) = navigate(MyNavGraph, navOptions)
 
 fun NavController.navigateToMy(
     navOptions: NavOptions? = null,
@@ -32,7 +36,7 @@ fun NavGraphBuilder.mySection(
     onNavigateToHome: () -> Unit,
     onBackClick: () -> Unit,
 ) {
-    navigation<MyBaseRoute>(startDestination = MyRoute.MyScreen::class) {
+    navigation<MyNavGraph>(startDestination = MyRoute.MyScreen::class) {
         composable<MyRoute.MyScreen> {
             BackHandler { onNavigateToHome() }
             MyScreen(

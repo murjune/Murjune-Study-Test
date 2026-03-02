@@ -6,4 +6,5 @@
     <string name="navigation_challenge_bottom_nav_home">홈</string>
     <string name="navigation_challenge_bottom_nav_cart">장바구니</string>
     <string name="navigation_challenge_bottom_nav_my">My</string>
+    <string name="navigation_challenge_bottom_nav_more">더보기</string>
 </resources>

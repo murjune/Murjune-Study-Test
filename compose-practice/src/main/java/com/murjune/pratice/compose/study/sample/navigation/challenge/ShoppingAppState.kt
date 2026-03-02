@@ -12,9 +12,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
-import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.navigateToCart
-import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.navigateToHome
-import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigation.navigateToMy
+import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.navigation.navigateToCartNavGraph
+import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.navigateToHomeNavGraph
+import com.murjune.pratice.compose.study.sample.navigation.challenge.more.navigation.navigateToMore
+import com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigation.navigateToMyNavGraph
+import com.murjune.pratice.compose.study.sample.navigation.challenge.navigation.BottomNavDestination
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -41,7 +43,7 @@ data class ShoppingAppState(
     private val previousDestination = mutableStateOf<NavDestination?>(null)
 
     /**
-     * 현재 네비게이션 스택의 “현재 화면”을 가져오는 property
+     * 현재 네비게이션 스택의 "현재 화면"을 가져오는 property
      * NavController의 currentBackStackEntryFlow를 수집하여 현재 백스택 항목을 관찰합니다.
      * */
     val currentDestination: NavDestination?
@@ -57,21 +59,22 @@ data class ShoppingAppState(
             } ?: previousDestination.value
         }
 
-    val topLevelDestinations: List<TopLevelDestination> = TopLevelDestination.entries
+    val bottomNavDestinations: List<BottomNavDestination> = BottomNavDestination.entries
 
-    fun navigateToTopLevelDestination(topLevelDestination: TopLevelDestination) {
-        val topLevelNavOptions = navOptions {
-            popUpTo(navController.graph.findStartDestination().id) { // 백스택의 시작 지점까지 팝업
-                saveState = true // 대신 상태는 저장하여 나중에 복원할 수 있도록 한다. (backstack 도 물론 저장된다)
+    fun navigateToBottomNavDestination(destination: BottomNavDestination) {
+        val navOptions = navOptions {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
             }
-            launchSingleTop = true // 동일한 항목을 다시 선택할 때 동일한 목적지의 여러 복사본을 방지
-            restoreState = true // 이전에 saveState = true 로 저장된 상태가 있다면 복원한다.
+            launchSingleTop = true
+            restoreState = true
         }
 
-        when (topLevelDestination) {
-            TopLevelDestination.Home -> navController.navigateToHome(topLevelNavOptions)
-            TopLevelDestination.Cart -> navController.navigateToCart(topLevelNavOptions)
-            TopLevelDestination.My -> navController.navigateToMy(topLevelNavOptions)
+        when (destination) {
+            BottomNavDestination.Home -> navController.navigateToHomeNavGraph(navOptions)
+            BottomNavDestination.Cart -> navController.navigateToCartNavGraph(navOptions)
+            BottomNavDestination.My -> navController.navigateToMyNavGraph(navOptions)
+            BottomNavDestination.More -> navController.navigateToMore()
         }
     }
 }

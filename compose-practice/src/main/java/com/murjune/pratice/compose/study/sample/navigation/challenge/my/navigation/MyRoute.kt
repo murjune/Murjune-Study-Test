@@ -3,7 +3,7 @@ package com.murjune.pratice.compose.study.sample.navigation.challenge.my.navigat
 import kotlinx.serialization.Serializable
 
 @Serializable
-data object MyBaseRoute
+data object MyNavGraph
 
 sealed class MyRoute {
     @Serializable

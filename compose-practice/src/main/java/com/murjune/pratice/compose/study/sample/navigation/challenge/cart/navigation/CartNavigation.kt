@@ -7,9 +7,12 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
-import com.murjune.pratice.compose.study.sample.navigation.challenge.bottomNavPadding
+import com.murjune.pratice.compose.study.sample.navigation.challenge.navigation.bottomNavPadding
 import com.murjune.pratice.compose.study.sample.navigation.challenge.cart.CartScreen
-import com.murjune.pratice.compose.study.sample.navigation.challenge.home.navigation.HomeBaseRoute
+
+fun NavController.navigateToCartNavGraph(
+    navOptions: NavOptions? = null,
+) = navigate(CartNavGraph, navOptions)
 
 fun NavController.navigateToCart(
     navOptions: NavOptions? = null,
@@ -17,14 +20,14 @@ fun NavController.navigateToCart(
 
 fun NavController.navigateToCartFromProduct() {
     navigate(CartRoute.CartScreen) {
-        popUpTo<CartRoute.CartScreen> { inclusive = false }
+        popUpTo<CartNavGraph> { inclusive = false }
     }
 }
 
 fun NavGraphBuilder.cartSection(
     onNavigateToHome: () -> Unit,
 ) {
-    navigation<CartBaseRoute>(startDestination = CartRoute.CartScreen::class) {
+    navigation<CartNavGraph>(startDestination = CartRoute.CartScreen::class) {
         composable<CartRoute.CartScreen> {
             BackHandler { onNavigateToHome() }
             CartScreen(modifier = Modifier.bottomNavPadding())
