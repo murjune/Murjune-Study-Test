@@ -4,6 +4,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
+import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.murjune.pratice.compose.study.sample.navigation.challenge.navigation.BottomNavContentPadding
@@ -44,7 +45,13 @@ fun NavGraphBuilder.homeSection(
                 contentPadding = BottomNavContentPadding,
             )
         }
-        composable<HomeRoute.ProductDetail> { backStackEntry ->
+        composable<HomeRoute.ProductDetail>(
+            deepLinks = listOf(
+                navDeepLink<HomeRoute.ProductDetail>(
+                    basePath = "https://study.example.com/product",
+                ),
+            ),
+        ) { backStackEntry ->
             val productDetail = backStackEntry.toRoute<HomeRoute.ProductDetail>()
             ProductDetailScreen(
                 productId = productDetail.productId,
