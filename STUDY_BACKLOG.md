@@ -20,11 +20,16 @@
 ### compose-practice ⭐ 최우선
 | 주제 | 우선순위 | 메모 |
 |------|----------|------|
-| Navigation 3 | 높음 | 🆕 2025.11 stable. BackStack을 개발자가 직접 소유(SnapshotStateList), NavDisplay, Navigation 2 완료 후 |
+| Navigation 3 | 높음 | 🆕 2025.11 stable. BackStack을 개발자가 직접 소유(SnapshotStateList), NavDisplay, Multi-Pane, Navigation 2 완료 후 |
 | retain API (retain {}, RetainedEffect) | 높음 | 🆕 2025.12 신규. remember↔rememberSaveable 사이 새 상태 primitive. config change 생존, process death 불가. Flow/람다/비트맵 등 비직렬화 객체 유지 |
 | Shared Element Transition | 높음 | 🆕 1.10 stable. SharedTransitionLayout, sharedElement modifier, skipToLookaheadPosition, initialVelocity 지원 |
-| Predictive Back Gesture + Compose | 높음 | 🆕 Android 14+ in-app predictive back. OnBackPressedCallback, Progress API로 커스텀 애니메이션 |
+| Predictive Back Gesture + Compose | 높음 | 🆕 Android 14+ in-app predictive back. OnBackPressedCallback, Progress API로 커스텀 애니메이션. Material3 adaptive 1.1에서 pane transition 지원 |
+| Visibility Tracking (onLayoutRectChanged, onVisibilityChanged) | 높음 | 🆕 1.8~1.10. onGloballyPositioned 대체 고성능 API. impression 로깅, 자동 비디오 재생 등. minFraction/minDurationMs 파라미터로 세밀한 제어 |
+| AutoSize Text + Autofill | 중 | 🆕 1.8 stable. BasicText의 autoSize 파라미터로 컨테이너 크기 자동 적응. Modifier.autofill()로 자격증명 자동완성 |
+| Material3 1.4 신규 컴포넌트 (SecureTextField, Carousel, TimePicker) | 중 | 🆕 2025.12 stable. TextFieldState 기반 TextField, SecureTextField/OutlinedSecureTextField, HorizontalCenteredHeroCarousel, TimePicker 모드 전환 |
+| Background Text Prefetch | 중 | 🆕 1.10. LocalBackgroundTextMeasurementExecutor로 텍스트 측정을 백그라운드 스레드에서 수행. LazyColumn 스크롤 성능 개선 |
 | Pausable Composition & Lazy Prefetch 성능 | 중 | 🆕 2025.12 BOM 기본 활성화. 런타임이 composition 일시중지/재개, 스크롤 성능 View 수준 달성 |
+| Material3 Adaptive Layout (NavigationSuiteScaffold, ListDetailPaneScaffold) | 중 | 🆕 adaptive 1.1 stable. WindowSizeClass, Pane Expansion, 폴더블/태블릿 대응. currentWindowAdaptiveInfo() |
 | derivedStateOf (불필요한 리컴포지션 방지, remember + derivedStateOf 패턴) | 높음 | Navigation 3 학습 전에 선행 |
 | SideEffect (LaunchedEffect, SideEffect, DisposableEffect) | 높음 | |
 | `inline` vs `noinline` 람다 최적화 | 중 | |
@@ -42,13 +47,16 @@
 | 주제 | 우선순위 | 메모 |
 |------|----------|------|
 | SavedStateHandle 신규 API (getMutableStateFlow, saved delegate, KotlinX Serialization 연동) | 높음 | 🆕 process death 대응. nullable 지원 추가 |
+| ViewModelStoreProvider & Child Scope | 중 | 🆕 Lifecycle 2.11.0-alpha. scoped ViewModelStore 관리, config change 생존하는 child scope 독립 clear. parent로부터 factory/extras 상속 |
 | CreationExtras 개선 (builder factory, map-like operator overloads) | 중 | 🆕 ViewModel Factory에서 Kotlin-idiomatic하게 사용 |
+| Credential Manager + Passkey 인증 | 중 | 🆕 Jetpack API. passkey/비밀번호/페더레이션 통합. Android 15 Single-Tap Biometric 흐름. 앱 내 인증 표준화 |
 
 ### android-libs-practice
 | 주제 | 우선순위 | 메모 |
 |------|----------|------|
 | Intent / PendingIntent | 높음 | DeepLink 연계 |
 | Notification.ProgressStyle (Android 16) | 중 | 🆕 Android 16 신규. 배달/내비게이션 등 진행 상황 중심 알림 스타일 |
+| Android 16 Live Updates (Notification) | 중 | 🆕 Android 16. 진행 중인 활동(배달/내비 등) 모니터링용 새 알림 클래스. ProgressStyle과 연계 |
 | ContentProvider | 중 | Uri 학습과 연계 |
 | BroadcastReceiver | 낮음 | |
 
