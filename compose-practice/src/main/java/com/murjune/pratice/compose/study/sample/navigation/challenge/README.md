@@ -10,7 +10,8 @@
 ```
 challenge/
 ├── ShoppingApp.kt                          # 최상위 앱 Composable (Scaffold 기반 탭 구현)
-├── ShoppingAppState.kt                     # 앱 전역 상태 관리
+├── ShoppingActivity.kt                     # DeepLink 전용 Activity (별도 진입점)
+├── AppBarNavigator.kt                     # 앱 전역 상태 관리
 │
 ├── navigation/                             # 공통 네비게이션 구성
 │   ├── BottomNavDestination.kt             # BottomNav 열거형 (Home, Cart, My, More)
@@ -110,7 +111,7 @@ graph TD
   - `ShoppingAppCustomBottomNav()`: Box 오버레이로 수동 배치 (navigationBarsPadding 적용)
 - 각 화면에서 `bottomNavPadding` 또는 `BottomNavContentPadding` 을 통해 하단 padding 처리
 
-#### ShoppingAppState.kt
+#### AppBarNavigator.kt
 - `currentDestination` property로 현재 백스택의 화면 추적
 - `currentBackStackEntryAsState()` + 플래그 캐싱으로 null 깜빡임 해결
 - 탭 전환 시 상태 저장/복원 (`navOptions { saveState = true; restoreState = true }`)
@@ -218,7 +219,7 @@ fun NavController.navigateToProductDetail(productId: Int, navOptions: NavOptions
 fun NavController.navigateToReview(productId: Int, navOptions: NavOptions? = null)
 ```
 
-#### 탭 전환 (ShoppingAppState.kt)
+#### 탭 전환 (AppBarNavigator.kt)
 ```kotlin
 fun navigateToBottomNavDestination(destination: BottomNavDestination) {
     val navOptions = navOptions {
@@ -240,7 +241,7 @@ fun navigateToBottomNavDestination(destination: BottomNavDestination) {
 #### Cart에서 뒤로가기
 ```kotlin
 onBack = {
-    appState.navigateToBottomNavDestination(BottomNavDestination.Home)
+    appBarNavigator.navigateToBottomNavDestination(BottomNavDestination.Home)
 }
 ```
 - 단순 `navController.navigateUp()` 대신 Home 탭으로 전환
@@ -307,7 +308,7 @@ flowchart TD
 
 #### 기준
 ```kotlin
-val shouldShowBottomNav = appState.bottomNavDestinations.any { destination ->
+val shouldShowBottomNav = appBarNavigator.bottomNavDestinations.any { destination ->
     destination.isSelectable && currentDestination.isRouteInHierarchy(destination.baseRoute)
 }
 ```
@@ -323,7 +324,7 @@ val shouldShowBottomNav = appState.bottomNavDestinations.any { destination ->
 | 파일 | 역할 |
 |------|------|
 | **ShoppingApp.kt** | Scaffold 구성, 탭 표시/숨김, NavHost 구성 |
-| **ShoppingAppState.kt** | 현재 화면 추적, 탭 전환, 상태 보존/복원 |
+| **AppBarNavigator.kt** | 현재 화면 추적, 탭 전환, 상태 보존/복원 |
 
 ### 공통 네비게이션
 | 파일 | 역할 |
@@ -398,10 +399,10 @@ launchSingleTop = true   // 중복 인스턴스 방지
 
 ### 앱 진입점 (Activity 또는 Preview)
 ```kotlin
-val appState = rememberShoppingAppState()
-ShoppingApp(appState = appState)
+val appBarNavigator = rememberAppBarNavigator()
+ShoppingApp(appBarNavigator = appBarNavigator)
 // 또는
-ShoppingAppCustomBottomNav(appState = appState)
+ShoppingAppCustomBottomNav(appBarNavigator = appBarNavigator)
 ```
 
 ### 화면 간 네비게이션
@@ -423,7 +424,7 @@ navController.navigateToSetting()
 
 ### 탭 전환
 ```kotlin
-appState.navigateToBottomNavDestination(BottomNavDestination.Cart)
+appBarNavigator.navigateToBottomNavDestination(BottomNavDestination.Cart)
 ```
 
 ---
@@ -439,7 +440,71 @@ appState.navigateToBottomNavDestination(BottomNavDestination.Cart)
 
 ---
 
+### 7. DeepLink
+
+#### navDeepLink 등록 (HomeNavigation.kt)
+```kotlin
+composable<HomeRoute.ProductDetail>(
+    deepLinks = listOf(
+        navDeepLink<HomeRoute.ProductDetail>(
+            basePath = "https://study.example.com/product",
+        ),
+    ),
+) { ... }
+```
+
+#### ShoppingActivity (별도 진입점)
+ShoppingApp이 StudyNavHost 안에 중첩되어 있어, 외부 NavHost가 DeepLink Intent를 가로챈다.
+이를 해결하기 위해 **별도 Activity**로 분리:
+
+```kotlin
+class ShoppingActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MaterialTheme {
+                ShoppingApp(appBarNavigator = rememberAppBarNavigator())
+            }
+        }
+    }
+}
+```
+
+AndroidManifest에 intent-filter 등록:
+```xml
+<activity android:name=".study.sample.navigation.challenge.ShoppingActivity"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="https"
+            android:host="study.example.com"
+            android:pathPrefix="/product" />
+    </intent-filter>
+</activity>
+```
+
+**원칙: NavHost가 이중 중첩되면 DeepLink용 별도 Activity를 만든다.**
+
+### 8. 테스트 (ShoppingNavigationTest)
+
+Robolectric + Compose UI Test로 7개 통합 테스트 작성:
+
+| # | 테스트 | 검증 내용 |
+|---|--------|----------|
+| 1 | 기본 탭 전환 | Home → Cart → My 전환 |
+| 2 | popUpTo 동작 | 장바구니 담기 시 ProductDetail 백스택 제거 |
+| 3 | 탭 내부 스택 보존 | Home → Detail → Cart → Home 복귀 시 Detail 유지 |
+| 4 | navigateUp 동작 | 하위 화면에서 이전 화면 복귀 |
+| 5 | DeepLink 진입 | handleDeepLink()로 ProductDetail 직접 진입 |
+| 6 | Setting 전체화면 | Setting 진입 시 BottomBar 숨김 |
+| 7 | Setting 뒤로가기 | 이전 탭 + BottomBar 복귀 |
+
+---
+
 ## 관련 문서
 
 - **CHALLENGE.md**: 원본 요구사항 문서
+- **STUDY_NOTE.md**: 학습 노트 (currentDestination, hierarchy, baseRoute 등)
 - **STUDY_BACKLOG.md**: 전체 학습 진행 현황

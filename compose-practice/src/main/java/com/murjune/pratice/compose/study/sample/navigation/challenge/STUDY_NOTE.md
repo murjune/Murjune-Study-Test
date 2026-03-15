@@ -260,7 +260,7 @@ navController.navigateToCart(navOptions = navOptions {
 // Back 누르면 HomeScreen으로 돌아감
 
 // 방법 2: 탭 전환 방식 사용 (saveState/restoreState)
-appState.navigateToBottomNavDestination(BottomNavDestination.Cart)
+appBarNavigator.navigateToBottomNavDestination(BottomNavDestination.Cart)
 // Home 탭 상태 저장 후 Cart 탭으로 전환
 ```
 
