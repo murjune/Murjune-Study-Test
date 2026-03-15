@@ -160,6 +160,43 @@ docs: update STUDY_BACKLOG with latest API trends
 
 ---
 
+### 7. Slack 알림 전송
+
+커밋 완료 후, `/send-slack` 스킬의 Webhook URL과 Block Kit 형식을 사용하여 결과를 Slack으로 전송한다.
+
+**Webhook URL:** 환경변수 `$SLACK_WEBHOOK_URL` 사용 (`.env` 또는 셸 프로필에 설정)
+
+**메시지 형식:**
+```bash
+curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H 'Content-type: application/json' \
+  -d '{
+    "blocks": [
+      { "type": "header", "text": { "type": "plain_text", "text": "STUDY_BACKLOG 트렌드 업데이트 완료", "emoji": true } },
+      { "type": "divider" },
+      { "type": "section", "text": { "type": "mrkdwn", "text": "*추가된 항목*\n• <항목1>\n• <항목2>\n• ..." } },
+      { "type": "section", "fields": [
+        { "type": "mrkdwn", "text": "*추가 수*\n`N개`" },
+        { "type": "mrkdwn", "text": "*조사일*\n`YYYY-MM-DD`" }
+      ]},
+      { "type": "context", "elements": [{ "type": "mrkdwn", "text": "Murjune-Study-Test | /trend skill | 자동 실행" }] }
+    ]
+  }'
+```
+
+추가할 항목이 없는 경우에도 Slack 알림:
+```json
+{
+  "blocks": [
+    { "type": "header", "text": { "type": "plain_text", "text": "STUDY_BACKLOG 트렌드 확인 완료", "emoji": true } },
+    { "type": "section", "text": { "type": "mrkdwn", "text": "현재 백로그가 최신 상태입니다. 새로 추가할 항목이 없습니다." } },
+    { "type": "context", "elements": [{ "type": "mrkdwn", "text": "Murjune-Study-Test | /trend skill | 자동 실행" }] }
+  ]
+}
+```
+
+---
+
 ## 규칙
 
 - **WebSearch 결과 기반만** — 추측이나 기억에 의존하지 않음

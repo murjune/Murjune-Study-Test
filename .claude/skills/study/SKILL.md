@@ -240,6 +240,37 @@ Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌
 
 ---
 
+## 학습 지침 자동 기록
+
+학습 과정에서 발견한 아키텍처 패턴, 함정(pitfall), 베스트 프랙티스 등 **재사용 가능한 지침**은 프로젝트 메모리에 자동 기록한다.
+
+**기록 시점:**
+- Phase 1 (TEACH): 공식 문서에서 발견한 핵심 제약/권장 사항
+- Phase 2 (SAMPLE): NowInAndroid 등 실제 프로젝트에서 확인한 패턴
+- Phase 3 (CHALLENGE): 구현 중 직접 부딪힌 문제와 해결책
+- Phase 4 (REVIEW): 코드 리뷰에서 도출된 개선 원칙
+
+**기록 위치:** 프로젝트 메모리 (`memory/MEMORY.md`)
+
+**기록 기준:**
+- 다른 토픽/프로젝트에서도 재사용 가능한 지침만 기록
+- "~할 때는 ~해야 한다" 형태의 actionable한 문장으로 작성
+- 해당 토픽명을 출처로 명시
+
+**예시:**
+```markdown
+## Navigation 패턴
+- DeepLink가 필요한 화면이 NavHost 이중 중첩 안에 있으면, 별도 Activity로 분리하는 것이 정석 (Navigation 2 학습에서 발견)
+- popUpTo에서 saveState/restoreState는 같은 탭 재클릭 시 false로 해야 상태 꼬임 방지 (Navigation 2 학습에서 발견)
+```
+
+**규칙:**
+- 각 Phase 완료 커밋 전에 지침 기록 여부를 확인
+- 이미 기록된 지침과 중복이면 스킵
+- 사용자가 대화 중 명시적으로 언급한 패턴/원칙도 즉시 기록
+
+---
+
 ## STUDY_BACKLOG.md 상태값
 
 | 상태 | 의미 |
