@@ -27,15 +27,16 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:scheme="https"
                     android:host="study.example.com"
-                    android:pathPrefix="/profile" />
+                    android:pathPrefix="/profile"
+                    android:scheme="https" />
             </intent-filter>
         </activity>
         <!-- ShoppingApp: DeepLink 전용 Activity -->
         <activity
-            android:name=".study.sample.navigation.challenge.ShoppingActivity"
+            android:name="com.murjune.pratice.compose.study.nav2.challenge.ShoppingActivity"
             android:exported="true">
+            <!-- 커스텀 scheme: adb에서 바로 동작 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -43,9 +44,21 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:scheme="https"
                     android:host="study.example.com"
-                    android:pathPrefix="/product" />
+                    android:pathPrefix="/product"
+                    android:scheme="app" />
+            </intent-filter>
+            <!-- https scheme: autoVerify=false로 앱 선택 다이얼로그 표시 -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="study.example.com"
+                    android:pathPrefix="/product"
+                    android:scheme="https" />
             </intent-filter>
         </activity>
     </application>

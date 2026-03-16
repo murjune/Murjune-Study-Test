@@ -1,0 +1,74 @@
+package com.murjune.pratice.compose.study.nav2.challenge.home.navigation
+
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavOptions
+import androidx.navigation.compose.composable
+import androidx.navigation.navDeepLink
+import androidx.navigation.navigation
+import androidx.navigation.toRoute
+import com.murjune.pratice.compose.study.nav2.challenge.navigation.BottomNavContentPadding
+import com.murjune.pratice.compose.study.nav2.challenge.home.HomeScreen
+import com.murjune.pratice.compose.study.nav2.challenge.home.ProductDetailScreen
+import com.murjune.pratice.compose.study.nav2.challenge.home.ReviewScreen
+
+fun NavController.navigateToHomeNavGraph(
+    navOptions: NavOptions? = null,
+) = navigate(HomeNavGraph, navOptions)
+
+fun NavController.navigateToHome(
+    navOptions: NavOptions? = null,
+) = navigate(HomeRoute.HomeScreen, navOptions)
+
+fun NavController.navigateToProductDetail(
+    productId: Int,
+    navOptions: NavOptions? = null,
+) = navigate(HomeRoute.ProductDetail(productId), navOptions)
+
+fun NavController.navigateToReview(
+    productId: Int,
+    navOptions: NavOptions? = null,
+) = navigate(HomeRoute.Review(productId), navOptions)
+
+fun NavGraphBuilder.homeSection(
+    onProductClick: (productId: Int) -> Unit,
+    onReviewClick: (productId: Int) -> Unit,
+    onSettingClick: () -> Unit,
+    onAddToCart: () -> Unit,
+    onBack: () -> Unit,
+) {
+    navigation<HomeNavGraph>(startDestination = HomeRoute.HomeScreen::class) {
+        composable<HomeRoute.HomeScreen> {
+            HomeScreen(
+                onProductClick = onProductClick,
+                onSettingClick = onSettingClick,
+                contentPadding = BottomNavContentPadding,
+            )
+        }
+        composable<HomeRoute.ProductDetail>(
+            deepLinks = listOf(
+                navDeepLink<HomeRoute.ProductDetail>(
+                    basePath = "app://study.example.com/product",
+                ),
+                navDeepLink<HomeRoute.ProductDetail>(
+                    basePath = "https://study.example.com/product",
+                ),
+            ),
+        ) { backStackEntry ->
+            val productDetail = backStackEntry.toRoute<HomeRoute.ProductDetail>()
+            ProductDetailScreen(
+                productId = productDetail.productId,
+                onBack = onBack,
+                onReviewClick = onReviewClick,
+                onAddToCart = onAddToCart,
+            )
+        }
+        composable<HomeRoute.Review> { backStackEntry ->
+            val review = backStackEntry.toRoute<HomeRoute.Review>()
+            ReviewScreen(
+                productId = review.productId,
+                onBack = onBack,
+            )
+        }
+    }
+}
