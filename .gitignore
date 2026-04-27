@@ -48,5 +48,8 @@ local.properties
 ### OMC ###
 .omc/
 
+### Claude Code ###
+.claude/settings.local.json
+
 ### Firebase ###
-firebase-debug.log
+firebase-debug.log.claude/worktrees/

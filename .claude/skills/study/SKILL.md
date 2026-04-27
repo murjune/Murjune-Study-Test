@@ -69,14 +69,40 @@ Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌
    - "이해됐어요" → 다음으로
    - "이 부분 다시 설명해줘" → 해당 개념 보완 설명 후 재확인 (핑퐁 반복)
 
+**Phase 1 산출물:**
+
+1. **`study/plan/<topic>/README.md`** — 개념 정리 문서 (출처 링크 + Mermaid 다이어그램)
+2. **Demo App 화면** — 실행/Preview 가능한 샘플 Composable
+   - `src/main/` 하위에 토픽별 패키지로 배치
+   - 기존 패키지 컨벤션 준수 (예: `com.murjune.pratice.compose.study.sample.navigation`)
+   - 각 개념별 샘플 화면 + `@Preview` 포함
+   - 사용자가 앱을 실행하거나 Preview로 직접 동작을 확인할 수 있어야 함
+3. **학습 테스트 코드** — 개념을 assertion으로 검증하는 테스트
+   - Android 모듈: `src/test/` (Robolectric) 또는 `src/androidTest/`
+   - JVM 모듈: `src/test/`
+   - 테스트 함수명은 한글로 작성
+   - 각 개념별 별도 테스트 클래스 분리
+4. **빌드 + 테스트 검증** — 코드 작성 후 반드시 빌드 및 테스트 실행하여 통과 확인
+
+**Phase 1 학습 흐름:**
+
+1. 개념 설명 (README + 대화)
+2. Demo 코드 작성 → 사용자에게 Preview/실행 안내
+3. 학습 테스트 작성 → 테스트 실행하여 통과 확인
+4. `AskUserQuestion`으로 이해도 확인 + 추가 질문 대기:
+   - 사용자가 질문하면 → **코드 레벨로 답변** (Demo 코드 수정/추가 + 테스트로 검증)
+   - "이해됐어요" → 다음 개념 또는 Phase 2로
+   - 핑퐁 반복 — 질문이 있는 한 계속 코드로 보여주고 검증
+
 **Phase 1 완료 시:**
-- `study/plan/<topic>/README.md` 개념 섹션 업데이트 (출처 링크 포함)
 - STUDY_BACKLOG.md 상태 → "진행 중 🔄 (Phase 2)"
 - 커밋:
   ```
   study: teach <topic>
 
   - 공식 문서 기반 핵심 개념 정리
+  - Demo App 샘플 코드 작성
+  - 학습 테스트 코드 작성
   - <학습한 핵심 개념 1~3줄 요약>
   ```
 
@@ -86,6 +112,38 @@ Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌
 - 코드 예제는 반드시 공식 문서 또는 우수 샘플에서 가져온 것 사용
 - "왜 이렇게 쓰는가" 이유 설명 필수
 - 출처 항상 명시 (어느 문서/샘플의 어느 부분인지)
+- **코드 검증 필수** — 작성한 코드는 빌드(`assembleDebug`) + 테스트(`test`)로 반드시 검증
+- **Mermaid 다이어그램 활용** — 아래 가이드 참고
+
+---
+
+### Mermaid 다이어그램 가이드
+
+개념 설명 시 시각화가 도움이 되는 경우 Mermaid 다이어그램을 적극 활용한다.
+
+**활용 시점:**
+- 컴포넌트 간 관계/흐름 (예: NavHost → NavController → composable 관계)
+- 상태 전이 (예: 백스택 변화, 화면 전환 흐름)
+- 비교/대조 (예: popBackStack vs navigateUp 동작 차이)
+- 아키텍처 구조 (예: 멀티모듈 Navigation 구성)
+- 데이터 흐름 (예: 인자 전달 경로, DeepLink 처리 순서)
+
+**사용 가능한 다이어그램 유형:**
+- `graph TD/LR` — 흐름도 (화면 전환, 아키텍처)
+- `sequenceDiagram` — 시퀀스 (API 호출 순서, 이벤트 흐름)
+- `stateDiagram-v2` — 상태도 (백스택 변화, 라이프사이클)
+- `classDiagram` — 클래스 관계 (컴포넌트 구조)
+
+**규칙:**
+- README.md에 기록할 때도 Mermaid 블록 포함
+- 다이어그램은 설명을 보조하는 용도로, 코드 예제를 대체하지 않음
+- 복잡한 개념일수록 다이어그램 우선 제시 후 코드로 보충
+
+**SVG 이미지 변환 (Android Studio 호환):**
+- Phase 1 README 작성 완료 후, `/mermaid` 스킬 또는 변환 스크립트로 Mermaid → SVG 자동 변환
+- 실행: `python3 .claude/scripts/mermaid-to-svg.py <README_PATH>`
+- 원본 Mermaid 소스는 `<details>` 접힘 블록에 보존
+- 커밋 전 반드시 SVG 변환 수행하여 Android Studio에서도 다이어그램을 볼 수 있게 한다
 
 ---
 
@@ -120,18 +178,25 @@ Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌
 
 **목표:** 학습 내용을 직접 구현해본다.
 
-1. 구현 문제 제시 (Codelab 스타일):
-   - 문제 설명
-   - 요구사항 명세
-   - 힌트 (선택적)
+1. **챌린지 요구사항 파일 작성 (필수):**
+   - `challenge/CHALLENGE.md` 파일을 샘플 디렉토리 하위에 생성
+   - 위치: `src/main/.../sample/<topic>/challenge/CHALLENGE.md`
+   - 포함 내용:
+     - 시나리오 설명 (다이어그램 포함)
+     - 요구사항 명세 (Route, 동작, 특수 조건)
+     - 구현할 파일 목록과 위치
+     - 테스트 목록 (최소 5개)
+     - 힌트 (접힘 블록으로)
 
-2. PSM으로 정답 worktree 생성 (백그라운드):
-   ```
-   /psm feature <project> answer/<topic-name>
-   ```
-   사용자가 푸는 동안 백그라운드에서 정답 코드 + 테스트 작성
+2. 구현 문제를 사용자에게 대화로도 제시 (Codelab 스타일)
 
-3. `AskUserQuestion`: 구현 완료 여부 확인
+3. **정답 코드는 PSM worktree에서 작성 (main 브랜치에 넣지 않음):**
+   - PSM으로 별도 worktree 생성: `/psm feature <project> answer/<topic-name>`
+   - 정답 worktree에서 테스트 케이스 작성 → 전부 통과 → 자체 코드리뷰 → 리팩토링까지 진행
+   - 사용자가 answer를 제출하기 전까지는 절대 main에 머지하지 않음
+   - 사용자의 구현 코드와 완전히 분리
+
+4. `AskUserQuestion`: 구현 완료 여부 확인
    - "다 구현했어" → Phase 4로
    - "막혔어" → 힌트 제공 후 대기
 
@@ -172,6 +237,37 @@ Android/Kotlin 주제를 공식 문서 → 베스트 프랙티스 → 코딩 챌
   - 4단계 학습 사이클 완료
   - <이번 학습에서 얻은 핵심 인사이트 1~2줄>
   ```
+
+---
+
+## 학습 지침 자동 기록
+
+학습 과정에서 발견한 아키텍처 패턴, 함정(pitfall), 베스트 프랙티스 등 **재사용 가능한 지침**은 프로젝트 메모리에 자동 기록한다.
+
+**기록 시점:**
+- Phase 1 (TEACH): 공식 문서에서 발견한 핵심 제약/권장 사항
+- Phase 2 (SAMPLE): NowInAndroid 등 실제 프로젝트에서 확인한 패턴
+- Phase 3 (CHALLENGE): 구현 중 직접 부딪힌 문제와 해결책
+- Phase 4 (REVIEW): 코드 리뷰에서 도출된 개선 원칙
+
+**기록 위치:** 프로젝트 메모리 (`memory/MEMORY.md`)
+
+**기록 기준:**
+- 다른 토픽/프로젝트에서도 재사용 가능한 지침만 기록
+- "~할 때는 ~해야 한다" 형태의 actionable한 문장으로 작성
+- 해당 토픽명을 출처로 명시
+
+**예시:**
+```markdown
+## Navigation 패턴
+- DeepLink가 필요한 화면이 NavHost 이중 중첩 안에 있으면, 별도 Activity로 분리하는 것이 정석 (Navigation 2 학습에서 발견)
+- popUpTo에서 saveState/restoreState는 같은 탭 재클릭 시 false로 해야 상태 꼬임 방지 (Navigation 2 학습에서 발견)
+```
+
+**규칙:**
+- 각 Phase 완료 커밋 전에 지침 기록 여부를 확인
+- 이미 기록된 지침과 중복이면 스킵
+- 사용자가 대화 중 명시적으로 언급한 패턴/원칙도 즉시 기록
 
 ---
 

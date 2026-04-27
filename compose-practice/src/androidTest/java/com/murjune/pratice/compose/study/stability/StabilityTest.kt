@@ -37,7 +37,7 @@ class StabilityTest {
                 modifier = Modifier.testTag(tag),
                 count = count,
                 onPlusCount = { count++ },
-                onRefreshCount = {}
+                onRefreshCount = {},
             )
         }
         // when
@@ -66,7 +66,7 @@ class StabilityTest {
                     modifier = Modifier.testTag(tag),
                     count = count,
                     onPlusCount = { count++ },
-                    onRefreshCount = {}
+                    onRefreshCount = {},
                 )
 
                 Text(text = time().also { currentTime = it })
@@ -88,18 +88,17 @@ class StabilityTest {
 
     @Composable
     inline fun InlineComposable(text: Any) {
-
     }
-
 
     @Composable
     inline fun InlineComposable2(
         text: String,
-        crossinline onComposed: () -> Unit
+        crossinline onComposed: () -> Unit,
     ) {
         SideEffect { onComposed() }
         Text(text = text)
     }
+
     @Test
     fun test_Inline_Composable() {
         // given
@@ -113,7 +112,7 @@ class StabilityTest {
                     modifier = Modifier.testTag("counter"),
                     count = count,
                     onPlusCount = { count++ },
-                    onRefreshCount = {}
+                    onRefreshCount = {},
                 )
 
                 InlineComposable2(time()) {
@@ -131,7 +130,7 @@ class StabilityTest {
             .performClick()
 
         // then
-        assert(times.size > initialCallCount)  // 재호출됨
+        assert(times.size > initialCallCount) // 재호출됨
     }
 
     private fun time() = currentTimeMillis().toString()
@@ -147,7 +146,7 @@ fun StabilityTestPreview() {
             modifier = Modifier,
             count = count,
             onPlusCount = { count++ },
-            onRefreshCount = {}
+            onRefreshCount = {},
         )
 
         InlineComposable(time())

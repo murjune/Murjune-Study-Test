@@ -1,0 +1,971 @@
+# Navigation Compose 학습
+
+Jetpack Compose Navigation 2를 학습테스트 방식으로 탐구합니다.
+
+- Test Tool: Robolectric + `createComposeRule()` (JVM 기반, 에뮬레이터 불필요)
+- Navigation 버전: 2.9.6
+- 공식 문서: https://developer.android.com/develop/ui/compose/navigation
+
+---
+
+## Phase 1: 핵심 개념 정리
+
+### 1. NavHost와 NavController의 역할
+
+```mermaid
+graph TD
+    A[NavController] -->|"navigate(), popBackStack()"| B[NavHost]
+    B -->|"현재 destination UI 표시"| C[composable A]
+    B -->|"현재 destination UI 표시"| D[composable B]
+    A -->|"백스택 상태 관리"| F[BackStack]
+```
+
+- **NavController** — `navigate()`, `popBackStack()` 등 탐색 동작을 제어하는 중앙 API
+- **NavHost** — 탐색 그래프 컨테이너. 어떤 화면이 존재하는지 정의하고, 현재 destination의 UI를 표시
+- **composable\<T\>** — NavHost 내에서 개별 화면을 등록
+
+> 출처: [Navigation Compose 공식 문서](https://developer.android.com/develop/ui/compose/navigation)
+
+```kotlin
+val navController = rememberNavController()
+
+NavHost(navController = navController, startDestination = Home) {
+    composable<Home> { HomeScreen(...) }
+    composable<Profile> { backStackEntry ->
+        val profile = backStackEntry.toRoute<Profile>()
+        ProfileScreen(profile.id)
+    }
+}
+```
+
+**JetNews**에서는 `JetnewsNavGraph` 함수에서 NavHost를 정의하고, `rememberNavController()`로 생성한 NavController를 외부에서 주입받는 패턴을 사용한다.
+
+---
+
+### 2. Type-Safe Navigation (@Serializable 기반)
+
+Navigation 2.8.0부터 도입. 문자열 기반 라우트의 런타임 오류를 컴파일 타임에 방지한다.
+
+```mermaid
+graph LR
+    subgraph "이전: 문자열 기반"
+        A1["navigate('profile/123')"] -->|런타임 오류 위험| B1["composable('profile/{id}')"]
+    end
+    subgraph "현재: 타입 기반"
+        A2["navigate(Profile('123'))"] -->|컴파일 타임 검증| B2["composable Profile"]
+    end
+```
+
+```kotlin
+// 라우트 정의
+@Serializable object Home
+@Serializable data class Profile(val id: String)
+
+// 화면 이동 — 타입 안전
+navController.navigate(Profile(id = "user123"))
+
+// 인자 추출 — 자동 역직렬화
+val profile = backStackEntry.toRoute<Profile>()
+```
+
+**핵심 규칙 (공식 문서):** 복잡한 객체를 통째로 전달하지 말고, ID만 전달 → ViewModel에서 로드
+
+```kotlin
+class ProfileViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
+    private val profile = savedStateHandle.toRoute<Profile>()
+    val userInfo = repository.getUserInfo(profile.id)
+}
+```
+
+> 출처: [Type-Safe Navigation 공식 문서](https://developer.android.com/guide/navigation/design/type-safety)
+
+---
+
+### 3. 백스택 관리 — popBackStack vs navigateUp vs popUpTo
+
+| | `popBackStack()` | `navigateUp()` | `popUpTo` |
+|--|--|--|--|
+| 동작 | 백스택에서 현재 화면 제거 | 논리적 상위 화면으로 이동 | 지정 화면까지 백스택 정리 |
+| 용도 | 프로그래밍적 뒤로가기 | AppBar 뒤로 버튼 | 로그인 완료 등 흐름 정리 |
+| 딥링크 시 | 백스택 비면 아무것도 안 함 | 호출 앱으로 복귀 | - |
+
+> 출처: [NowInAndroid Issue #1817](https://github.com/android/nowinandroid/issues/1817) — 툴바 뒤로 버튼에는 `navigateUp()` 권장
+
+**popUpTo + inclusive 시각화:**
+
+```mermaid
+stateDiagram-v2
+    state "popUpTo(Login) inclusive=true" as scenario
+    state "Before" as before {
+        [*] --> Home
+        Home --> Login
+        Login --> Verify
+        Verify --> Success
+    }
+    state "After" as after {
+        [*] --> Home2: Home
+        Home2 --> Main
+    }
+    before --> after: navigate(Main) popUpTo(Login) inclusive=true
+```
+
+```kotlin
+// 로그인 완료 후: Login 포함 전부 제거 → Main으로
+navController.navigate(Main) {
+    popUpTo(Login) { inclusive = true }
+}
+
+// 하단 탭 전환: 홈 중복 방지
+navController.navigate(Home) {
+    popUpTo(Home) { inclusive = true }
+    launchSingleTop = true
+}
+```
+
+- `inclusive = true` — popUpTo 대상 화면 포함하여 제거
+- `inclusive = false` — popUpTo 대상 화면은 유지, 그 위만 제거
+- `launchSingleTop = true` — 같은 화면 중복 생성 방지
+
+---
+
+### 4. 멀티모듈 Navigation 캡슐화 패턴
+
+NowInAndroid가 Navigation 2 시절 사용한 핵심 아키텍처 패턴.
+
+```mermaid
+graph TD
+    subgraph "app 모듈"
+        NavHost["NiaNavHost"]
+    end
+    subgraph "feature-topic 모듈"
+        TN["TopicNavigation.kt"]
+        TR["TopicRoute / TopicScreen"]
+    end
+    subgraph "feature-home 모듈"
+        HN["HomeNavigation.kt"]
+        HR["HomeRoute / HomeScreen"]
+    end
+    NavHost -->|"topicScreen()"| TN
+    NavHost -->|"homeScreen()"| HN
+    TN --> TR
+    HN --> HR
+```
+
+> 출처: [Encapsulate Navigation 공식 문서](https://developer.android.com/guide/navigation/design/encapsulate)
+
+```kotlin
+// feature 모듈: NavGraphBuilder 확장으로 destination 캡슐화
+fun NavGraphBuilder.topicScreen(onBack: () -> Unit) {
+    composable<TopicRoute> { backStackEntry ->
+        val route = backStackEntry.toRoute<TopicRoute>()
+        TopicScreen(topicId = route.id, onBack = onBack)
+    }
+}
+
+// feature 모듈: NavController 확장으로 navigation 이벤트 캡슐화
+fun NavController.navigateToTopic(id: String) {
+    navigate(TopicRoute(id = id))
+}
+
+// app 모듈: 그래프 조립
+NavHost(navController, startDestination = HomeRoute) {
+    homeScreen(onTopicClick = { id -> navController.navigateToTopic(id) })
+    topicScreen(onBack = { navController.popBackStack() })
+}
+```
+
+**핵심:** feature 모듈이 NavController에 직접 의존하지 않음 → 콜백 기반 독립 테스트 가능
+
+---
+
+### 5. DeepLink
+
+외부 URI로 앱의 특정 화면에 직접 진입하는 기능.
+
+```mermaid
+sequenceDiagram
+    participant B as 브라우저/알림
+    participant S as Android 시스템
+    participant A as 앱
+    participant N as NavHost
+
+    B->>S: https://example.com/profile/123
+    S->>A: Intent (ACTION_VIEW)
+    A->>N: deepLink 매칭
+    N->>N: Profile(id="123") composable 표시
+```
+
+```kotlin
+composable<Profile>(
+    deepLinks = listOf(
+        navDeepLink<Profile>(basePath = "https://example.com/profile")
+    )
+) { backStackEntry ->
+    val profile = backStackEntry.toRoute<Profile>()
+    ProfileScreen(profile.id)
+}
+```
+
+AndroidManifest에 intent-filter 설정 필요:
+```xml
+<intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="https" android:host="example.com" />
+</intent-filter>
+```
+
+> 출처: [Navigation Compose 공식 문서 - Deep Links](https://developer.android.com/develop/ui/compose/navigation),
+> [JetNews JetnewsNavGraph.kt](https://github.com/android/compose-samples/blob/main/JetNews/app/src/main/java/com/example/jetnews/ui/JetnewsNavGraph.kt)
+
+**Deep Link 자동 처리 내부 동작 (소스 코드 기준):**
+
+별도 코드 없이 manifest의 intent-filter + composable의 navDeepLink만 등록하면 자동으로 동작한다.
+그 이유는 `NavController.setGraph()` 시점에 Activity의 intent를 자동으로 확인하기 때문이다.
+
+```mermaid
+sequenceDiagram
+    participant E as 외부 (브라우저)
+    participant S as Android 시스템
+    participant A as MainActivity
+    participant NC as NavController
+    participant NCI as NavControllerImpl
+
+    E->>S: https://study.example.com/profile/user_42
+    S->>A: intent-filter 매칭 → Activity 실행
+    Note over A: intent.data = URI
+
+    A->>NC: setContent { NavHost(...) }
+    NC->>NCI: setGraph(graph)
+    NCI->>NCI: backQueue.isEmpty()? → Yes (앱 처음 시작)
+    NCI->>NC: checkDeepLinkHandled()
+    NC->>NC: handleDeepLink(activity!!.intent)
+    Note over NC: intent에서 URI 추출 → navDeepLink 매칭
+    NC->>NC: navigate(Profile(userId="user_42"))
+    Note over NCI: deep link 처리 완료 → startDestination 스킵
+```
+
+```kotlin
+// NavControllerImpl.kt:970-975 — setGraph() 마지막 부분
+if (_graph != null && backQueue.isEmpty()) {
+    if (!navController.checkDeepLinkHandled()) {
+        // deep link 없으면 → startDestination으로 이동
+        navigate(_graph!!, startDestinationArgs, null, null)
+    }
+    // deep link 있으면 → 이미 handleDeepLink에서 처리 완료
+}
+
+// NavController.android.kt:480-481
+internal actual fun checkDeepLinkHandled(): Boolean {
+    return !deepLinkHandled          // 아직 처리 안 했고
+        && activity != null          // Activity가 있으면
+        && handleDeepLink(activity!!.intent)  // Activity의 intent로 deep link 처리
+}
+```
+
+| 실행 방식 | checkDeepLinkHandled() 결과 | 이동 대상 |
+|-----------|---------------------------|-----------|
+| 런처에서 앱 클릭 | `false` (URI 없음) | startDestination |
+| 브라우저에서 deep link | `true` (URI 매칭) | 매칭된 destination |
+| adb shell am start -d URI | `true` (URI 매칭) | 매칭된 destination |
+
+**setGraph() 호출 시점:** `NavHost` composable이 처음 composition될 때 `navController.graph = graph` (NavHost.kt:501)로 세팅되며, 이 setter 내부에서 `setGraph()` → `checkDeepLinkHandled()` 순으로 호출된다.
+
+> 출처: [NavControllerImpl.kt](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-runtime/src/commonMain/kotlin/androidx/navigation/internal/NavControllerImpl.kt),
+> [NavController.android.kt](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-runtime/src/androidMain/kotlin/androidx/navigation/NavController.android.kt),
+> [NavHost.kt](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-compose/src/commonMain/kotlin/androidx/navigation/compose/NavHost.kt)
+
+---
+
+### 6. launchSingleTop과 같은 destination + 다른 인자
+
+**Q: `Route(id=1)` → `Route(id=2)` 하면 별도 백스택? `launchSingleTop`이면?**
+
+`composable<Route>`는 **Route 타입 하나**를 destination으로 등록한다.
+`Route(id=1)`과 `Route(id=2)`는 **같은 destination, 다른 arguments**일 뿐이다.
+
+```mermaid
+graph TD
+    subgraph "launchSingleTop 없음"
+        A1[Home] --> B1["Route(id=1)"]
+        B1 --> C1["Route(id=2)"]
+        C1 -.->|popBackStack| B1
+    end
+    subgraph "launchSingleTop = true"
+        A2[Home] --> B2["Route(id=1→2)"]
+        B2 -.->|popBackStack| A2
+    end
+```
+
+| 시나리오 | 백스택 결과 |
+|---------|-----------|
+| `navigate(Item(1))` → `navigate(Item(2))` | Home → Item(1) → Item(2) **별도 엔트리** |
+| `navigate(Item(1))` → `navigate(Item(2)) { launchSingleTop=true }` | Home → Item(2) **인자만 갱신** |
+| `navigate(Item(1))` → `navigate(Item(1))` (singleTop 없음) | Home → Item(1) → Item(1) **같은 인자도 중복** |
+
+**핵심:**
+- `launchSingleTop`은 **인자값을 비교하지 않는다** — destination 타입만 본다
+- top이 같은 destination이면 새 엔트리를 만들지 않고, 기존 엔트리의 arguments를 교체한다
+- top이 다른 destination이면 `launchSingleTop`이어도 정상적으로 새 엔트리가 쌓인다
+
+**테스트 파일:** `LaunchSingleTopTest.kt`
+
+---
+
+### 7. SavedStateHandle과 Navigation
+
+**Q: SavedStateHandle은 언제 들어와? 테스트로 어떻게 검증?**
+
+각 `NavBackStackEntry`마다 독립적인 `SavedStateHandle`이 존재한다.
+
+```mermaid
+graph TD
+    subgraph "BackStack"
+        E1["Entry: Home<br/>savedStateHandle { }"]
+        E2["Entry: Profile<br/>savedStateHandle { userId='user-42', age=28 }"]
+    end
+    E1 --> E2
+    style E2 fill:#e1f5fe
+```
+
+**1) Route 인자 자동 주입**
+
+`@Serializable` route의 프로퍼티 이름이 SavedStateHandle의 key가 된다.
+
+```kotlin
+// navigate(ProfileRoute(userId = "user-42", age = 28))
+backStackEntry.savedStateHandle.get<String>("userId")  // → "user-42"
+backStackEntry.savedStateHandle.get<Int>("age")         // → 28
+```
+
+**2) 이전 화면에 결과 전달 (Result 패턴)**
+
+```mermaid
+sequenceDiagram
+    participant H as Home (currentEntry)
+    participant E as EditScreen (currentEntry)
+
+    H->>E: navigate(EditScreen)
+    Note over E: 작업 완료
+    E->>H: previousBackStackEntry.savedStateHandle.set("result", "완료!")
+    E->>H: popBackStack()
+    Note over H: savedStateHandle.get("result") → "완료!"
+```
+
+```kotlin
+// EditScreen에서 결과 전달
+navController.previousBackStackEntry?.savedStateHandle?.set("edit_result", "수정 완료!")
+navController.popBackStack()
+
+// Home에서 결과 수신
+val result = backStackEntry.savedStateHandle.get<String>("edit_result")
+```
+
+> 출처: [공식 문서 - Returning a result](https://developer.android.com/guide/navigation/navigation-programmatic#returning_a_result)
+
+**3) 각 엔트리는 독립적**
+- Home의 savedStateHandle에 넣은 값은 EditScreen에서 보이지 않는다
+- `currentBackStackEntry`는 navigate 전후로 다른 엔트리를 가리킨다
+- `previousBackStackEntry`로 이전 화면의 엔트리에 접근 가능
+
+**테스트 파일:** `SavedStateHandleTest.kt`
+
+---
+
+### 8. saveState / restoreState (하단 탭 전환 패턴)
+
+**Q: 탭 전환 시 각 탭의 백스택을 어떻게 보존하나?**
+
+`saveState`와 `restoreState`는 **하단 탭 내비게이션**에서 각 탭의 독립적인 백스택을 유지하는 핵심 옵션이다.
+
+```mermaid
+stateDiagram-v2
+    state "Home 탭" as home {
+        [*] --> HomeTab
+        HomeTab --> HomeDetail
+    }
+    state "Search 탭 (저장됨)" as search {
+        [*] --> SearchTab
+        SearchTab --> SearchResult
+    }
+    home --> search: navigateToTab(Search)  saveState=true
+    search --> home: navigateToTab(Home) restoreState=true
+```
+
+```kotlin
+// 하단 탭 전환 패턴 — NowInAndroid 스타일
+navController.navigate(selectedTab) {
+    popUpTo<StartDestination> {
+        saveState = true      // 현재 탭의 백스택을 저장
+    }
+    launchSingleTop = true    // 같은 탭 중복 방지
+    restoreState = true       // 이전 탭의 백스택을 복원
+}
+```
+
+| 옵션 | 기본값 | 역할 |
+|------|--------|------|
+| `saveState` | `false` | popUpTo로 제거되는 백스택을 메모리에 저장 |
+| `restoreState` | `false` | 이전에 저장된 백스택을 복원 |
+| `launchSingleTop` | `false` | 같은 destination 중복 생성 방지 |
+
+**saveState 없으면?**
+- 탭 전환 후 돌아왔을 때 탭 루트부터 다시 시작
+- 사용자가 탐색했던 내부 화면(Detail 등)이 소실됨
+
+> 출처: [공식 문서 - Back stack state](https://developer.android.com/guide/navigation/backstack#save-state)
+
+**테스트 파일:** `SaveRestoreStateTest.kt`
+
+---
+
+### 9. SavedStateHandle 최신 API (getStateFlow, getMutableStateFlow, ViewModel 연동)
+
+**Q: SavedStateHandle에서 Flow로 반환하거나 ViewModel이랑 연동하는 방법은?**
+
+```mermaid
+graph LR
+    subgraph "NavBackStackEntry"
+        SSH[SavedStateHandle]
+    end
+    subgraph "ViewModel"
+        VMSSH[SavedStateHandle]
+        TR["toRoute&lt;T&gt;()"]
+        SF["getStateFlow()"]
+        MSF["getMutableStateFlow()"]
+    end
+    SSH -->|"자동 주입"| VMSSH
+    VMSSH --> TR
+    VMSSH --> SF
+    VMSSH --> MSF
+```
+
+**1) getStateFlow — 읽기 전용 StateFlow**
+
+```kotlin
+// key에 대한 StateFlow를 반환 (값 변경 시 자동 갱신)
+val userIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("userId", "")
+```
+
+**2) getMutableStateFlow — 읽기/쓰기 MutableStateFlow**
+
+```kotlin
+// 직접 값을 수정할 수 있는 MutableStateFlow
+val counter = savedStateHandle.getMutableStateFlow("counter", 0)
+counter.value = counter.value + 1  // → SavedStateHandle에도 자동 반영
+```
+
+**3) ViewModel에서 toRoute\<T\>()로 Route 인자 추출**
+
+```kotlin
+class UserViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
+    // Route 인자를 한 번에 추출
+    private val route = savedStateHandle.toRoute<UserRoute>()
+    val userId: String = route.userId
+
+    // StateFlow로 관찰
+    val userIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("userId", "")
+
+    // MutableStateFlow로 편집 가능한 상태
+    val editableName = savedStateHandle.getMutableStateFlow("editableName", route.userName)
+}
+```
+
+**4) 유틸리티 메서드**
+
+| 메서드 | 설명 |
+|--------|------|
+| `keys()` | 저장된 모든 key 목록 |
+| `contains(key)` | key 존재 여부 확인 |
+| `remove(key)` | key 삭제 후 값 반환 |
+| `get<T>(key)` | 값 조회 |
+| `set(key, value)` / `[key] = value` | 값 저장 |
+
+**테스트 파일:** `SavedStateHandleAdvancedTest.kt`
+
+---
+
+### 10. BackStackEntry와 Lifecycle
+
+**Q: 각 BackStackEntry는 destination마다 저장되나? Lifecycle은 어떻게 관리되나?**
+
+`navigate()` 호출 때마다 새로운 `NavBackStackEntry`가 생성되어 백스택에 쌓인다.
+각 엔트리는 **독립적인 LifecycleOwner**이다.
+
+```mermaid
+stateDiagram-v2
+    state "navigate(Detail)" as nav
+    state "Home Entry" as home {
+        RESUMED1: RESUMED
+        STARTED1: STARTED
+    }
+    state "Detail Entry" as detail {
+        CREATED2: CREATED
+        RESUMED2: RESUMED
+        DESTROYED2: DESTROYED
+    }
+
+    RESUMED1 --> STARTED1: navigate(Detail)
+    CREATED2 --> RESUMED2: navigate(Detail)
+    RESUMED2 --> DESTROYED2: popBackStack()
+    STARTED1 --> RESUMED1: popBackStack()
+```
+
+**각 NavBackStackEntry가 가지는 것:**
+
+| 속성 | 설명 |
+|------|------|
+| `lifecycle` | 엔트리별 독립 Lifecycle (CREATED → STARTED → RESUMED → DESTROYED) |
+| `savedStateHandle` | 엔트리별 독립 상태 저장소 (Route 인자 + 커스텀 키) |
+| `arguments` | Route 인자 (Bundle) |
+| `destination` | 어떤 NavDestination인지 |
+| `viewModelStoreOwner` | 엔트리별 ViewModel 스코프 |
+
+**Lifecycle 상태 규칙:**
+
+```
+navigate(A)     → A: CREATED → STARTED → RESUMED
+navigate(B)     → A: RESUMED → STARTED  (DESTROYED가 아님!)
+                  B: CREATED → STARTED → RESUMED
+
+popBackStack()  → B: RESUMED → DESTROYED
+                  A: STARTED → RESUMED
+```
+
+- **top만 RESUMED** — 백스택 최상단 엔트리만 RESUMED 상태
+- **pop되면 DESTROYED** — 백스택에서 제거되면 해당 엔트리의 ViewModel도 clear됨
+- **같은 destination도 별도 엔트리** — `Detail(1)`과 `Detail(2)`는 각각 독립적인 Lifecycle/SavedStateHandle
+
+**popUpTo로 여러 엔트리 한번에 제거:**
+
+```kotlin
+// Home → Detail → Settings 상태에서
+navController.navigate(Home) {
+    popUpTo<Home> { inclusive = false }
+}
+// → Detail, Settings 모두 DESTROYED
+```
+
+**테스트 파일:** `BackStackEntryLifecycleTest.kt`
+
+---
+
+### 11. navigateUp vs popBackStack — AppBar 뒤로가기
+
+**Q: TopAppBar 뒤로가기에는 뭘 써야 하나?**
+
+| | `popBackStack()` | `navigateUp()` |
+|--|--|--|
+| 의미 | 스택 연산 (top 제거) | Semantic "Up" Navigation |
+| Deep link 진입 시 | 백스택 비면 아무것도 안 함 | 호출 앱으로 복귀 |
+| Parent NavController | 무시 | parent에 위임 |
+| 반환값 | `Boolean` (성공 여부) | `Boolean` (성공 여부) |
+
+**navigateUp() 소스 코드 (NavController):**
+
+```kotlin
+public actual open fun navigateUp(): Boolean {
+    if (destinationCountOnBackStack == 1) {
+        // 백스택에 현재 화면 1개만 남음 → 뒤로 갈 곳이 없음
+        val extras = activity?.intent?.extras
+        if (extras?.getIntArray(KEY_DEEP_LINK_IDS) != null) {
+            return tryRelaunchUpToExplicitStack()   // deep link → 부모 계층 재실행
+        } else {
+            return tryRelaunchUpToGeneratedStack()  // 일반 → NavGraph에서 parent 탐색
+        }
+    } else {
+        return popBackStack()  // 백스택 2개 이상 → popBackStack()과 동일
+    }
+}
+```
+
+**백스택 2개 이상이면 popBackStack()과 완전히 동일하다.** 차이는 백스택 1개일 때만 발생:
+
+| 상황 | `popBackStack()` | `navigateUp()` |
+|------|-----------------|----------------|
+| 백스택 2개+ | pop | pop (**동일**) |
+| 백스택 1개 + deep link | `false` (멈춤) | **부모 계층 재실행** |
+| 백스택 1개 + 일반 | `false` | `false` (보통 동일) |
+
+**외부 앱에서 Deep Link로 진입한 경우 (Up vs Back 차이):**
+
+```mermaid
+graph TD
+    subgraph "Chrome에서 myapp://settings 클릭"
+        S["Settings 화면<br/>백스택: [Settings] 1개"]
+    end
+    S -->|"시스템 Back 버튼"| C["Chrome으로 복귀<br/>(시간 순서: 이전에 있던 곳)"]
+    S -->|"navigateUp()"| H["앱 Home으로 이동<br/>(계층 순서: 앱 내 상위 화면)"]
+    S -->|"popBackStack()"| E["false 반환, 멈춤<br/>(백스택 비어서 아무것도 안 함)"]
+```
+
+| | Back (시스템 뒤로가기) | Up (AppBar 뒤로가기) |
+|--|--|--|
+| 개념 | **시간 순서** — 이전에 있던 곳 | **계층 순서** — 앱 내 상위 화면 |
+| 외부 앱에서 진입 시 | 외부 앱으로 복귀 | **내 앱의 부모 화면** |
+| 구현 | 시스템이 처리 | `navigateUp()` |
+
+**결론:** AppBar 뒤로가기 = `navigateUp()`, 프로그래밍적 뒤로가기 = `popBackStack()`
+
+```kotlin
+// AppBar 뒤로가기 — navigateUp() 권장
+TopAppBar(
+    navigationIcon = {
+        IconButton(onClick = { navController.navigateUp() }) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, "뒤로가기")
+        }
+    }
+)
+```
+
+> 출처: [NowInAndroid Issue #1817](https://github.com/android/nowinandroid/issues/1817),
+> [NavController.navigateUp() 소스](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-runtime/src/androidMain/kotlin/androidx/navigation/NavController.android.kt)
+
+---
+
+### 12. NavBackStackEntry = LifecycleOwner + ViewModelStoreOwner
+
+**Q: NavBackStackEntry가 정확히 뭘 구현하나? Configuration Change 시 어떻게 되나?**
+
+`NavBackStackEntry`는 4가지 Owner를 겸하는 핵심 클래스이다:
+
+```kotlin
+// NavBackStackEntry 실제 시그니처
+public class NavBackStackEntry : LifecycleOwner,
+                                  ViewModelStoreOwner,
+                                  HasDefaultViewModelProviderFactory,
+                                  SavedStateRegistryOwner
+```
+
+```mermaid
+graph TD
+    NBE["NavBackStackEntry"]
+    NBE -->|LifecycleOwner| LC["Lifecycle<br/>CREATED → STARTED → RESUMED → DESTROYED"]
+    NBE -->|ViewModelStoreOwner| VM["ViewModelStore<br/>엔트리 스코프 ViewModel"]
+    NBE -->|SavedStateRegistryOwner| SSR["SavedStateRegistry<br/>상태 저장/복원"]
+    NBE -->|HasDefaultViewModelProviderFactory| VMF["ViewModelProvider.Factory"]
+    style NBE fill:#e1f5fe
+```
+
+**Configuration Change 발생 시:**
+
+| 항목 | Configuration Change 후 |
+|------|------------------------|
+| NavBackStackEntry 객체 | **새 인스턴스** (`===` 동등성 깨짐) |
+| 백스택 순서/구조 | **보존** |
+| arguments (Route 인자) | **보존** |
+| savedStateHandle | **보존** (Bundle로 저장/복원) |
+| Lifecycle 객체 | **새 인스턴스** |
+| Lifecycle 상태 | **복원** (top이면 RESUMED 등) |
+| ViewModel | **보존** (Activity retain 메커니즘) |
+
+```mermaid
+sequenceDiagram
+    participant A as Activity
+    participant NC as NavController
+    participant E as NavBackStackEntry
+
+    Note over A: Configuration Change!
+    A->>A: onSaveInstanceState()
+    Note over NC: 백스택 구조 + arguments 저장
+
+    A->>A: 재생성
+    A->>NC: rememberNavController() → 새 NavController
+    NC->>E: 새 NavBackStackEntry 객체 생성
+    Note over E: savedStateHandle 복원
+    Note over E: ViewModel은 retain되어 그대로
+    Note over E: Lifecycle: CREATED → STARTED → RESUMED
+```
+
+**핵심:**
+- `rememberNavController()`가 내부적으로 `rememberSaveable`로 NavController 상태를 복원
+- 객체는 바뀌지만 사용자 경험은 동일
+- ViewModel은 Activity의 `ViewModelStore` retain 메커니즘으로 살아남음
+- `hiltViewModel()` / `viewModel()`은 NavBackStackEntry를 ViewModelStoreOwner로 사용
+
+```kotlin
+composable<Profile> { backStackEntry ->
+    // backStackEntry 자체가 LifecycleOwner + ViewModelStoreOwner
+    val viewModel = hiltViewModel<ProfileViewModel>()  // backStackEntry 스코프
+
+    // 엔트리가 DESTROYED되면 → ViewModel.onCleared() 호출
+}
+```
+
+**테스트 파일:** `BackStackEntryLifecycleTest.kt`
+
+---
+
+## 학습 순서
+
+### 1단계: 기본 컴포넌트 (`basic/`)
+
+NavHost, NavController, composable의 역할과 동작 방식을 학습합니다.
+
+**테스트 파일:** `NavHostTest.kt`, `TypeSafeNavigationTest.kt`
+
+---
+
+### 2단계: 백스택 동작 (`backstack/`)
+
+`popBackStack()`과 `navigateUp()`의 차이, `popUpTo`의 활용을 학습합니다.
+
+**테스트 파일:** `PopBackStackTest.kt`, `PopUpToTest.kt`
+
+---
+
+### 3단계: DeepLink (`deeplink/`)
+
+외부에서 앱의 특정 화면으로 진입하는 DeepLink를 학습합니다.
+
+**테스트 파일:** `DeepLinkTest.kt`
+
+---
+
+## 테스트 실행
+
+```bash
+# Navigation 전체 테스트 (Robolectric - JVM)
+./gradlew :compose-practice:test
+
+# 특정 테스트 클래스 실행
+./gradlew :compose-practice:test --tests "*.NavHostTest"
+./gradlew :compose-practice:test --tests "*.PopBackStackTest"
+./gradlew :compose-practice:test --tests "*.DeepLinkTest"
+```
+
+---
+
+## 참고 링크
+
+- [Navigation Compose 공식 문서](https://developer.android.com/develop/ui/compose/navigation)
+- [Type-Safe Navigation 공식 문서](https://developer.android.com/guide/navigation/design/type-safety)
+- [Encapsulate Navigation 공식 문서](https://developer.android.com/guide/navigation/design/encapsulate)
+- [Navigation Testing 공식 문서](https://developer.android.com/guide/navigation/testing)
+- [NowInAndroid Navigation 구현](https://github.com/android/nowinandroid/tree/main/app/src/main/kotlin/com/google/samples/apps/nowinandroid/navigation)
+- [JetNews Navigation](https://github.com/android/compose-samples/blob/main/JetNews/app/src/main/java/com/example/jetnews/ui/JetnewsNavGraph.kt)
+- [NowInAndroid Issue #1817 - navigateUp vs popBackStack](https://github.com/android/nowinandroid/issues/1817)
+
+---
+
+## Phase 2: 베스트 프랙티스 (NowInAndroid / JetNews)
+
+### 패턴 1: Navigation Action 캡슐화 (JetNews — Nav 2)
+
+하단 탭/Drawer 전환 시 `popUpTo + saveState + launchSingleTop + restoreState` 조합을 매번 반복하면 실수가 생긴다.
+JetNews는 `JetnewsNavigationActions` 클래스로 한 곳에 모아서 관리한다.
+
+```kotlin
+// JetnewsNavigation.kt
+class JetnewsNavigationActions(navController: NavHostController) {
+    val navigateToHome: () -> Unit = {
+        navController.navigate(JetnewsDestinations.HOME_ROUTE) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true      // 현재 화면의 백스택 저장
+            }
+            launchSingleTop = true    // 같은 탭 중복 방지
+            restoreState = true       // 이전 탭의 백스택 복원
+        }
+    }
+}
+```
+
+**핵심:**
+- `findStartDestination().id` — 그래프의 시작 destination까지 pop → 백스택 누적 방지
+- 이 4가지 옵션 조합이 Nav 2 하단 탭 전환의 **정석 패턴**
+- JetNews는 `currentBackStackEntryAsState()`로 현재 route를 관찰하여 Drawer 선택 상태 동기화
+
+```kotlin
+// JetnewsApp.kt
+val navController = rememberNavController()
+val navigationActions = remember(navController) {
+    JetnewsNavigationActions(navController)
+}
+val navBackStackEntry by navController.currentBackStackEntryAsState()
+val currentRoute = navBackStackEntry?.destination?.route ?: HOME_ROUTE
+```
+
+> 출처: [JetNews JetnewsNavigation.kt](https://github.com/android/compose-samples/blob/main/JetNews/app/src/main/java/com/example/jetnews/ui/JetnewsNavigation.kt),
+> [JetNews JetnewsApp.kt](https://github.com/android/compose-samples/blob/main/JetNews/app/src/main/java/com/example/jetnews/ui/JetnewsApp.kt)
+
+---
+
+### 패턴 2: 멀티모듈 Navigation 캡슐화 진화 (NowInAndroid Nav 2 → Nav 3)
+
+#### Navigation 2 시절
+
+```kotlin
+// feature 모듈: NavGraphBuilder 확장으로 destination 캡슐화
+fun NavGraphBuilder.topicScreen(onBack: () -> Unit) {
+    composable<TopicRoute> { entry ->
+        TopicScreen(topicId = entry.toRoute<TopicRoute>().id, onBack = onBack)
+    }
+}
+
+// feature 모듈: NavController 확장으로 navigate 캡슐화
+fun NavController.navigateToTopic(id: String) {
+    navigate(TopicRoute(id = id))
+}
+```
+
+#### Navigation 3 현재 — api/impl 모듈 분리
+
+```kotlin
+// feature/topic/api — NavKey + navigate 확장함수만 노출
+@Serializable
+data class TopicNavKey(val id: String) : NavKey
+
+fun Navigator.navigateToTopic(topicId: String) {
+    navigate(TopicNavKey(topicId))
+}
+
+// feature/topic/impl — 화면 구현은 숨김
+fun EntryProviderScope<NavKey>.topicEntry(navigator: Navigator) {
+    entry<TopicNavKey> { key ->
+        TopicScreen(
+            onBack = { navigator.goBack() },
+            onTopicClick = navigator::navigateToTopic,
+            viewModel = hiltViewModel<TopicViewModel, Factory>(key = key.id) { ... },
+        )
+    }
+}
+```
+
+**api/impl 분리의 이유:**
+- `api`: NavKey + navigate 확장함수만 → 다른 feature가 의존해도 구현 세부사항 노출 없음
+- `impl`: 실제 화면 + ViewModel → 변경해도 의존 모듈 재빌드 불필요 (빌드 시간 최적화)
+- Navigation 2의 `NavGraphBuilder.topicScreen()`도 같은 의도였지만, Nav 3에서 더 명확하게 분리
+
+> 출처: [NowInAndroid feature/topic/api](https://github.com/android/nowinandroid/blob/main/feature/topic/api/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/api/navigation/TopicNavKey.kt),
+> [NowInAndroid feature/topic/impl](https://github.com/android/nowinandroid/blob/main/feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/navigation/TopicEntryProvider.kt)
+
+---
+
+### 패턴 3: 백스택 직접 소유 — Navigator 패턴 (NowInAndroid Nav 3)
+
+Navigation 2에서는 NavController가 백스택을 완전히 관리했지만, Navigation 3에서는 개발자가 직접 소유한다.
+
+```kotlin
+// NavigationState.kt — 백스택을 SnapshotStateList로 직접 관리
+class NavigationState(
+    val startKey: NavKey,
+    val topLevelStack: NavBackStack<NavKey>,              // 탭 전환 순서
+    val subStacks: Map<NavKey, NavBackStack<NavKey>>,     // 각 탭별 내부 스택
+) {
+    val currentTopLevelKey: NavKey by derivedStateOf { topLevelStack.last() }
+    val currentKey: NavKey by derivedStateOf { currentSubStack.last() }
+}
+
+// Navigator.kt — 탐색 로직을 순수 함수로 구현
+class Navigator(val state: NavigationState) {
+    fun navigate(key: NavKey) {
+        when (key) {
+            state.currentTopLevelKey -> clearSubStack()   // 같은 탭 → 루트로
+            in state.topLevelKeys -> goToTopLevel(key)    // 다른 탭 → 탭 전환
+            else -> goToKey(key)                           // 일반 화면 → 추가
+        }
+    }
+
+    fun goBack() {
+        when (state.currentKey) {
+            state.startKey -> error("start route에서 뒤로 갈 수 없음")
+            state.currentTopLevelKey -> state.topLevelStack.removeLastOrNull()
+            else -> state.currentSubStack.removeLastOrNull()
+        }
+    }
+}
+```
+
+**Nav 2 하단 탭이 복잡했던 근본 원인:**
+
+```mermaid
+graph LR
+    subgraph "Navigation 2 — 단일 백스택"
+        S1["[Home, Detail, Search, Result]"]
+        S1 -->|"popUpTo + saveState"| S2["저장소에 보관"]
+        S2 -->|"restoreState"| S3["복원"]
+    end
+    subgraph "Navigation 3 — 탭별 독립 스택"
+        T1["Home탭: [Home, Detail]"]
+        T2["Search탭: [Search, Result]"]
+        T1 ---|"물리적 분리"| T2
+    end
+```
+
+Navigation 2는 하나의 백스택에서 여러 탭 상태를 관리 → "저장/복원" 메커니즘 필요
+Navigation 3은 각 탭마다 독립 스택 → saveState/restoreState 자체가 불필요
+
+> 출처: [NowInAndroid NavigationState.kt](https://github.com/android/nowinandroid/blob/main/core/navigation/src/main/kotlin/com/google/samples/apps/nowinandroid/core/navigation/NavigationState.kt),
+> [NowInAndroid Navigator.kt](https://github.com/android/nowinandroid/blob/main/core/navigation/src/main/kotlin/com/google/samples/apps/nowinandroid/core/navigation/Navigator.kt)
+
+---
+
+### 패턴 4: NavHost vs NavDisplay — 화면 조립 방식
+
+```kotlin
+// Navigation 2 (JetNews)
+NavHost(navController = navController, startDestination = HOME_ROUTE) {
+    composable(HOME_ROUTE, deepLinks = listOf(navDeepLink { ... })) {
+        HomeRoute(...)
+    }
+    composable(INTERESTS_ROUTE) { InterestsRoute(...) }
+}
+
+// Navigation 3 (NowInAndroid)
+val entryProvider = entryProvider {
+    forYouEntry(navigator)       // feature 모듈 확장함수
+    bookmarksEntry(navigator)
+    topicEntry(navigator)
+}
+
+NavDisplay(
+    entries = appState.navigationState.toEntries(entryProvider),
+    sceneStrategy = listDetailStrategy,   // Adaptive Layout (태블릿 대응)
+    onBack = { navigator.goBack() },
+)
+```
+
+**NavDisplay의 장점:**
+- `sceneStrategy`로 List-Detail adaptive layout 자동 지원 (태블릿/폴더블)
+- 백스택이 `SnapshotStateList`라서 Compose 상태 시스템과 자연스럽게 통합
+- `entryProvider`가 각 feature 모듈의 확장함수 → 모듈 독립성 강화
+
+> 출처: [NowInAndroid NiaApp.kt](https://github.com/android/nowinandroid/blob/main/app/src/main/kotlin/com/google/samples/apps/nowinandroid/ui/NiaApp.kt)
+
+---
+
+### 종합 비교: Navigation 2 vs Navigation 3
+
+| 관점 | Navigation 2 (JetNews) | Navigation 3 (NowInAndroid) |
+|------|------------------------|----------------------------|
+| 백스택 소유 | NavController (프레임워크) | 개발자 (SnapshotStateList) |
+| Route 정의 | `@Serializable` Route 또는 문자열 | `@Serializable NavKey` |
+| 화면 등록 | `NavHost { composable<T> { } }` | `entryProvider { entry<T> { } }` |
+| 화면 표시 | `NavHost` | `NavDisplay` |
+| 탭 전환 | `popUpTo + saveState + restoreState` | `topLevelStack` 리스트 조작 |
+| 모듈 캡슐화 | `NavGraphBuilder` 확장함수 | api/impl 모듈 분리 |
+| 테스트 | `TestNavHostController` 필요 | 순수 Kotlin 클래스 테스트 |
+| Adaptive Layout | 별도 구현 필요 | `sceneStrategy`로 내장 지원 |
+| DeepLink | `navDeepLink` 지원 | 아직 미지원 (진행 중) |
+
+---
+
+## 참고 링크
+
+- [Navigation Compose 공식 문서](https://developer.android.com/develop/ui/compose/navigation)
+- [Type-Safe Navigation 공식 문서](https://developer.android.com/guide/navigation/design/type-safety)
+- [Encapsulate Navigation 공식 문서](https://developer.android.com/guide/navigation/design/encapsulate)
+- [Navigation Testing 공식 문서](https://developer.android.com/guide/navigation/testing)
+- [NowInAndroid Navigation 구현](https://github.com/android/nowinandroid/tree/main/app/src/main/kotlin/com/google/samples/apps/nowinandroid/navigation)
+- [JetNews Navigation](https://github.com/android/compose-samples/blob/main/JetNews/app/src/main/java/com/example/jetnews/ui/JetnewsNavGraph.kt)
+- [NowInAndroid Issue #1817 - navigateUp vs popBackStack](https://github.com/android/nowinandroid/issues/1817)
+
+---
+
+## 다음 학습
+
+- [ ] PendingIntent + Notification 딥링크 이동
+  - TaskStackBuilder로 스택 채우면서 이동 (뒤로가기 시 상위 화면 순서대로)
+  - FLAG_ACTIVITY_NEW_TASK로 스택 없이 바로 화면 이동
+- [ ] Navigation 3 (stable 출시) — NavKey, NavDisplay, NavBackStack, sceneStrategy 실습
